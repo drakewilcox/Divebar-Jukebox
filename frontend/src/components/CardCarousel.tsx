@@ -431,7 +431,7 @@ function AlbumRow({ album, collection, editMode, onEditClick }: AlbumRowProps) {
     const MAX_GAP = 1.75; // rem
     const LINE_HEIGHT_RATIO = 1.4; // line-height relative to font-size
     const LONG_TITLE_THRESHOLD = 22; // Character count that likely causes wrapping
-    const SAFETY_BUFFER = 15; // Moderate buffer
+    const SAFETY_BUFFER = 20; // Buffer to prevent overflow (accounts for circular badges and wrapping)
     
     const trackCount = albumDetails.tracks.length;
     const containerStyles = window.getComputedStyle(container);
@@ -482,12 +482,20 @@ function AlbumRow({ album, collection, editMode, onEditClick }: AlbumRowProps) {
     
     // Check actual rendered height after a microtask (let DOM update)
     requestAnimationFrame(() => {
-      const hasOverflow = container.scrollHeight > container.clientHeight;
+      // Keep reducing font size until no overflow
+      const checkAndAdjust = () => {
+        const hasOverflow = container.scrollHeight > container.clientHeight;
+        
+        if (hasOverflow && currentFontSize > MIN_FONT_SIZE) {
+          // Overflow detected, try smaller font sizes
+          currentFontSize = calculateAndApply(currentFontSize - 0.5);
+          
+          // Check again after next frame
+          requestAnimationFrame(checkAndAdjust);
+        }
+      };
       
-      if (hasOverflow && currentFontSize > MIN_FONT_SIZE) {
-        // Overflow detected, try smaller font sizes
-        calculateAndApply(currentFontSize - 0.5);
-      }
+      checkAndAdjust();
     });
     
   }, [albumDetails?.tracks]);
