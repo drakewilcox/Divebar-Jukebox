@@ -119,6 +119,29 @@ export default function CardCarousel({ albums, collection, collections, onCollec
   // Previous set for sliding right
   const prevLeftCard = prevAlbums.slice(0, 2);
   
+  // Prefetch only the *next* card (2 albums) so "next" feels instant without extra requests competing.
+  // No prefetch for prev to avoid 4 concurrent requests; prev may load on demand.
+  useEffect(() => {
+    if (currentIndex + 4 >= paddedAlbums.length) return;
+    const nextA = paddedAlbums[currentIndex + 4];
+    const nextB = paddedAlbums[currentIndex + 5];
+    [nextA, nextB].forEach((album) => {
+      if (!album) return;
+      queryClient.prefetchQuery({
+        queryKey: ['album-details', album.id, collection.slug],
+        queryFn: async () => {
+          const response = await albumsApi.getById(album.id, collection.slug);
+          return response.data;
+        },
+        staleTime: 5 * 60 * 1000,
+      });
+      if (album.cover_art_path) {
+        const img = new Image();
+        img.src = `/api/media/${album.cover_art_path}`;
+      }
+    });
+  }, [currentIndex, paddedAlbums, collection.slug, queryClient]);
+  
   const handlePrevious = () => {
     if (isSliding || currentIndex === 0) return;
     setPressedButton('prev');
@@ -514,13 +537,14 @@ function AlbumRow({ album, collection, editMode, onEditClick }: AlbumRowProps) {
   const [isHovered, setIsHovered] = useState(false);
   const tracksContainerRef = useRef<HTMLDivElement>(null);
   
-  // Fetch album details with tracks
+  // Fetch album details with tracks. staleTime so prefetched/cached data is used immediately without refetch.
   const { data: albumDetails } = useQuery({
     queryKey: ['album-details', album.id, collection.slug],
     queryFn: async () => {
       const response = await albumsApi.getById(album.id, collection.slug);
       return response.data;
     },
+    staleTime: 5 * 60 * 1000, // 5 min – use cache when navigating back or when prefetch already loaded
   });
   
   // Dynamic sizing for tracks based on available space
