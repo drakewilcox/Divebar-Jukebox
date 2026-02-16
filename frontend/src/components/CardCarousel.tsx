@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Album, Collection } from '../types';
 import { albumsApi, queueApi } from '../services/api';
@@ -327,6 +327,9 @@ export default function CardCarousel({ albums, collection, collections, onCollec
             )}
           </div>
         )}
+        
+        {/* Glass overlay effect (top layer) */}
+        <div className="glass-overlay"></div>
       </div>
       
       <div className="carousel-controls">
@@ -406,6 +409,8 @@ interface AlbumRowProps {
 
 function AlbumRow({ album, collection, editMode, onEditClick }: AlbumRowProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const tracksContainerRef = useRef<HTMLDivElement>(null);
+  
   // Fetch album details with tracks
   const { data: albumDetails } = useQuery({
     queryKey: ['album-details', album.id, collection.slug],
@@ -414,6 +419,78 @@ function AlbumRow({ album, collection, editMode, onEditClick }: AlbumRowProps) {
       return response.data;
     },
   });
+  
+  // Dynamic sizing for tracks based on available space
+  useLayoutEffect(() => {
+    const container = tracksContainerRef.current;
+    if (!container || !albumDetails?.tracks || albumDetails.tracks.length === 0) return;
+    
+    const MIN_FONT_SIZE = 11; // px
+    const MAX_FONT_SIZE = 14.5; // px
+    const MIN_GAP = 0.1; // rem
+    const MAX_GAP = 1.75; // rem
+    const LINE_HEIGHT_RATIO = 1.4; // line-height relative to font-size
+    const LONG_TITLE_THRESHOLD = 22; // Character count that likely causes wrapping
+    const SAFETY_BUFFER = 15; // Moderate buffer
+    
+    const trackCount = albumDetails.tracks.length;
+    const containerStyles = window.getComputedStyle(container);
+    const paddingTop = parseFloat(containerStyles.paddingTop);
+    const paddingBottom = parseFloat(containerStyles.paddingBottom);
+    const availableHeight = container.clientHeight - paddingTop - paddingBottom - SAFETY_BUFFER;
+    const remInPx = parseFloat(getComputedStyle(document.documentElement).fontSize);
+    const minGapPx = MIN_GAP * remInPx;
+    
+    // Estimate how many tracks will wrap to 2 lines based on title length
+    const longTitleCount = albumDetails.tracks.filter(t => t.title.length > LONG_TITLE_THRESHOLD).length;
+    const wrapRatio = longTitleCount / trackCount;
+    
+    const calculateAndApply = (startFontSize: number) => {
+      for (let fontSize = startFontSize; fontSize >= MIN_FONT_SIZE; fontSize -= 0.5) {
+        const lineHeight = fontSize * LINE_HEIGHT_RATIO;
+        const avgLinesPerTrack = 1 + (wrapRatio * 1.0);
+        const trackHeight = lineHeight * avgLinesPerTrack;
+        
+        const minTotalTrackHeight = trackHeight * trackCount;
+        const minTotalGapHeight = minGapPx * (trackCount - 1);
+        const minRequiredHeight = minTotalTrackHeight + minTotalGapHeight;
+        
+        if (minRequiredHeight <= availableHeight) {
+          const remainingSpace = availableHeight - minTotalTrackHeight;
+          const calculatedGapPx = remainingSpace / (trackCount - 1);
+          const calculatedGapRem = calculatedGapPx / remInPx;
+          const optimalGap = Math.min(MAX_GAP, Math.max(MIN_GAP, calculatedGapRem));
+          
+          // Apply CSS custom properties
+          container.style.setProperty('--track-font-size', `${fontSize}px`);
+          container.style.setProperty('--track-gap', `${optimalGap}rem`);
+          container.style.setProperty('--track-line-height', String(LINE_HEIGHT_RATIO));
+          
+          return fontSize;
+        }
+      }
+      
+      // Fallback to minimum (shouldn't happen with proper calculations)
+      container.style.setProperty('--track-font-size', `${MIN_FONT_SIZE}px`);
+      container.style.setProperty('--track-gap', `${Math.min(MAX_GAP, MIN_GAP)}rem`);
+      container.style.setProperty('--track-line-height', String(LINE_HEIGHT_RATIO));
+      return MIN_FONT_SIZE;
+    };
+    
+    // Initial calculation
+    let currentFontSize = calculateAndApply(MAX_FONT_SIZE);
+    
+    // Check actual rendered height after a microtask (let DOM update)
+    requestAnimationFrame(() => {
+      const hasOverflow = container.scrollHeight > container.clientHeight;
+      
+      if (hasOverflow && currentFontSize > MIN_FONT_SIZE) {
+        // Overflow detected, try smaller font sizes
+        calculateAndApply(currentFontSize - 0.5);
+      }
+    });
+    
+  }, [albumDetails?.tracks]);
   
   const displayNumber = String(album.display_number || 0).padStart(3, '0');
   
@@ -480,7 +557,7 @@ function AlbumRow({ album, collection, editMode, onEditClick }: AlbumRowProps) {
         </div>
         
         {albumDetails && albumDetails.tracks && (
-          <div className="album-row-tracks">
+          <div className="album-row-tracks" ref={tracksContainerRef}>
             {albumDetails.tracks.map((track, index) => (
               <div key={track.id} className="track-line">
                 <span className="track-number">{String(index + 1).padStart(2, '0')}</span>

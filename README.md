@@ -150,8 +150,8 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 
 
 ### Visual Enhancements
-- [ ] Add paper textures to album info cards for vintage jukebox aesthetic
-- [ ] Add more stylistic elements to make UI look more like a vintage jukebox
+- [x] Add paper textures to album info cards for vintage jukebox aesthetic
+- [x] Add more stylistic elements to make UI look more like a vintage jukebox
 - [ ] Implement variable spacing and text sizing for track names to fill the area better
 - [ ] Enhance carousel slider animations for smoother transitions
 - [ ] Work on making Logo look more like an NSM jukebox. 

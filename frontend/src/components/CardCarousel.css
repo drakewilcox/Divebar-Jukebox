@@ -21,16 +21,16 @@
   border-radius: 4px;
   background: 
     linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%);
-  box-shadow: 
+  /* box-shadow: 
     inset 0 0 80px rgba(0, 0, 0, 0.95),
     inset 0 12px 50px rgba(0, 0, 0, 0.9),
     inset 0 -12px 50px rgba(0, 0, 0, 0.9),
     inset 8px 0 40px rgba(0, 0, 0, 0.85),
     inset -8px 0 40px rgba(0, 0, 0, 0.85),
-    0 8px 24px rgba(0, 0, 0, 0.5);
+    0 8px 24px rgba(0, 0, 0, 0.5); */
 }
 
-/* Glass overlay effect - subtle reflection */
+/* Darkening gradient behind lights for depth - with reduced opacity */
 .carousel-container::before {
   content: '';
   position: absolute;
@@ -38,22 +38,28 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.06) 0%,
-    rgba(255, 255, 255, 0.02) 10%,
-    rgba(255, 255, 255, 0.01) 25%,
-    rgba(0, 0, 0, 0.02) 50%,
-    rgba(255, 255, 255, 0.01) 75%,
-    rgba(255, 255, 255, 0.02) 90%,
-    rgba(255, 255, 255, 0.06) 100%
-  );
+  background: 
+    /* Top darkening shadow */
+    radial-gradient(
+      ellipse 700px 350px at 50% 0%,
+      transparent 0%,
+      rgba(0, 0, 0, 0.5) 50%,
+      rgba(0, 0, 0, 0.7) 100%
+    ),
+    /* Bottom darkening shadow */
+    radial-gradient(
+      ellipse 700px 350px at 50% 100%,
+      transparent 0%,
+      rgba(0, 0, 0, 0.5) 50%,
+      rgba(0, 0, 0, 0.7) 100%
+    );
   pointer-events: none;
   z-index: 5000;
-  mix-blend-mode: soft-light;
+  opacity: .15;
 }
 
-/* Top and bottom lighting - reduced */
+
+/* Four rainbow gradient light sources - 2 top, 2 bottom */
 .carousel-container::after {
   content: '';
   position: absolute;
@@ -62,17 +68,75 @@
   right: 0;
   bottom: 0;
   background: 
-    linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.12) 0%,
-      rgba(255, 255, 255, 0.06) 5%,
-      rgba(255, 255, 255, 0) 12%,
-      rgba(255, 255, 255, 0) 88%,
-      rgba(255, 255, 255, 0.06) 95%,
-      rgba(255, 255, 255, 0.12) 100%
+    /* Top left light - bright white center to rainbow gradient (warm spectrum) */
+    radial-gradient(
+      ellipse 600px 400px at 25% 0%,
+      rgba(255, 255, 255, 0.4) 0%,
+      rgba(255, 250, 240, 0.38) 12%,
+      rgba(255, 240, 220, 0.35) 20%,
+      rgba(255, 180, 100, 0.25) 30%,
+      rgba(255, 230, 100, 0.2) 42%,
+      rgba(150, 255, 150, 0.15) 55%,
+      transparent 80%
+    ),
+    /* Top right light - bright white center to rainbow gradient (cool spectrum) */
+    radial-gradient(
+      ellipse 600px 400px at 75% 0%,
+      rgba(255, 255, 255, 0.4) 0%,
+      rgba(240, 250, 255, 0.38) 12%,
+      rgba(220, 240, 255, 0.35) 20%,
+      rgba(100, 180, 255, 0.25) 30%,
+      rgba(150, 100, 255, 0.2) 42%,
+      rgba(255, 100, 255, 0.15) 55%,
+      transparent 80%
+    ),
+    /* Bottom left light - bright white center to rainbow gradient (purple to green) */
+    radial-gradient(
+      ellipse 600px 400px at 25% 100%,
+      rgba(255, 255, 255, 0.4) 0%,
+      rgba(250, 240, 255, 0.38) 12%,
+      rgba(240, 220, 255, 0.35) 20%,
+      rgba(255, 100, 200, 0.25) 30%,
+      rgba(255, 150, 150, 0.2) 42%,
+      rgba(255, 200, 100, 0.15) 55%,
+      transparent 80%
+    ),
+    /* Bottom right light - bright white center to rainbow gradient (green to cyan) */
+    radial-gradient(
+      ellipse 600px 400px at 75% 100%,
+      rgba(255, 255, 255, 0.4) 0%,
+      rgba(240, 255, 250, 0.38) 12%,
+      rgba(220, 255, 240, 0.35) 20%,
+      rgba(100, 255, 180, 0.25) 30%,
+      rgba(100, 220, 255, 0.2) 42%,
+      rgba(150, 150, 255, 0.15) 55%,
+      transparent 80%
     );
   pointer-events: none;
   z-index: 5001;
+  opacity: .6;
+}
+
+/* Glass overlay effect - top layer (subtle reflection simulating glass) */
+.glass-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.15) 0%,
+    rgba(255, 255, 255, 0.08) 10%,
+    rgba(255, 255, 255, 0.03) 25%,
+    rgba(0, 0, 0, 0.05) 50%,
+    rgba(255, 255, 255, 0.03) 75%,
+    rgba(255, 255, 255, 0.08) 90%,
+    rgba(255, 255, 255, 0.15) 100%
+  );
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  z-index: 5002;
 }
 
 .carousel-controls {
@@ -279,6 +343,7 @@
   flex: 1;
   position: relative;
   display: flex;
+  /* display: none; */
 }
 
 .slider-card {
@@ -618,7 +683,7 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: var(--track-gap, 0.25rem);
   padding: 5px 8px 8px 8px;
   position: relative;
   z-index: 2;
@@ -645,7 +710,8 @@
 .track-line {
   display: flex;
   gap: 0.5rem;
-  font-size: 13px;
+  font-size: var(--track-font-size, 11px);
+  line-height: var(--track-line-height, 1.4);
   color: #000;
   align-items: flex-start;
 }
