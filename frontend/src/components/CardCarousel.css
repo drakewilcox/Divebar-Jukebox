@@ -8,6 +8,7 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   width: 100%;
   max-width: 1366px;
+  position: relative;
 }
 
 .carousel-container {
@@ -139,6 +140,10 @@
   z-index: 5002;
 }
 
+.carousel-controls-wrapper {
+  position: relative;
+}
+
 .carousel-controls {
   display: flex;
   justify-content: space-between;
@@ -147,6 +152,8 @@
   padding: 1rem;
   background-color: rgba(0, 0, 0, 0.3);
   border-radius: 8px;
+  position: relative;
+  z-index: 100;
 }
 
 .controls-left {
@@ -154,6 +161,149 @@
   flex-direction: row;
   align-items: center;
   gap: 1rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.queue-controls-center {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  justify-content: center;
+  min-width: 0;
+}
+
+.nav-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.now-playing-mini {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0 0.75rem;
+  height: 66px;
+  min-width: 200px;
+  background: linear-gradient(180deg, #0d1a0d 0%, #152815 50%, #0d1a0d 100%);
+  border-radius: 6px;
+  box-shadow: 
+    inset 0 2px 8px rgba(0, 0, 0, 0.8),
+    inset 0 0 30px rgba(0, 80, 20, 0.3);
+  max-width: 400px;
+  cursor: pointer;
+}
+
+.now-playing-cover-wrap {
+  position: relative;
+  width: 50px;
+  height: 50px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.8), inset 0 0 12px rgba(0, 80, 20, 0.2);
+  /* Green base for luminosity blend - bright areas of image show as bright green, dark as dark green */
+  background: #5fdf5f;
+}
+
+.now-playing-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  /* Grayscale so we only have luminance; luminosity blend uses that to tint the green background */
+  filter: grayscale(1);
+  mix-blend-mode: luminosity;
+}
+
+.now-playing-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.now-playing-title {
+  color: #7FFF7F;
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 
+    0 0 6px rgba(100, 255, 100, 0.6),
+    0 0 12px rgba(100, 255, 100, 0.3);
+}
+
+.now-playing-artist {
+  color: rgba(127, 255, 127, 0.85);
+  font-size: 0.8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 0 4px rgba(100, 255, 100, 0.4);
+}
+
+.now-playing-time {
+  color: #7FFF7F;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+  flex-shrink: 0;
+  text-shadow: 
+    0 0 6px rgba(100, 255, 100, 0.6),
+    0 0 12px rgba(100, 255, 100, 0.3);
+}
+
+.queue-panel {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 300px;
+  max-height: 0;
+  overflow: hidden;
+  background-color: var(--background-card);
+  border-radius: 8px 8px 0 0;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.7);
+  transition: max-height 0.3s ease;
+  z-index: 5100;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0rem;
+}
+
+/* Same layered look as carousel-controls: base + 30% black overlay */
+.queue-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.queue-panel.open {
+  max-height: 600px;
+  height: fit-content;
+}
+
+.queue-panel-content {
+  max-height: calc(600px - 2rem);
+  overflow-y: auto;
+  padding: 1rem;
+  position: relative;
+  z-index: 1;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.queue-panel-content::-webkit-scrollbar {
+  display: none;
 }
 
 .settings-button {
@@ -282,10 +432,6 @@
   white-space: nowrap;
 }
 
-.nav-buttons {
-  display: flex;
-  gap: 0.5rem;
-}
 
 .nav-button {
   width: 100px;
@@ -732,6 +878,11 @@
 .track-icon {
   margin-left: 0.25rem;
   font-size: 0.7em;
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  position: relative;
+  top: -0.05em;
 }
 
 .track-favorite {

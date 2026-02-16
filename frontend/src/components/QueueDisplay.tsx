@@ -100,7 +100,9 @@ export default function QueueDisplay({ collection }: Props) {
   
   const stopMutation = useMutation({
     mutationFn: async () => {
-      // Stop playback and clear queue
+      // Stop local audio first so playback stops immediately
+      audioService.stop();
+      // Then stop on backend and clear queue
       await playbackApi.stop(collection.slug);
       await queueApi.clear(collection.slug);
     },

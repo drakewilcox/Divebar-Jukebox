@@ -1,9 +1,8 @@
-import { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { collectionsApi, queueApi, playbackApi } from '../services/api';
 import { Collection } from '../types';
 import CardCarousel from './CardCarousel';
-import QueueDisplay from './QueueDisplay';
 import './JukeboxDisplay.css';
 
 interface Props {
@@ -13,7 +12,6 @@ interface Props {
 }
 
 export default function JukeboxDisplay({ collection, collections, onCollectionChange }: Props) {
-  const [isQueueOpen, setIsQueueOpen] = useState(false);
   const queryClient = useQueryClient();
   
   // Fetch albums for this collection
@@ -66,21 +64,6 @@ export default function JukeboxDisplay({ collection, collections, onCollectionCh
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queue?.length, playbackState?.is_playing, playbackState?.current_track_id, collection.slug]);
   
-  // Keyboard shortcut to toggle queue with "Q" key
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Only toggle if not typing in an input/textarea
-      if (e.key.toLowerCase() === 'q' && 
-          !(e.target instanceof HTMLInputElement) && 
-          !(e.target instanceof HTMLTextAreaElement)) {
-        setIsQueueOpen(prev => !prev);
-      }
-    };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-  
   if (isLoading) {
     return <div className="jukebox-loading">Loading albums...</div>;
   }
@@ -103,17 +86,6 @@ export default function JukeboxDisplay({ collection, collections, onCollectionCh
           collections={collections}
           onCollectionChange={onCollectionChange}
         />
-      </div>
-      
-      <button
-        className={`queue-toggle ${isQueueOpen ? 'open' : ''}`}
-        onClick={() => setIsQueueOpen(!isQueueOpen)}
-      >
-        {isQueueOpen ? '▶ ' : '◀'}
-      </button>
-      
-      <div className={`jukebox-sidebar ${isQueueOpen ? 'open' : ''}`}>
-        <QueueDisplay collection={collection} />
       </div>
     </div>
   );

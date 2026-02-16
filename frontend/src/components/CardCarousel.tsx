@@ -2,10 +2,12 @@ import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MdStar, MdFiberManualRecord, MdSettings } from 'react-icons/md';
 import { Album, Collection } from '../types';
-import { albumsApi, queueApi } from '../services/api';
+import { albumsApi, queueApi, playbackApi } from '../services/api';
+import audioService from '../services/audio';
 import SettingsModal from './SettingsModal';
 import AlbumEditModal from './Admin/AlbumEditModal';
 import LCDDisplay from './LCDDisplay';
+import QueueDisplay from './QueueDisplay';
 import './CardCarousel.css';
 
 interface Props {
@@ -25,8 +27,56 @@ export default function CardCarousel({ albums, collection, collections, onCollec
   const [editMode, setEditMode] = useState(false);
   const [editingAlbumId, setEditingAlbumId] = useState<string | null>(null);
   const [pressedButton, setPressedButton] = useState<'prev' | 'next' | null>(null);
+  const [isQueueOpen, setIsQueueOpen] = useState(false);
+  const [nowPlayingPositionMs, setNowPlayingPositionMs] = useState(0);
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
+  
+  // Fetch queue and playback state
+  const { data: queue } = useQuery({
+    queryKey: ['queue', collection.slug],
+    queryFn: async () => {
+      const response = await queueApi.get(collection.slug);
+      return response.data;
+    },
+    refetchInterval: 2000,
+  });
+  
+  const { data: playbackState } = useQuery({
+    queryKey: ['playback-state', collection.slug],
+    queryFn: async () => {
+      const response = await playbackApi.getState(collection.slug);
+      return response.data;
+    },
+    refetchInterval: 1000,
+  });
+  
+  const hasQueueContent = queue && queue.length > 0;
+
+  // Live position for now-playing countdown (updates from audio service)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (audioService.isPlaying()) {
+        setNowPlayingPositionMs(audioService.getCurrentTime() * 1000);
+      }
+    }, 100);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (playbackState?.current_track_id) {
+      setNowPlayingPositionMs(playbackState.current_position_ms ?? 0);
+    } else {
+      setNowPlayingPositionMs(0);
+    }
+  }, [playbackState?.current_track_id, playbackState?.current_position_ms]);
+
+  const formatTimeRemaining = (durationMs: number, currentMs: number) => {
+    const remainingMs = Math.max(0, durationMs - currentMs);
+    const minutes = Math.floor(remainingMs / 60000);
+    const seconds = Math.floor((remainingMs % 60000) / 1000);
+    return `${minutes}:${String(seconds).padStart(2, '0')}`;
+  };
 
   // Listen for edit mode changes from localStorage
   useEffect(() => {
@@ -213,6 +263,21 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
   }, []);
   
+  // Keyboard shortcut to toggle queue with "Q" key
+  useEffect(() => {
+    const handleQKey = (e: KeyboardEvent) => {
+      // Only toggle if not typing in an input/textarea
+      if (e.key.toLowerCase() === 'q' && 
+          !(e.target instanceof HTMLInputElement) && 
+          !(e.target instanceof HTMLTextAreaElement)) {
+        setIsQueueOpen(prev => !prev);
+      }
+    };
+    
+    window.addEventListener('keydown', handleQKey);
+    return () => window.removeEventListener('keydown', handleQKey);
+  }, []);
+  
   return (
     <div className="card-carousel">
       <div className="carousel-container">
@@ -333,7 +398,15 @@ export default function CardCarousel({ albums, collection, collections, onCollec
         <div className="glass-overlay"></div>
       </div>
       
-      <div className="carousel-controls">
+      <div className="carousel-controls-wrapper">
+        {/* Upward-expanding queue panel */}
+        <div className={`queue-panel ${isQueueOpen ? 'open' : ''}`}>
+          <div className="queue-panel-content">
+            <QueueDisplay collection={collection} />
+          </div>
+        </div>
+        
+        <div className="carousel-controls">
         <div className="controls-left">
           <button
             className="settings-button"
@@ -358,9 +431,37 @@ export default function CardCarousel({ albums, collection, collections, onCollec
           </div>
         </div>
         
-        {/* <div className="carousel-title">
-          Dive Bar Jukebox
-        </div> */}
+        <div className="queue-controls-center">
+          <div
+            className="now-playing-mini"
+            role="button"
+            tabIndex={0}
+            onClick={() => setIsQueueOpen(!isQueueOpen)}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIsQueueOpen(prev => !prev); } }}
+            title={isQueueOpen ? 'Close queue (Q)' : 'Open queue (Q)'}
+          >
+            {playbackState?.current_track ? (
+              <>
+                {playbackState.current_track.cover_art_path && (
+                  <div className="now-playing-cover-wrap">
+                    <img 
+                      src={`/api/media/${playbackState.current_track.cover_art_path}`}
+                      alt={playbackState.current_track.album_title}
+                      className="now-playing-cover"
+                    />
+                  </div>
+                )}
+                <div className="now-playing-info">
+                  <div className="now-playing-title">{playbackState.current_track.title}</div>
+                  <div className="now-playing-artist">{playbackState.current_track.artist}</div>
+                </div>
+                <div className="now-playing-time">
+                  {formatTimeRemaining(playbackState.current_track.duration_ms, nowPlayingPositionMs)}
+                </div>
+              </>
+            ) : null}
+          </div>
+        </div>
         
         <div className="nav-buttons">
           <button
@@ -381,6 +482,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
             ▶
           </button>
         </div>
+      </div>
       </div>
 
       <SettingsModal

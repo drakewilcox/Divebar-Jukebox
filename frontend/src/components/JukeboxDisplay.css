@@ -28,7 +28,7 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  z-index: 100;
+  z-index: 5600;
   box-shadow: -2px 0 10px rgba(0, 0, 0, 0.5);
 }
 
@@ -52,7 +52,7 @@
   background-color: var(--background-dark);
   box-shadow: -4px 0 20px rgba(0, 0, 0, 0.7);
   transition: right 0.3s ease;
-  z-index: 99;
+  z-index: 5500;
   padding: 1rem;
 }
 
