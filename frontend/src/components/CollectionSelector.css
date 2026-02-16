@@ -1,0 +1,32 @@
+.collection-selector {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.collection-selector label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.collection-selector select {
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  background-color: var(--background-dark);
+  color: var(--text-primary);
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.collection-selector select:hover {
+  border-color: var(--primary-color);
+}
+
+.collection-selector select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
