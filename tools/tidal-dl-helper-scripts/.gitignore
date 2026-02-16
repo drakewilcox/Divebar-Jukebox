@@ -1,0 +1,9 @@
+.env
+.spotify_cache*
+.tidal_session.json
+tidal_dl_urls.txt
+*.json
+__pycache__/
+.venv/
+venv/
+*.pyc
