@@ -48,6 +48,8 @@ class UpdateAlbumRequest(BaseModel):
 class UpdateTrackRequest(BaseModel):
     title: str | None = None
     enabled: bool | None = None
+    is_favorite: bool | None = None
+    is_recommended: bool | None = None
 
 
 class CreateCollectionRequest(BaseModel):
@@ -131,7 +133,10 @@ def get_album_details(album_id: str, db: Session = Depends(get_db)):
         "title": track.title,
         "artist": track.artist,
         "duration_ms": track.duration_ms,
-        "enabled": track.enabled
+        "enabled": track.enabled,
+        "is_favorite": track.is_favorite,
+        "is_recommended": track.is_recommended,
+        "file_path": track.file_path
     } for track in sorted(album.tracks, key=lambda t: (t.disc_number, t.track_number))]
     
     # Get collections this album is in
@@ -164,6 +169,10 @@ def update_track(track_id: str, request: UpdateTrackRequest, db: Session = Depen
         track.title = request.title
     if request.enabled is not None:
         track.enabled = request.enabled
+    if request.is_favorite is not None:
+        track.is_favorite = request.is_favorite
+    if request.is_recommended is not None:
+        track.is_recommended = request.is_recommended
     
     db.commit()
     return {"message": "Track updated", "id": track.id}

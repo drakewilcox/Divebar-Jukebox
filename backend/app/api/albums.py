@@ -20,6 +20,9 @@ class TrackResponse(BaseModel):
     artist: str
     duration_ms: int
     enabled: bool
+    is_favorite: bool
+    is_recommended: bool
+    file_path: str
     
     class Config:
         from_attributes = True

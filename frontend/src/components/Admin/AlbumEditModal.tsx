@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { MdPlayArrow, MdStop, MdVisibility, MdVisibilityOff, MdStar, MdStarBorder, MdCircle } from 'react-icons/md';
 import { adminApi, collectionsApi } from '../../services/api';
+import { audioService } from '../../services/audio';
 import './AlbumEditModal.css';
 
 interface Props {
@@ -15,6 +17,13 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
   const [year, setYear] = useState<number | ''>('');
   const [tracks, setTracks] = useState<any[]>([]);
   const [selectedCollections, setSelectedCollections] = useState<Set<string>>(new Set());
+  
+  // Preview playback state
+  const [previewTrackId, setPreviewTrackId] = useState<string | null>(null);
+  const [previewProgress, setPreviewProgress] = useState(0);
+  const [previewDuration, setPreviewDuration] = useState(0);
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
+  const progressIntervalRef = useRef<number | null>(null);
 
   const { data: albumData, isLoading } = useQuery({
     queryKey: ['album-details', albumId],
@@ -41,6 +50,20 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
       setSelectedCollections(new Set(albumData.collection_ids));
     }
   }, [albumData]);
+
+  // Cleanup preview audio on unmount or when modal closes
+  useEffect(() => {
+    return () => {
+      if (previewAudioRef.current) {
+        previewAudioRef.current.pause();
+        previewAudioRef.current = null;
+      }
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+    };
+  }, []);
 
   const updateAlbumMutation = useMutation({
     mutationFn: () =>
@@ -123,7 +146,21 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
   };
 
   const handleTrackEnabledToggle = (trackId: string, enabled: boolean) => {
+    // Update local state immediately for UI feedback
+    setTracks(tracks.map(t => t.id === trackId ? { ...t, enabled } : t));
     updateTrackMutation.mutate({ trackId, data: { enabled } });
+  };
+
+  const handleTrackFavoriteToggle = (trackId: string, is_favorite: boolean) => {
+    // Update local state immediately for UI feedback
+    setTracks(tracks.map(t => t.id === trackId ? { ...t, is_favorite } : t));
+    updateTrackMutation.mutate({ trackId, data: { is_favorite } });
+  };
+
+  const handleTrackRecommendedToggle = (trackId: string, is_recommended: boolean) => {
+    // Update local state immediately for UI feedback
+    setTracks(tracks.map(t => t.id === trackId ? { ...t, is_recommended } : t));
+    updateTrackMutation.mutate({ trackId, data: { is_recommended } });
   };
 
   const toggleCollection = (collectionId: string) => {
@@ -134,6 +171,75 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
       newSet.add(collectionId);
     }
     setSelectedCollections(newSet);
+  };
+
+  const handlePreviewPlay = async (trackId: string) => {
+    // If this track is already playing, stop it
+    if (previewTrackId === trackId && previewAudioRef.current) {
+      previewAudioRef.current.pause();
+      setPreviewTrackId(null);
+      setPreviewProgress(0);
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+      return;
+    }
+
+    // Stop any currently playing preview
+    if (previewAudioRef.current) {
+      previewAudioRef.current.pause();
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+    }
+
+    // Pause queue playback if something is playing
+    if (audioService.isPlaying()) {
+      audioService.pause();
+    }
+
+    // Create new audio element and play using the stream endpoint
+    const audio = new Audio(`http://localhost:8000/api/playback/stream/${trackId}`);
+    previewAudioRef.current = audio;
+    setPreviewTrackId(trackId);
+    setPreviewProgress(0);
+
+    audio.addEventListener('loadedmetadata', () => {
+      setPreviewDuration(audio.duration);
+    });
+
+    audio.addEventListener('ended', () => {
+      setPreviewTrackId(null);
+      setPreviewProgress(0);
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+    });
+
+    try {
+      await audio.play();
+      
+      // Update progress every 100ms
+      progressIntervalRef.current = window.setInterval(() => {
+        if (audio.currentTime && audio.duration) {
+          setPreviewProgress((audio.currentTime / audio.duration) * 100);
+        }
+      }, 100);
+    } catch (error) {
+      console.error('Failed to play preview:', error);
+      setPreviewTrackId(null);
+    }
+  };
+
+  const handleProgressSeek = (trackId: string, percent: number) => {
+    if (previewAudioRef.current && previewTrackId === trackId) {
+      const newTime = (percent / 100) * previewAudioRef.current.duration;
+      previewAudioRef.current.currentTime = newTime;
+      setPreviewProgress(percent);
+    }
   };
 
   if (isLoading) {
@@ -209,21 +315,60 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
             <h3>Tracks</h3>
             <div className="tracks-list">
               {tracks.map((track) => (
-                <div key={track.id} className={`track-edit-item ${!track.enabled ? 'disabled' : ''}`}>
-                  <div className="track-edit-number">{track.disc_number > 1 ? `${track.disc_number}-` : ''}{track.track_number}</div>
-                  <input
-                    type="text"
-                    value={track.title}
-                    onChange={(e) => handleTrackTitleChange(track.id, e.target.value)}
-                    onBlur={() => updateTrackMutation.mutate({ trackId: track.id, data: { title: track.title } })}
-                    className="track-title-input"
-                  />
-                  <button
-                    className={`track-toggle ${track.enabled ? 'enabled' : 'disabled'}`}
-                    onClick={() => handleTrackEnabledToggle(track.id, !track.enabled)}
-                  >
-                    {track.enabled ? '👁️ Visible' : '👁️‍🗨️ Hidden'}
-                  </button>
+                <div key={track.id}>
+                  <div className={`track-edit-item ${!track.enabled ? 'disabled' : ''}`}>
+                    <div className="track-edit-number">{track.disc_number > 1 ? `${track.disc_number}-` : ''}{track.track_number}</div>
+                    <button
+                      className="track-preview-button"
+                      onClick={() => handlePreviewPlay(track.id)}
+                      title={previewTrackId === track.id ? 'Stop preview' : 'Play preview'}
+                    >
+                      {previewTrackId === track.id ? <MdStop size={18} /> : <MdPlayArrow size={18} />}
+                    </button>
+                    <input
+                      type="text"
+                      value={track.title}
+                      onChange={(e) => handleTrackTitleChange(track.id, e.target.value)}
+                      onBlur={() => updateTrackMutation.mutate({ trackId: track.id, data: { title: track.title } })}
+                      className="track-title-input"
+                    />
+                    <button
+                      className={`track-icon-button ${track.enabled ? 'enabled' : 'disabled'}`}
+                      onClick={() => handleTrackEnabledToggle(track.id, !track.enabled)}
+                      title={track.enabled ? 'Hide track' : 'Show track'}
+                    >
+                      {track.enabled ? <MdVisibility size={18} /> : <MdVisibilityOff size={18} />}
+                    </button>
+                    <button
+                      className={`track-icon-button ${track.is_favorite ? 'active' : ''}`}
+                      onClick={() => handleTrackFavoriteToggle(track.id, !track.is_favorite)}
+                      title="Favorite"
+                    >
+                      {track.is_favorite ? <MdStar size={18} /> : <MdStarBorder size={18} />}
+                    </button>
+                    <button
+                      className={`track-icon-button ${track.is_recommended ? 'active' : ''}`}
+                      onClick={() => handleTrackRecommendedToggle(track.id, !track.is_recommended)}
+                      title="Recommended"
+                    >
+                      <MdCircle size={18} />
+                    </button>
+                  </div>
+                  {previewTrackId === track.id && (
+                    <div className="track-preview-progress">
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={previewProgress}
+                        onChange={(e) => handleProgressSeek(track.id, parseFloat(e.target.value))}
+                        className="progress-slider"
+                        style={{
+                          background: `linear-gradient(to right, var(--primary-color) 0%, var(--primary-color) ${previewProgress}%, #000000 ${previewProgress}%, #000000 100%)`
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

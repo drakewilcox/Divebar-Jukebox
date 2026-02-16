@@ -27,6 +27,9 @@ export interface Track {
   artist: string;
   duration_ms: number;
   enabled: boolean;
+  is_favorite: boolean;
+  is_recommended: boolean;
+  file_path: string;
 }
 
 export interface AlbumDetail extends Album {

@@ -22,6 +22,8 @@ class Track(Base):
     artist = Column(String, nullable=False)
     duration_ms = Column(Integer, default=0)  # Duration in milliseconds
     enabled = Column(Boolean, default=True)  # User can disable tracks
+    is_favorite = Column(Boolean, default=False)  # User-marked favorite
+    is_recommended = Column(Boolean, default=False)  # User-marked recommended
     extra_metadata = Column(JSON, default=dict)  # Additional metadata
     created_at = Column(DateTime, default=datetime.utcnow, server_default=func.now())
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, server_default=func.now())

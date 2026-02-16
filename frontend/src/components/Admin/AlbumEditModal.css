@@ -194,6 +194,126 @@
   transform: translateY(-1px);
 }
 
+.track-preview-button {
+  padding: 0.4rem 0.6rem;
+  background-color: #000000;
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+}
+
+.track-preview-button:hover {
+  transform: scale(1.05);
+  background-color: #1a1a1a;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.track-icon-button {
+  padding: 0.4rem 0.6rem;
+  background-color: transparent;
+  color: #888888;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+}
+
+.track-icon-button:hover {
+  transform: translateY(-1px);
+  color: #666666;
+}
+
+.track-icon-button.enabled {
+  background-color: #000000;
+  border: none;
+  color: #ffffff;
+}
+
+.track-icon-button.enabled:hover {
+  background-color: #1a1a1a;
+}
+
+.track-icon-button.disabled {
+  opacity: 0.4;
+  color: #aaaaaa;
+}
+
+.track-icon-button.active {
+  background-color: var(--primary-color);
+  border: none;
+  color: #ffffff;
+}
+
+.track-icon-button.active:hover {
+  background-color: #ff8045;
+  transform: translateY(-1px);
+}
+
+.track-preview-progress {
+  padding: 0 0.75rem 0.75rem 0.75rem;
+  background-color: var(--background-dark);
+  border-radius: 0 0 6px 6px;
+  margin-top: -0.5rem;
+}
+
+.progress-slider {
+  width: 100%;
+  height: 8px;
+  -webkit-appearance: none;
+  appearance: none;
+  outline: none;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.1s ease;
+}
+
+/* Webkit browsers - Invisible thumb but keep it functional */
+.progress-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 1px;
+  height: 8px;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* Firefox - Track (unfilled portion) */
+.progress-slider::-moz-range-track {
+  width: 100%;
+  height: 8px;
+  background: #000000;
+  border-radius: 4px;
+  border: none;
+}
+
+/* Firefox - Progress (filled portion) */
+.progress-slider::-moz-range-progress {
+  height: 8px;
+  background: var(--primary-color);
+  border-radius: 4px 0 0 4px;
+}
+
+/* Firefox - Invisible thumb */
+.progress-slider::-moz-range-thumb {
+  width: 1px;
+  height: 8px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
 .modal-footer {
   display: flex;
   justify-content: flex-end;

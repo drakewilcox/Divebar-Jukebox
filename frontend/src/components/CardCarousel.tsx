@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { MdStar, MdFiberManualRecord, MdSettings } from 'react-icons/md';
 import { Album, Collection } from '../types';
 import { albumsApi, queueApi } from '../services/api';
 import SettingsModal from './SettingsModal';
@@ -339,7 +340,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
             onClick={() => setIsSettingsOpen(true)}
             title="Settings"
           >
-            ⚙
+            <MdSettings size={28} />
           </button>
 
           <div className="input-section">
@@ -569,7 +570,11 @@ function AlbumRow({ album, collection, editMode, onEditClick }: AlbumRowProps) {
             {albumDetails.tracks.map((track, index) => (
               <div key={track.id} className="track-line">
                 <span className="track-number">{String(index + 1).padStart(2, '0')}</span>
-                <span className="track-title">{track.title}</span>
+                <span className="track-title">
+                  {track.title}
+                  {track.is_favorite && <span className="track-icon track-favorite"><MdStar size={10} /></span>}
+                  {track.is_recommended && <span className="track-icon track-recommended"><MdFiberManualRecord size={8} /></span>}
+                </span>
               </div>
             ))}
           </div>
