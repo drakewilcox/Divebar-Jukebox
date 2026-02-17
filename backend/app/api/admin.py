@@ -19,6 +19,7 @@ class ScanResultResponse(BaseModel):
     albums_found: int
     albums_imported: int
     albums_updated: int
+    albums_already_exist: int
     albums_skipped: int
     tracks_imported: int
     errors: List[str]
@@ -73,7 +74,7 @@ def run_library_scan(db: Session):
 
 @router.post("/library/scan", response_model=ScanResultResponse)
 def scan_library(background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
-    """Trigger a library scan to import/update albums"""
+    """Trigger a library scan to import new albums (existing albums by file_path are skipped, not updated)."""
     album_service = AlbumService(db)
     
     # Run scan synchronously (could be moved to background for large libraries)

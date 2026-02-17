@@ -36,6 +36,7 @@ class AlbumService:
             'albums_found': 0,
             'albums_imported': 0,
             'albums_updated': 0,
+            'albums_already_exist': 0,
             'albums_skipped': 0,
             'tracks_imported': 0,
             'errors': []
@@ -47,23 +48,21 @@ class AlbumService:
             
             for album_data in albums_data:
                 try:
-                    # Check if album already exists
+                    # Match by file_path only (user may have edited title/artist in DB)
                     existing_album = self.db.query(Album).filter(
                         Album.file_path == album_data['file_path']
                     ).first()
                     
                     if existing_album:
-                        # Update existing album
-                        self._update_album_from_data(existing_album, album_data)
-                        results['albums_updated'] += 1
-                        logger.info(f"Updated album: {album_data['artist']} - {album_data['title']}")
+                        # Skip: do not overwrite user-edited metadata or custom track settings
+                        results['albums_already_exist'] += 1
+                        logger.debug(f"Already in library (skipped): {album_data['file_path']}")
                     else:
-                        # Create new album
-                        album = self._create_album_from_data(album_data)
+                        # New album: import
+                        self._create_album_from_data(album_data)
                         results['albums_imported'] += 1
+                        results['tracks_imported'] += len(album_data.get('tracks', []))
                         logger.info(f"Imported album: {album_data['artist']} - {album_data['title']}")
-                    
-                    results['tracks_imported'] += len(album_data.get('tracks', []))
                     
                 except Exception as e:
                     error_msg = f"Error importing album {album_data.get('file_path')}: {str(e)}"

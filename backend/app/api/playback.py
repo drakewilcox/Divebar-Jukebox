@@ -65,6 +65,7 @@ def get_playback_state(collection: str = Query(..., description="Collection slug
                 "duration_ms": track.duration_ms,
                 "album_title": track.album.title,
                 "album_artist": track.album.artist,
+                "album_year": track.album.year,
                 "cover_art_path": track.album.cover_art_path
             }
     
