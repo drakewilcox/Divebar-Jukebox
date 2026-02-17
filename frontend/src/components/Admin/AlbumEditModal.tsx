@@ -51,6 +51,15 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
     }
   }, [albumData]);
 
+  // Lock body scroll while modal is open
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
   // Cleanup preview audio on unmount or when modal closes
   useEffect(() => {
     return () => {
@@ -275,23 +284,27 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
                 className="form-input"
               />
             </div>
-            <div className="form-group">
-              <label>Artist</label>
-              <input
-                type="text"
-                value={artist}
-                onChange={(e) => setArtist(e.target.value)}
-                className="form-input"
-              />
-            </div>
-            <div className="form-group">
-              <label>Year</label>
-              <input
-                type="number"
-                value={year}
-                onChange={(e) => setYear(e.target.value ? parseInt(e.target.value) : '')}
-                className="form-input"
-              />
+            <div className="form-row">
+              <div className="form-group">
+                <label>Artist</label>
+                <input
+                  type="text"
+                  value={artist}
+                  onChange={(e) => setArtist(e.target.value)}
+                  className="form-input"
+                />
+              </div>
+              <div className="form-group">
+                <label>Year</label>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={year}
+                  onChange={(e) => setYear(e.target.value ? parseInt(e.target.value) : '')}
+                  className="form-input"
+                />
+              </div>
             </div>
           </div>
 
@@ -364,7 +377,7 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
                         onChange={(e) => handleProgressSeek(track.id, parseFloat(e.target.value))}
                         className="progress-slider"
                         style={{
-                          background: `linear-gradient(to right, var(--lcd-green) 0%, var(--lcd-green) ${previewProgress}%, #000000 ${previewProgress}%, #000000 100%)`
+                          background: `linear-gradient(to right, var(--primary-color) 0%, var(--primary-color) ${previewProgress}%, #000000 ${previewProgress}%, #000000 100%)`
                         }}
                       />
                     </div>
@@ -384,7 +397,7 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
             onClick={handleSave}
             disabled={updateAlbumMutation.isPending || updateCollectionsMutation.isPending}
           >
-            {updateAlbumMutation.isPending || updateCollectionsMutation.isPending ? 'Saving...' : 'Save Changes'}
+            {updateAlbumMutation.isPending || updateCollectionsMutation.isPending ? 'Saving...' : 'Save'}
           </button>
         </div>
       </div>
