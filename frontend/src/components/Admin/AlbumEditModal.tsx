@@ -24,6 +24,7 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
   const [previewDuration, setPreviewDuration] = useState(0);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   const progressIntervalRef = useRef<number | null>(null);
+  const initialLoadDoneRef = useRef(false);
 
   const { data: albumData, isLoading } = useQuery({
     queryKey: ['album-details', albumId],
@@ -41,15 +42,25 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
     },
   });
 
+  // Sync from server: full sync on first load only; on refetch (e.g. after track update) only sync tracks/collections so title/artist/year edits aren't lost
   useEffect(() => {
-    if (albumData) {
+    if (!albumData) return;
+    if (!initialLoadDoneRef.current) {
       setTitle(albumData.title);
       setArtist(albumData.artist);
       setYear(albumData.year || '');
       setTracks(albumData.tracks);
       setSelectedCollections(new Set(albumData.collection_ids));
+      initialLoadDoneRef.current = true;
+    } else {
+      setTracks(albumData.tracks);
+      setSelectedCollections(new Set(albumData.collection_ids));
     }
   }, [albumData]);
+
+  useEffect(() => {
+    initialLoadDoneRef.current = false;
+  }, [albumId]);
 
   // Lock body scroll while modal is open
   useEffect(() => {
@@ -251,6 +262,19 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
     }
   };
 
+  const formatDuration = (ms: number) => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  const formatPreviewTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
   if (isLoading) {
     return (
       <div className="modal-overlay">
@@ -345,6 +369,9 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
                       onBlur={() => updateTrackMutation.mutate({ trackId: track.id, data: { title: track.title } })}
                       className="track-title-input"
                     />
+                    <span className="track-edit-duration" title="Track duration">
+                      {formatDuration(track.duration_ms ?? 0)}
+                    </span>
                     <button
                       className={`track-icon-button ${track.enabled ? 'enabled' : 'disabled'}`}
                       onClick={() => handleTrackEnabledToggle(track.id, !track.enabled)}
@@ -380,6 +407,9 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
                           background: `linear-gradient(to right, var(--primary-color) 0%, var(--primary-color) ${previewProgress}%, #000000 ${previewProgress}%, #000000 100%)`
                         }}
                       />
+                      <div className="track-preview-time">
+                        {formatPreviewTime((previewProgress / 100) * previewDuration)} / {formatPreviewTime(previewDuration)}
+                      </div>
                     </div>
                   )}
                 </div>

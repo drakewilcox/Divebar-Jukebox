@@ -234,6 +234,14 @@
   box-shadow: none;
 }
 
+.track-edit-duration {
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  font-family: 'Courier New', monospace;
+  color: var(--text-secondary);
+  min-width: 3.5em;
+}
+
 .track-toggle {
   padding: 0.5rem 1rem;
   border-radius: 4px;
@@ -328,10 +336,20 @@
 }
 
 .track-preview-progress {
-  padding: 0 0.75rem 0.75rem 0.75rem;
+  padding: 0 0.75rem 0.5rem 0.75rem;
   background-color: var(--background-dark);
   border-radius: 0 0 6px 6px;
   margin-top: -0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.track-preview-time {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  font-family: 'Courier New', monospace;
+  color: var(--primary-color);
 }
 
 .progress-slider {
