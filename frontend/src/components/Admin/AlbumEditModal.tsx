@@ -364,7 +364,7 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
                         onChange={(e) => handleProgressSeek(track.id, parseFloat(e.target.value))}
                         className="progress-slider"
                         style={{
-                          background: `linear-gradient(to right, var(--primary-color) 0%, var(--primary-color) ${previewProgress}%, #000000 ${previewProgress}%, #000000 100%)`
+                          background: `linear-gradient(to right, var(--lcd-green) 0%, var(--lcd-green) ${previewProgress}%, #000000 ${previewProgress}%, #000000 100%)`
                         }}
                       />
                     </div>

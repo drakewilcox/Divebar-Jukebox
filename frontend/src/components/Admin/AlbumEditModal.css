@@ -36,7 +36,7 @@
 
 .modal-header h2 {
   margin: 0;
-  color: var(--primary-color);
+  color: var(--lcd-green);
 }
 
 .close-button {
@@ -100,7 +100,7 @@
 
 .form-input:focus {
   outline: none;
-  border-color: var(--primary-color);
+  border-color: var(--lcd-green);
 }
 
 .collections-checkboxes {
@@ -149,7 +149,7 @@
 .track-edit-number {
   min-width: 40px;
   font-weight: 600;
-  color: var(--primary-color);
+  color: var(--lcd-green);
   font-family: 'Courier New', monospace;
 }
 
@@ -165,7 +165,7 @@
 
 .track-title-input:focus {
   outline: none;
-  border-color: var(--primary-color);
+  border-color: var(--lcd-green);
 }
 
 .track-toggle {
@@ -251,13 +251,13 @@
 }
 
 .track-icon-button.active {
-  background-color: var(--primary-color);
+  background-color: var(--lcd-green);
   border: none;
   color: #ffffff;
 }
 
 .track-icon-button.active:hover {
-  background-color: #ff8045;
+  background-color: var(--lcd-green-dim);
   transform: translateY(-1px);
 }
 
@@ -301,7 +301,7 @@
 /* Firefox - Progress (filled portion) */
 .progress-slider::-moz-range-progress {
   height: 8px;
-  background: var(--primary-color);
+  background: var(--lcd-green);
   border-radius: 4px 0 0 4px;
 }
 
@@ -344,14 +344,14 @@
 }
 
 .save-button {
-  background-color: var(--primary-color);
+  background-color: var(--lcd-green);
   color: var(--text-primary);
   border: none;
 }
 
 .save-button:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.4);
+  box-shadow: 0 4px 12px rgba(149, 194, 149, 0.4);
 }
 
 .save-button:disabled {
