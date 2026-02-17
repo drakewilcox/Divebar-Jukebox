@@ -7,6 +7,7 @@ import audioService from '../services/audio';
 import SettingsModal from './SettingsModal';
 import AlbumEditModal from './Admin/AlbumEditModal';
 import LCDDisplay from './LCDDisplay';
+import LCDKeypad from './LCDKeypad';
 import QueueDisplay from './QueueDisplay';
 import './CardCarousel.css';
 
@@ -28,11 +29,16 @@ export default function CardCarousel({ albums, collection, collections, onCollec
   const [editingAlbumId, setEditingAlbumId] = useState<string | null>(null);
   const [pressedButton, setPressedButton] = useState<'prev' | 'next' | null>(null);
   const [isQueueOpen, setIsQueueOpen] = useState(false);
+  const [keypadOpen, setKeypadOpen] = useState(false);
+  const [displayFlash, setDisplayFlash] = useState<string | null>(null);
   const [nowPlayingPositionMs, setNowPlayingPositionMs] = useState(0);
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const queuePanelRef = useRef<HTMLDivElement>(null);
   const queueToggleRef = useRef<HTMLDivElement>(null);
+  const inputSectionRef = useRef<HTMLDivElement>(null);
+  const handleAddToQueueRef = useRef<() => void>(() => {});
+  const lastSubmittedRef = useRef<string | null>(null);
   
   // Fetch queue and playback state
   const { data: queue } = useQuery({
@@ -178,11 +184,12 @@ export default function CardCarousel({ albums, collection, collections, onCollec
       const response = await queueApi.add(collection.slug, albumNumber, trackNumber);
       return response.data;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['queue', collection.slug] });
       setFeedback('✓ Added!');
-      setNumberInput('');
-      inputRef.current?.blur(); // Unfocus input so arrow keys work
+      const value = String(variables.albumNumber).padStart(3, '0') + String(variables.trackNumber).padStart(2, '0');
+      setDisplayFlash(value);
+      inputRef.current?.blur();
       setTimeout(() => setFeedback(''), 2000);
     },
     onError: () => {
@@ -192,25 +199,16 @@ export default function CardCarousel({ albums, collection, collections, onCollec
   });
   
   const handleAddToQueue = () => {
-    if (numberInput.length < 3) {
+    if (numberInput.length !== 5) {
       setFeedback('✗ Enter XXX-YY');
       setTimeout(() => setFeedback(''), 2000);
       return;
     }
-    
-    // Parse input: XXX or XXXYY
-    let albumNumber: number;
-    let trackNumber: number = 0;
-    
-    if (numberInput.length <= 3) {
-      albumNumber = parseInt(numberInput, 10);
-    } else {
-      albumNumber = parseInt(numberInput.slice(0, 3), 10);
-      trackNumber = parseInt(numberInput.slice(3), 10);
-    }
-    
+    const albumNumber = parseInt(numberInput.slice(0, 3), 10);
+    const trackNumber = parseInt(numberInput.slice(3), 10);
     addToQueueMutation.mutate({ albumNumber, trackNumber });
   };
+  handleAddToQueueRef.current = handleAddToQueue;
   
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -265,25 +263,22 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canGoPrevious, canGoNext, isSliding, currentIndex]);
   
-  // Auto-focus input when typing numbers
+  // When user types numbers (desktop), add to input. Backspace/Delete remove last digit. Enter submits. (Auto-submit at 5 digits is in useEffect below.)
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      // Only handle number keys
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (/^[0-9]$/.test(e.key)) {
-        // If not focused on any input, focus our number input and add the digit
-        if (!(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) {
-          e.preventDefault();
-          inputRef.current?.focus();
-          setNumberInput((prev) => {
-            if (prev.length < 5) {
-              return prev + e.key;
-            }
-            return prev;
-          });
-        }
+        e.preventDefault();
+        setNumberInput((prev) => (prev.length < 5 ? prev + e.key : prev));
+      }
+      if (e.key === 'Backspace' || e.key === 'Delete') {
+        e.preventDefault();
+        setNumberInput((prev) => prev.slice(0, -1));
+      }
+      if (e.key === 'Enter') {
+        handleAddToQueueRef.current();
       }
     };
-    
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
   }, []);
@@ -319,6 +314,39 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     document.addEventListener('mousedown', handleMouseDown);
     return () => document.removeEventListener('mousedown', handleMouseDown);
   }, [isQueueOpen]);
+
+  // Close keypad when clicking outside the LCD/keypad area
+  useEffect(() => {
+    if (!keypadOpen) return;
+    const handleMouseDown = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (inputSectionRef.current?.contains(target)) return;
+      setKeypadOpen(false);
+    };
+    document.addEventListener('mousedown', handleMouseDown);
+    return () => document.removeEventListener('mousedown', handleMouseDown);
+  }, [keypadOpen]);
+
+  // Auto-submit once when we reach exactly 5 digits (keypad or keyboard)
+  useEffect(() => {
+    if (numberInput.length !== 5 || numberInput === lastSubmittedRef.current) return;
+    lastSubmittedRef.current = numberInput;
+    addToQueueMutation.mutate({
+      albumNumber: parseInt(numberInput.slice(0, 3), 10),
+      trackNumber: parseInt(numberInput.slice(3), 10),
+    });
+  }, [numberInput, addToQueueMutation]);
+
+  // After adding to queue: show numbers, flash twice, then clear
+  useEffect(() => {
+    if (displayFlash == null) return;
+    const t = setTimeout(() => {
+      setDisplayFlash(null);
+      setNumberInput('');
+      lastSubmittedRef.current = null;
+    }, 500);
+    return () => clearTimeout(t);
+  }, [displayFlash]);
 
   return (
     <div className="card-carousel">
@@ -447,7 +475,10 @@ export default function CardCarousel({ albums, collection, collections, onCollec
           className={`queue-panel ${isQueueOpen ? 'open' : ''}`}
         >
           <div className="queue-panel-content">
-            <QueueDisplay collection={collection} />
+            <QueueDisplay
+              collection={collection}
+              onQueueCleared={() => setIsQueueOpen(false)}
+            />
           </div>
         </div>
         
@@ -461,13 +492,35 @@ export default function CardCarousel({ albums, collection, collections, onCollec
             <MdSettings size={28} />
           </button>
 
-          <div className="input-section">
-            <div onClick={() => inputRef.current?.focus()}>
-              <LCDDisplay value={formatDisplay(numberInput)} />
+          <div className="input-section" ref={inputSectionRef}>
+            <div className={`lcd-keypad-wrapper ${displayFlash != null ? 'lcd-flash' : ''}`}>
+              <div
+                onClick={() => setKeypadOpen((open) => !open)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setKeypadOpen((open) => !open);
+                  }
+                }}
+                aria-label="Open number keypad for album and track entry"
+              >
+                <LCDDisplay value={formatDisplay(displayFlash ?? numberInput)} />
+              </div>
+              {keypadOpen && (
+                <LCDKeypad
+                  onDigit={(d) => setNumberInput((prev) => (prev.length < 5 ? prev + d : prev))}
+                  onClear={() => setNumberInput('')}
+                  onHit={() => {}}
+                />
+              )}
             </div>
             <input
               ref={inputRef}
               type="text"
+              inputMode="numeric"
+              autoComplete="off"
               className="hidden-input"
               onKeyDown={handleKeyDown}
               aria-label="Album and track number input"
