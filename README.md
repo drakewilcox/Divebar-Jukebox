@@ -122,24 +122,41 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [x] Fix issue with uneven album amounts, and show blank slots if needed. 
 - [x] Fix issue when only one album or no albums are in a collection. 
 - [x] Fix Queue issue: adding a track to the queue does not always put it last (seen when an album was in the queue)
-- [ ] Examine Library Scan process and possible issues. 
+- [x] Examine Library Scan process and possible issues. 
 - [ ] Playback of the first song in Queue is really abrupt, maybe a fade in or delay? 
 - [ ] look into if mp3 files will work as well
+- [x] Clear Queue when user switches collections 
+- [x] Fix Edit Album Modal form state issue (Album Name not holding state)
+- [ ] Star and recommended icons should append to a word so they dont break a line. 
+- [ ] Star and Recommended should possibly still display on songs with long titles. 
 
 ### Admin Features
-- [ ] Add ability to add custom artwork to an album in edit modal
+- [ ] Add ability to add and save custom artwork to an album in edit modal
 - [ ] Add ability to filter by active in collection list
-- [ ] Add ability to preview individual tracks in edit modal. 
+- [ ] Add Ability to search collection and library to Admin View
+- [x] Add ability to preview individual tracks in edit modal. 
 - [ ] Add authorization to admin features
+- [ ] Add track duration to Edit Modal
+
+### Database Updates
+- [ ] Add Category table to DB
+- [ ] Add Category column to Albums
+- [ ] Maybe add Genre Column and Genre column to Albums 
 
 ### Sorting & Organization
 - [ ] Create solution for custom sorting of albums within collections
-- [ ] Set default sort order to alphabetical for collections026
-- [ ] Create settings modal with collection selector, default collection, sort options (A-Z, Genre, Custom), and A-Z jump navigation
+- [ ] Set default sort order to alphabetical for collections
+- [x] Create Settings Modal
+- [x] Move collection selector, Admin settings button and edit mode selector to settings modal
+- [ ] Add sort options (A-Z, Genre, Custom) to settings modal
+- [ ] Add some sort of Jump-To Functionality 
 
 ### Track Features
-- [ ] Add stars and dots/+ system next to tracks for favorites and recommendations
-- [ ] Add track preview playback feature in album edit modal for listening while editing/starring
+- [x] Add stars and dots/+ system next to tracks for favorites and recommendations
+- [x] Add track preview playback feature in album edit modal for listening while editing/starring
+- [x] Add Playback display to control bar, and move Queue Display above this. 
+- [x] Add Green LCD effect to mini playback display and album image 
+- [ ] Make sure playblack and Queue use Database track data, not metadata 
 
 ### Playback Features
 - [ ] Implement random play feature (possibly favorites-only) that can be toggled in settings
@@ -147,33 +164,42 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [ ] Add a "Fade" Amount Feature for how much transition is between tracks
 - [ ] Add a feature for creating custom queue lists (basically a playlist) per collection. 
 - [ ] in addition to this, maybe create the ability to record the Queue History, and then save that history as queue collection. 
+- [ ] Look into playing mp3 + WAV files as well 
 
 
 ### Visual Enhancements
 - [x] Add paper textures to album info cards for vintage jukebox aesthetic
 - [x] Add more stylistic elements to make UI look more like a vintage jukebox
-- [ ] Implement variable spacing and text sizing for track names to fill the area better
+- [x] Implement variable spacing and text sizing for track names to fill the area better
+- [ ] Improve dynamic display sizing, and account for browser header
+- [ ] Add Year to Album info card
+- [ ] Add Selection Number (ie. "002-03") to Jukebox playblack display
+- [ ] Add descriptions underneath number input for what each number means 
 - [ ] Enhance carousel slider animations for smoother transitions
 - [ ] Work on making Logo look more like an NSM jukebox. 
 - [ ] add a speaker icon for currently playing track in track info card
 - [ ] add an icon to represent that a song is already in the queue (maybe prevent duplicates)
+- [ ] Update Card Sliders to make them look like "Card Holders" seen on NSM Jukeboxes
 
 ### UI Features
 - [x] Setup edit mode in the carousel for quick album management
-- [ ] Add now playing to carousel controls
-- [ ] Clicking outside of Queue sidebar should close sidebar
-- [ ] Maybe have 4 arrow controls. Two single arrow buttons, and two double arrow buttons. The double arrow buttons would slide two cards at once. 
+- [x] Add now playing to carousel controls
+- [x] Clicking outside of Queue sidebar should close sidebar
+- [ ] Add option to have 4 arrow controls. Two single arrow buttons, and two double arrow buttons. The double arrow buttons would slide two cards at once. 
 - [ ] Improve card sliding speed, or just ability to press the buttons faster, not necessarily faster sliding speed. 
-- [ ] Move album Number back to album info card at top left.
+- [ ] Add "H" (Hit) Button for playing favorites
 
 ### Integration & Infrastructure
 - [ ] Add ability to add playlists as albums
 - [ ] Implement Spotify integration for playback and metadata
-- [ ] Move music library to network harddrive and ensure compatibility
+- [ ] Implement Spotify sync to add spotify URLs to albums, and fetching all Spotify IDs for all tracks in database. 
+- [ ] Move music library to network harddrive and ensure compatibility.
 
 ### Testing & Deployment
 - [ ] Test application on physical iPad (1024x768)
-- [ ] Initialize git repository and create initial commits
+- [ ] Add BE Unit and API Testing
+- [ ] Set up deployment scripts for creating a deployed version of the Database that uses Spotify API
+- [ ] Create a copy of database for deployment for syncing all of the album database changes done locally
 
 ## Development Roadmap
 
@@ -183,6 +209,7 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [x] Collection management
 - [x] Basic jukebox UI
 - [x] Local playback
+- [ ] Custom Sort Functionality
 
 ### Phase 2: Enhanced Features
 - [x] Admin interface
