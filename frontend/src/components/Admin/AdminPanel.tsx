@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useJukeboxStore } from '../../stores/jukeboxStore';
 import LibraryScanner from './LibraryScanner';
 import CollectionManager from './CollectionManager';
 import './AdminPanel.css';
@@ -9,7 +10,14 @@ export default function AdminPanel() {
   return (
     <div className="admin-panel">
       <div className="admin-header">
-        <h1>⚙️ Admin Panel</h1>
+        <h1>Admin Panel</h1>
+        <button
+          type="button"
+          className="admin-back-to-jukebox"
+          onClick={() => useJukeboxStore.setState({ isAdminMode: false })}
+        >
+          ←
+        </button>
       </div>
       
       <div className="admin-tabs">

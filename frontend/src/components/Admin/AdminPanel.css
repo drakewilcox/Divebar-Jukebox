@@ -3,16 +3,39 @@
   flex-direction: column;
   height: 100%;
   gap: 2rem;
+  padding: 1.5rem 4rem 1.5rem 4rem;
 }
 
 .admin-header {
-  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1rem 0rem 1rem;
+  flex-wrap: wrap;
 }
 
 .admin-header h1 {
   font-size: 2rem;
-  color: var(--primary-color);
+  color: var(--vintage-cream);
   margin: 0;
+}
+
+.admin-back-to-jukebox {
+  padding: 0.5rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--vintage-cream);
+  background-color: var(--background-dark);
+  border: 1px solid color-mix(in srgb, var(--vintage-cream) 30%, transparent);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.admin-back-to-jukebox:hover {
+  border-color: var(--vintage-cream);
+  background-color: color-mix(in srgb, var(--vintage-cream) 12%, transparent);
 }
 
 .admin-tabs {
@@ -34,15 +57,35 @@
 
 .admin-tab:hover {
   color: var(--text-primary);
-  background-color: rgba(255, 107, 53, 0.1);
+  background-color: color-mix(in srgb, var(--lcd-green) 15%, transparent);
 }
 
 .admin-tab-active {
-  color: var(--primary-color);
-  border-bottom-color: var(--primary-color);
+  color: var(--vintage-cream);
+  border-bottom-color: var(--vintage-cream);
 }
 
 .admin-content {
   flex: 1;
+  overflow-x: hidden;
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) var(--background-dark);
+}
+
+.admin-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.admin-content::-webkit-scrollbar-track {
+  background: var(--background-dark);
+}
+
+.admin-content::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+.admin-content::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
