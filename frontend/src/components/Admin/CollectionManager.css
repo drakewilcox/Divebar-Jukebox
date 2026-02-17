@@ -124,7 +124,7 @@
   transition: border-color 0.3s ease;
 }
 
-.form-group input:focus {
+.collection-manager .form-group input:focus {
   outline: none;
   border-color: var(--lcd-green);
 }
@@ -323,10 +323,25 @@
 }
 
 .album-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
   width: 20px;
   height: 20px;
   cursor: pointer;
   flex-shrink: 0;
+  border: 2px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--background-dark);
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.album-checkbox:checked {
+  background: #000;
+  border-color: #000;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5L20 7'/%3E%3C/svg%3E");
+  background-size: 14px;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .album-checkbox:disabled {

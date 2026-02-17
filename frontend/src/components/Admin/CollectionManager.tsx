@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MdEdit, MdAdd, MdClose, MdDelete } from 'react-icons/md';
 import { collectionsApi, adminApi } from '../../services/api';
@@ -15,7 +15,6 @@ export default function CollectionManager() {
   const [displayLimit, setDisplayLimit] = useState(INFINITE_SCROLL_PAGE_SIZE);
   const [editingAlbumId, setEditingAlbumId] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
-  const sentinelRef = useRef<HTMLDivElement>(null);
   
   const { data: collections } = useQuery({
     queryKey: ['collections'],
@@ -91,23 +90,17 @@ export default function CollectionManager() {
     });
   };
 
-  // Infinite scroll: when sentinel is visible, load more albums
-  useEffect(() => {
+  // Infinite scroll: load more when user scrolls near the bottom of the list
+  const handleAlbumsListScroll = () => {
     const list = listRef.current;
-    const sentinel = sentinelRef.current;
     const total = albums?.length ?? 0;
-    if (!list || !sentinel || total === 0 || displayLimit >= total) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (!entries[0].isIntersecting) return;
-        setDisplayLimit((prev) => Math.min(prev + INFINITE_SCROLL_PAGE_SIZE, total));
-      },
-      { root: list, rootMargin: '80px', threshold: 0 }
-    );
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [displayLimit, albums?.length]);
+    if (!list || total === 0 || displayLimit >= total) return;
+    const { scrollTop, clientHeight, scrollHeight } = list;
+    const threshold = 150;
+    if (scrollTop + clientHeight >= scrollHeight - threshold) {
+      setDisplayLimit((prev) => Math.min(prev + INFINITE_SCROLL_PAGE_SIZE, total));
+    }
+  };
 
   return (
     <div className="collection-manager">
@@ -237,7 +230,11 @@ export default function CollectionManager() {
           <>
             {selectedCollectionSlug && albums && albums.length > 0 && (
               <>
-                <div ref={listRef} className="albums-list">
+                <div
+                  ref={listRef}
+                  className="albums-list"
+                  onScroll={handleAlbumsListScroll}
+                >
                   {albums.slice(0, displayLimit).map((album: any) => {
                     const inCollection = isAlbumInCollection(album.id);
                     return (
@@ -286,9 +283,6 @@ export default function CollectionManager() {
                       </div>
                     );
                   })}
-                  {displayLimit < albums.length && (
-                    <div ref={sentinelRef} className="infinite-scroll-sentinel" aria-hidden="true" />
-                  )}
                 </div>
               </>
             )}
