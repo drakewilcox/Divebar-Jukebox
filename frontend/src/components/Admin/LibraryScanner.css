@@ -14,12 +14,50 @@
 .scanner-section h2 {
   margin: 0 0 0.5rem 0;
   font-size: 1.5rem;
-  color: var(--primary-color);
+  color: var(--vintage-cream);
 }
 
 .scanner-section p {
   margin: 0 0 1rem 0;
   color: var(--text-secondary);
+}
+
+/* Tooltip wrapper: use data-tooltip="..." on the wrapper, hover to show */
+.admin-tooltip-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.admin-tooltip-wrap::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-6px);
+  padding: 0.4rem 0.65rem;
+  background: var(--background-dark);
+  color: var(--vintage-cream);
+  font-size: 0.8rem;
+  font-weight: 500;
+  white-space: nowrap;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+  transition-delay: 0.15s;
+  z-index: 100;
+}
+
+.admin-tooltip-wrap:hover::after {
+  opacity: 1;
+}
+
+/* In album list, show tooltip below so it isn't clipped by overflow */
+.album-item-actions .admin-tooltip-wrap::after {
+  bottom: auto;
+  top: 100%;
+  transform: translateX(-50%) translateY(6px);
 }
 
 .scanner-buttons {
@@ -29,32 +67,44 @@
 }
 
 .scan-button,
-.sync-button,
-.sanitize-button {
-  padding: 1rem 2rem;
+.sync-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem;
   font-size: 1.1rem;
   font-weight: 600;
-  color: var(--text-primary);
-  background-color: var(--primary-color);
+  color: var(--background-dark);
+  background-color: var(--vintage-cream);
   border-radius: 8px;
   transition: all 0.3s ease;
 }
 
 .sanitize-button {
-  background-color: var(--secondary-color);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--vintage-text);
+  background-color: var(--vintage-cream);
+  border-radius: 8px;
+  transition: all 0.3s ease;
 }
 
 .scan-button:hover:not(:disabled),
 .sync-button:hover:not(:disabled) {
-  background-color: #ff8555;
+  background-color: color-mix(in srgb, var(--vintage-cream) 85%, black); 
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px var(--accent-glow);
+  box-shadow: 0 6px 16px rgba(149, 194, 149, 0.35);
 }
 
 .sanitize-button:hover:not(:disabled) {
-  background-color: #3a5a7f;
+  background-color: color-mix(in srgb, var(--vintage-cream) 85%, black);
+  color: var(--vintage-text);
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(61, 90, 128, 0.5);
+  box-shadow: 0 6px 16px rgba(245, 240, 232, 0.25);
 }
 
 .scan-button:disabled,
@@ -137,7 +187,33 @@
   flex-direction: column;
   gap: 0.75rem;
   max-height: 600px;
+  overflow-x: hidden;
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) var(--background-dark);
+}
+
+.albums-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.albums-list::-webkit-scrollbar-track {
+  background: var(--background-dark);
+}
+
+.albums-list::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+.albums-list::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+.infinite-scroll-sentinel {
+  height: 20px;
+  flex-shrink: 0;
+  pointer-events: none;
 }
 
 .album-item {
@@ -224,22 +300,22 @@
 
 .edit-button,
 .archive-button {
-  padding: 0.5rem 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
   font-size: 0.9rem;
-  font-weight: 600;
   border-radius: 6px;
   transition: all 0.2s;
-  white-space: nowrap;
-}
-
-.edit-button {
-  background-color: var(--secondary-color);
-  color: var(--text-primary);
-  border: 1px solid var(--secondary-color);
+  background-color: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
 }
 
 .edit-button:hover {
-  background-color: #006bb3;
+  background-color: color-mix(in srgb, var(--lcd-green) 20%, transparent);
+  border-color: var(--lcd-green);
+  color: var(--lcd-green);
   transform: translateY(-1px);
 }
 
@@ -267,49 +343,3 @@
   transform: none;
 }
 
-.load-more-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 1rem;
-  background-color: var(--background-dark);
-  border-radius: 8px;
-  margin-top: 0.75rem;
-}
-
-.albums-more {
-  margin: 0;
-  text-align: center;
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-}
-
-.load-more-button,
-.load-all-button {
-  padding: 0.75rem 1.5rem;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  border-radius: 6px;
-  transition: all 0.2s;
-  min-width: 150px;
-}
-
-.load-more-button {
-  background-color: var(--secondary-color);
-}
-
-.load-more-button:hover {
-  background-color: #006bb3;
-  transform: translateY(-1px);
-}
-
-.load-all-button {
-  background-color: var(--primary-color);
-}
-
-.load-all-button:hover {
-  background-color: #ff8555;
-  transform: translateY(-1px);
-}

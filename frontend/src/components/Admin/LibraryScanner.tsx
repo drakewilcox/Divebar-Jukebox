@@ -1,14 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { MdOutlineSync, MdOutlineCleaningServices, MdEdit, MdArchive, MdUnarchive } from 'react-icons/md';
 import { adminApi } from '../../services/api';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import AlbumEditModal from './AlbumEditModal';
 import './LibraryScanner.css';
+
+const INFINITE_SCROLL_PAGE_SIZE = 50;
 
 export default function LibraryScanner() {
   const queryClient = useQueryClient();
   const [scanResults, setScanResults] = useState<any>(null);
   const [editingAlbumId, setEditingAlbumId] = useState<string | null>(null);
-  const [displayLimit, setDisplayLimit] = useState(50);
+  const [displayLimit, setDisplayLimit] = useState(INFINITE_SCROLL_PAGE_SIZE);
+  const listRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
   
   const { data: albums } = useQuery({
     queryKey: ['admin-albums'],
@@ -41,34 +46,56 @@ export default function LibraryScanner() {
       queryClient.invalidateQueries({ queryKey: ['admin-albums'] });
     },
   });
-  
-  
+
+  // Infinite scroll: when sentinel is visible, load more albums
+  useEffect(() => {
+    const list = listRef.current;
+    const sentinel = sentinelRef.current;
+    const total = albums?.length ?? 0;
+    if (!list || !sentinel || total === 0 || displayLimit >= total) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0].isIntersecting) return;
+        setDisplayLimit((prev) => Math.min(prev + INFINITE_SCROLL_PAGE_SIZE, total));
+      },
+      { root: list, rootMargin: '80px', threshold: 0 }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [displayLimit, albums?.length]);
+
   return (
     <div className="library-scanner">
       <div className="scanner-section">
         <h2>Library Scanner</h2>
-        <p>Scan your music library to import new albums and update existing ones.</p>
+        <p>Scan your music library to import new albums. Albums already in the database (matched by folder path) are skipped so your edits and custom track settings are not overwritten.</p>
         
         <div className="scanner-buttons">
-          <button
-            className="scan-button"
-            onClick={() => scanMutation.mutate()}
-            disabled={scanMutation.isPending}
-          >
-            {scanMutation.isPending ? 'Scanning...' : '🔍 Scan Library'}
-          </button>
-          
-          <button
-            className="sanitize-button"
-            onClick={() => {
-              if (confirm('This will remove remaster annotations like "(2014 Remaster)" from all track titles. Continue?')) {
-                sanitizeMutation.mutate();
-              }
-            }}
-            disabled={sanitizeMutation.isPending}
-          >
-            {sanitizeMutation.isPending ? 'Sanitizing...' : '🧹 Clean Track Titles'}
-          </button>
+          <span className="admin-tooltip-wrap" data-tooltip="Scan Library">
+            <button
+              className="scan-button"
+              onClick={() => scanMutation.mutate()}
+              disabled={scanMutation.isPending}
+              aria-label="Scan Library"
+            >
+              <MdOutlineSync size={22} />
+            </button>
+          </span>
+          <span className="admin-tooltip-wrap" data-tooltip="Clean Track Titles">
+            <button
+              className="sanitize-button"
+              onClick={() => {
+                if (confirm('This will remove remaster annotations like "(2014 Remaster)" from all track titles. Continue?')) {
+                  sanitizeMutation.mutate();
+                }
+              }}
+              disabled={sanitizeMutation.isPending}
+              aria-label="Clean Track Titles"
+            >
+              <MdOutlineCleaningServices size={22} />
+            </button>
+          </span>
         </div>
         
         {scanResults && (
@@ -84,11 +111,11 @@ export default function LibraryScanner() {
                 <div className="result-value success">{scanResults.albums_imported}</div>
               </div>
               <div className="result-item">
-                <div className="result-label">Updated</div>
-                <div className="result-value">{scanResults.albums_updated}</div>
+                <div className="result-label">Already in library</div>
+                <div className="result-value">{scanResults.albums_already_exist ?? 0}</div>
               </div>
               <div className="result-item">
-                <div className="result-label">Skipped</div>
+                <div className="result-label">Skipped (errors)</div>
                 <div className="result-value warning">{scanResults.albums_skipped}</div>
               </div>
               <div className="result-item">
@@ -119,7 +146,7 @@ export default function LibraryScanner() {
         
         {albums && albums.length > 0 && (
           <>
-            <div className="albums-list">
+            <div ref={listRef} className="albums-list">
               {albums.slice(0, displayLimit).map((album: any) => (
                 <div key={album.id} className={`album-item ${album.archived ? 'archived' : ''}`}>
                   {album.cover_art_path && (
@@ -143,40 +170,32 @@ export default function LibraryScanner() {
                     {album.year && <span>{album.year}</span>}
                   </div>
                   <div className="album-item-actions">
-                    <button
-                      className="edit-button"
-                      onClick={() => setEditingAlbumId(album.id)}
-                    >
-                      ✏️ Edit
-                    </button>
-                    <button
-                      className={`archive-button ${album.archived ? 'unarchive' : ''}`}
-                      onClick={() => archiveMutation.mutate({ id: album.id, archived: !album.archived })}
-                      disabled={archiveMutation.isPending}
-                    >
-                      {album.archived ? '📂 Unarchive' : '📦 Archive'}
-                    </button>
+                    <span className="admin-tooltip-wrap" data-tooltip="Edit album">
+                      <button
+                        className="edit-button"
+                        onClick={() => setEditingAlbumId(album.id)}
+                        aria-label="Edit album"
+                      >
+                        <MdEdit size={20} />
+                      </button>
+                    </span>
+                    <span className="admin-tooltip-wrap" data-tooltip={album.archived ? 'Unarchive' : 'Archive'}>
+                      <button
+                        className={`archive-button ${album.archived ? 'unarchive' : ''}`}
+                        onClick={() => archiveMutation.mutate({ id: album.id, archived: !album.archived })}
+                        disabled={archiveMutation.isPending}
+                        aria-label={album.archived ? 'Unarchive' : 'Archive'}
+                      >
+                        {album.archived ? <MdUnarchive size={20} /> : <MdArchive size={20} />}
+                      </button>
+                    </span>
                   </div>
                 </div>
               ))}
+              {displayLimit < albums.length && (
+                <div ref={sentinelRef} className="infinite-scroll-sentinel" aria-hidden="true" />
+              )}
             </div>
-            {displayLimit < albums.length && (
-              <div className="load-more-section">
-                <p className="albums-more">Showing {displayLimit} of {albums.length} albums</p>
-                <button
-                  className="load-more-button"
-                  onClick={() => setDisplayLimit(prev => Math.min(prev + 50, albums.length))}
-                >
-                  Load More (50)
-                </button>
-                <button
-                  className="load-all-button"
-                  onClick={() => setDisplayLimit(albums.length)}
-                >
-                  Load All
-                </button>
-              </div>
-            )}
           </>
         )}
         
