@@ -16,6 +16,17 @@ const api = axios.create({
   },
 });
 
+// Settings API (e.g. default collection)
+export interface JukeboxSettings {
+  default_collection_slug: string;
+}
+
+export const settingsApi = {
+  get: () => api.get<JukeboxSettings>('/settings'),
+  update: (data: { default_collection_slug: string }) =>
+    api.patch<JukeboxSettings>('/settings', data),
+};
+
 // Collections API
 export const collectionsApi = {
   getAll: () => api.get<Collection[]>('/collections'),

@@ -65,6 +65,7 @@ export interface PlaybackState {
     duration_ms: number;
     album_title: string;
     album_artist: string;
+    album_year: number | null;
     cover_art_path: string | null;
   } | null;
 }
