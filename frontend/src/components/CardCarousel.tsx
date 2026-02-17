@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { MdStar, MdFiberManualRecord, MdSettings } from 'react-icons/md';
+import { MdStar, MdFiberManualRecord, MdSettings, MdEdit } from 'react-icons/md';
 import { Album, Collection } from '../types';
 import { albumsApi, queueApi, playbackApi } from '../services/api';
 import audioService from '../services/audio';
@@ -684,8 +684,9 @@ function AlbumRow({ album, collection, editMode, onEditClick }: AlbumRowProps) {
               onEditClick(album.id);
             }}
             title="Edit Album"
+            aria-label="Edit Album"
           >
-            ✎ Edit
+            <MdEdit size={24} />
           </button>
         )}
       </div>
