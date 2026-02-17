@@ -6,7 +6,7 @@ import logging
 
 from app.config import settings
 from app.database import init_db
-from app.api import collections, albums, queue, playback, admin, media
+from app.api import collections, albums, queue, playback, admin, media, settings as settings_api
 from app.services.collection_service import CollectionService
 from app.database import SessionLocal
 
@@ -86,6 +86,7 @@ app.include_router(queue.router)
 app.include_router(playback.router)
 app.include_router(admin.router)
 app.include_router(media.router)
+app.include_router(settings_api.router)
 
 
 @app.get("/")
