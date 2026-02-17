@@ -1,5 +1,7 @@
 :root {
   --primary-color: #ff6b35;
+  --vintage-cream: #f5f0e8;
+  --vintage-text: #1a1a1a;
   --secondary-color: #004e89;
   --background-dark: #1a1a1a;
   --background-card: #2d2d2d;
@@ -7,6 +9,9 @@
   --text-secondary: #cccccc;
   --border-color: #444444;
   --accent-glow: rgba(255, 107, 53, 0.3);
+  /* LCD / now-playing green (classic jukebox display) */
+  --lcd-green: rgb(149, 194, 149);
+  --lcd-green-dim: color-mix(in srgb, var(--lcd-green) 85%, transparent);
 }
 
 * {

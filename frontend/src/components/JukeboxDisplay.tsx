@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { collectionsApi, queueApi, playbackApi } from '../services/api';
 import { Collection } from '../types';
 import CardCarousel from './CardCarousel';
@@ -14,7 +14,8 @@ interface Props {
 export default function JukeboxDisplay({ collection, collections, onCollectionChange }: Props) {
   const queryClient = useQueryClient();
   
-  // Fetch albums for this collection
+  // Fetch albums for this collection. keepPreviousData so switching collection in the
+  // settings modal doesn’t briefly show empty and the modal stays open.
   const { data: albums, isLoading } = useQuery({
     queryKey: ['collection-albums', collection.slug],
     queryFn: async () => {
@@ -22,6 +23,7 @@ export default function JukeboxDisplay({ collection, collections, onCollectionCh
       return response.data;
     },
     enabled: !!collection,
+    placeholderData: keepPreviousData,
   });
   
   // Fetch queue to monitor for changes
@@ -64,29 +66,29 @@ export default function JukeboxDisplay({ collection, collections, onCollectionCh
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queue?.length, playbackState?.is_playing, playbackState?.current_track_id, collection.slug]);
   
-  if (isLoading) {
-    return <div className="jukebox-loading">Loading albums...</div>;
-  }
-  
-  if (!albums || albums.length === 0) {
-    return (
-      <div className="jukebox-empty">
-        <p>No albums in this collection yet.</p>
-        <p>Use the admin panel to add albums.</p>
-      </div>
-    );
-  }
-  
+  // Always render CardCarousel when we have a collection so the settings modal stays
+  // mounted when switching collections (otherwise the loading div would unmount it).
+  const albumsToShow = albums ?? [];
+
   return (
     <div className="jukebox-display">
+      {isLoading && albumsToShow.length === 0 && (
+        <div className="jukebox-loading">Loading albums...</div>
+      )}
       <div className="jukebox-main">
         <CardCarousel 
-          albums={albums} 
+          albums={albumsToShow} 
           collection={collection}
           collections={collections}
           onCollectionChange={onCollectionChange}
         />
       </div>
+      {!isLoading && albumsToShow.length === 0 && (
+        <div className="jukebox-empty">
+          <p>No albums in this collection yet.</p>
+          <p>Use the admin panel to add albums.</p>
+        </div>
+      )}
     </div>
   );
 }

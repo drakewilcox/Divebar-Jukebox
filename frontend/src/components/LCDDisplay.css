@@ -30,7 +30,7 @@
 }
 
 .lcd-dash.active {
-  color: #7FFF7F;
+  color: var(--lcd-green);
   text-shadow: 
     0 0 8px rgba(100, 255, 100, 0.8),
     0 0 16px rgba(100, 255, 100, 0.5),
@@ -65,7 +65,7 @@
 
 /* Active state: classic LCD green with glow */
 .lcd-digit.active .lcd-content {
-  color: #7FFF7F;
+  color: var(--lcd-green);
   text-shadow: 
     0 0 8px rgba(100, 255, 100, 0.8),
     0 0 16px rgba(100, 255, 100, 0.5),

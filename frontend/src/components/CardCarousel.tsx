@@ -31,6 +31,8 @@ export default function CardCarousel({ albums, collection, collections, onCollec
   const [nowPlayingPositionMs, setNowPlayingPositionMs] = useState(0);
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
+  const queuePanelRef = useRef<HTMLDivElement>(null);
+  const queueToggleRef = useRef<HTMLDivElement>(null);
   
   // Fetch queue and playback state
   const { data: queue } = useQuery({
@@ -300,7 +302,24 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     window.addEventListener('keydown', handleQKey);
     return () => window.removeEventListener('keydown', handleQKey);
   }, []);
-  
+
+  // Close queue when clicking outside the panel (and not on the toggle)
+  useEffect(() => {
+    if (!isQueueOpen) return;
+    const handleMouseDown = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (
+        queuePanelRef.current?.contains(target) ||
+        queueToggleRef.current?.contains(target)
+      ) {
+        return;
+      }
+      setIsQueueOpen(false);
+    };
+    document.addEventListener('mousedown', handleMouseDown);
+    return () => document.removeEventListener('mousedown', handleMouseDown);
+  }, [isQueueOpen]);
+
   return (
     <div className="card-carousel">
       <div className="carousel-container">
@@ -423,7 +442,10 @@ export default function CardCarousel({ albums, collection, collections, onCollec
       
       <div className="carousel-controls-wrapper">
         {/* Upward-expanding queue panel */}
-        <div className={`queue-panel ${isQueueOpen ? 'open' : ''}`}>
+        <div
+          ref={queuePanelRef}
+          className={`queue-panel ${isQueueOpen ? 'open' : ''}`}
+        >
           <div className="queue-panel-content">
             <QueueDisplay collection={collection} />
           </div>
@@ -454,7 +476,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
           </div>
         </div>
         
-        <div className="queue-controls-center">
+        <div className="queue-controls-center" ref={queueToggleRef}>
           <div
             className="now-playing-mini"
             role="button"
@@ -477,6 +499,10 @@ export default function CardCarousel({ albums, collection, collections, onCollec
                 <div className="now-playing-info">
                   <div className="now-playing-title">{playbackState.current_track.title}</div>
                   <div className="now-playing-artist">{playbackState.current_track.artist}</div>
+                  <div className="now-playing-album">
+                    {playbackState.current_track.album_title}
+                    {playbackState.current_track.album_year != null && ` (${playbackState.current_track.album_year})`}
+                  </div>
                 </div>
                 <div className="now-playing-time">
                   {formatTimeRemaining(playbackState.current_track.duration_ms, nowPlayingPositionMs)}

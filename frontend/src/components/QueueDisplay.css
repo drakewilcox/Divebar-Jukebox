@@ -19,7 +19,7 @@
 .queue-header h2 {
   margin: 0;
   font-size: 1.5rem;
-  color: var(--primary-color);
+  color: var(--vintage-cream);
 }
 
 .queue-header-controls {
@@ -81,27 +81,32 @@
   margin: 0.25rem 0;
 }
 
-/* Now Playing Section */
+/* Now Playing Section – LCD green to match number pad / now-playing-mini */
 .now-playing-label {
   font-size: 0.85rem;
   font-weight: 700;
-  color: var(--primary-color);
+  color: var(--lcd-green);
   text-transform: uppercase;
   letter-spacing: 0.1rem;
   margin-bottom: 0.5rem;
+  text-shadow: 0 0 6px rgba(127, 255, 127, 0.4);
 }
 
 .queue-item.now-playing-item {
-  background-color: rgba(255, 107, 53, 0.15);
-  border-color: var(--primary-color);
-  box-shadow: 0 0 10px var(--accent-glow);
+  background: linear-gradient(180deg, #0d1a0d 0%, #152815 50%, #0d1a0d 100%);
+  box-shadow:
+    inset 0 2px 8px rgba(0, 0, 0, 0.8),
+    inset 0 0 30px rgba(0, 80, 20, 0.3),
+    0 0 10px rgba(127, 255, 127, 0.25);
+  border: 2px solid var(--lcd-green);
   cursor: default;
   margin-bottom: 1rem;
 }
 
 .now-playing-countdown {
   font-weight: 700;
-  color: var(--primary-color);
+  color: var(--lcd-green);
+  text-shadow: 0 0 6px rgba(127, 255, 127, 0.5);
 }
 
 .queue-item-cover {
@@ -145,8 +150,9 @@
 }
 
 .queue-item:hover {
-  background-color: rgba(255, 107, 53, 0.1);
-  border-color: var(--primary-color);
+  background-color: rgba(13, 26, 13, 0.9);
+  border-color: var(--lcd-green);
+  box-shadow: 0 0 8px rgba(127, 255, 127, 0.2);
 }
 
 .queue-item.dragging {
