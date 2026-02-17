@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { collectionsApi } from './services/api';
+import { collectionsApi, settingsApi } from './services/api';
 import { useJukeboxStore } from './stores/jukeboxStore';
 import JukeboxDisplay from './components/JukeboxDisplay';
 import AdminPanel from './components/Admin/AdminPanel';
@@ -17,26 +17,26 @@ function App() {
       return response.data;
     },
   });
-  
-  // Set default collection (from localStorage or fallback to "All Albums")
+
+  // Fetch settings (default collection) from backend
+  const { data: settings, isFetched: settingsFetched } = useQuery({
+    queryKey: ['settings'],
+    queryFn: async () => {
+      const response = await settingsApi.get();
+      return response.data;
+    },
+    retry: false,
+  });
+
+  // Set default collection once when we have collections and settings have been fetched
   useEffect(() => {
-    if (collections && collections.length > 0 && !currentCollection) {
-      // Check localStorage for default collection
-      const savedDefaultSlug = localStorage.getItem('defaultCollection');
-      let defaultCollection = null;
-      
-      if (savedDefaultSlug) {
-        defaultCollection = collections.find(c => c.slug === savedDefaultSlug);
-      }
-      
-      // Fallback to "All Albums" or first collection
-      if (!defaultCollection) {
-        defaultCollection = collections.find(c => c.slug === 'all') || collections[0];
-      }
-      
-      setCurrentCollection(defaultCollection);
-    }
-  }, [collections, currentCollection, setCurrentCollection]);
+    if (!collections?.length || currentCollection || !settingsFetched) return;
+    const slug = settings?.default_collection_slug || localStorage.getItem('defaultCollection') || 'all';
+    const defaultCollection = collections.find(c => c.slug === slug) ||
+      collections.find(c => c.slug === 'all') ||
+      collections[0];
+    setCurrentCollection(defaultCollection);
+  }, [collections, currentCollection, setCurrentCollection, settingsFetched, settings?.default_collection_slug]);
   
   return (
     <div className="app">
@@ -53,15 +53,6 @@ function App() {
           <div className="loading">Loading collections...</div>
         )}
       </main>
-      
-      <footer className="app-footer">
-        <button
-          className="admin-toggle"
-          onClick={() => useJukeboxStore.setState({ isAdminMode: !isAdminMode })}
-        >
-          {isAdminMode ? '🎵 Jukebox Mode' : '⚙️ Admin Mode'}
-        </button>
-      </footer>
     </div>
   );
 }
