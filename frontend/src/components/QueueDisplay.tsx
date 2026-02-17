@@ -7,9 +7,10 @@ import './QueueDisplay.css';
 
 interface Props {
   collection: Collection;
+  onQueueCleared?: () => void;
 }
 
-export default function QueueDisplay({ collection }: Props) {
+export default function QueueDisplay({ collection, onQueueCleared }: Props) {
   const queryClient = useQueryClient();
   const [currentPositionMs, setCurrentPositionMs] = useState(0);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -109,6 +110,7 @@ export default function QueueDisplay({ collection }: Props) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['playback-state', collection.slug] });
       queryClient.invalidateQueries({ queryKey: ['queue', collection.slug] });
+      onQueueCleared?.();
     },
   });
   

@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { MdAdminPanelSettings } from 'react-icons/md';
 import { Collection } from '../types';
-import { settingsApi } from '../services/api';
+import { settingsApi, queueApi, playbackApi } from '../services/api';
+import { audioService } from '../services/audio';
 import { useJukeboxStore } from '../stores/jukeboxStore';
 import './SettingsModal.css';
 
@@ -84,11 +85,20 @@ export default function SettingsModal({
     }
   };
 
-  const handleCollectionSelect = (collectionSlug: string) => {
+  const handleCollectionSelect = async (collectionSlug: string) => {
     const collection = collections.find(c => c.slug === collectionSlug);
-    if (collection) {
-      onCollectionChange(collection);
+    if (!collection) return;
+    // Clear queue and stop playback for the collection we're switching away from
+    try {
+      audioService.stop();
+      await playbackApi.stop(currentCollection.slug);
+      await queueApi.clear(currentCollection.slug);
+      queryClient.invalidateQueries({ queryKey: ['playback-state', currentCollection.slug] });
+      queryClient.invalidateQueries({ queryKey: ['queue', currentCollection.slug] });
+    } catch {
+      // Still switch collection if clear fails
     }
+    onCollectionChange(collection);
   };
 
   const handleGoToAdmin = () => {
