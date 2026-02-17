@@ -15,35 +15,45 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.5rem;
+  /* margin-bottom: 0.5rem; */
 }
 
 .section-header h2 {
   margin: 0;
   font-size: 1.5rem;
-  color: var(--primary-color);
+  color: var(--lcd-green);
 }
 
 .manager-section h2 {
   margin: 0 0 0.5rem 0;
   font-size: 1.5rem;
-  color: var(--primary-color);
+  color: var(--vintage-cream);
 }
 
 .create-button {
-  padding: 0.75rem 1.5rem;
+  padding: 0.25rem 0.25rem;
   font-size: 1rem;
   font-weight: 600;
   color: var(--text-primary);
-  background-color: var(--primary-color);
+  background-color: var(--vintage-cream);
   border-radius: 8px;
   transition: all 0.3s ease;
 }
 
+.create-button-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* padding: 0.75rem; */
+  color: var(--background-dark);
+}
+
 .create-button:hover {
-  background-color: #ff8555;
+  background-color: color-mix(in srgb, var(--vintage-cream) 85%, black); 
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px var(--accent-glow);
+  box-shadow: 0 6px 16px rgba(149, 194, 149, 0.35);
+  transform: translateY(-2px);
+  /* box-shadow: 0 4px 12px rgba(149, 194, 149, 0.35); */
 }
 
 .manager-section p {
@@ -71,11 +81,13 @@
   border: 2px solid var(--border-color);
   border-radius: 8px;
   transition: all 0.3s ease;
+  cursor: pointer;
 }
 
-.collection-card:hover {
-  border-color: var(--primary-color);
-  box-shadow: 0 4px 12px var(--accent-glow);
+.collection-card:hover,
+.collection-card.selected {
+  border-color: var(--lcd-green);
+  box-shadow: 0 4px 12px rgba(149, 194, 149, 0.35);
 }
 
 .create-form {
@@ -114,7 +126,7 @@
 
 .form-group input:focus {
   outline: none;
-  border-color: var(--primary-color);
+  border-color: var(--lcd-green);
 }
 
 .submit-button {
@@ -122,15 +134,15 @@
   font-size: 1rem;
   font-weight: 600;
   color: var(--text-primary);
-  background-color: var(--primary-color);
+  background-color: var(--lcd-green);
   border-radius: 8px;
   transition: all 0.3s ease;
 }
 
 .submit-button:hover:not(:disabled) {
-  background-color: #ff8555;
+  background-color: var(--lcd-green-dim);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px var(--accent-glow);
+  box-shadow: 0 4px 12px rgba(149, 194, 149, 0.35);
 }
 
 .submit-button:disabled {
@@ -160,43 +172,31 @@
   align-items: center;
 }
 
-.delete-button {
-  padding: 0.5rem 1rem;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  background-color: #cc0000;
-  border-radius: 8px;
-  transition: all 0.3s ease;
+.collection-delete-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem;
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  transition: opacity 0.2s;
 }
 
-.delete-button:hover:not(:disabled) {
-  background-color: #ff0000;
-  transform: translateY(-1px);
+.collection-delete-icon:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.collection-delete-icon:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .collection-header h3 {
   margin: 0;
   font-size: 1.2rem;
   color: var(--text-primary);
-}
-
-.collection-status {
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.collection-status.active {
-  background-color: rgba(0, 255, 0, 0.2);
-  color: #00ff00;
-}
-
-.collection-status.inactive {
-  background-color: rgba(255, 0, 0, 0.2);
-  color: #ff0000;
 }
 
 .collection-slug {
@@ -259,54 +259,43 @@
 }
 
 .config-notes strong {
-  color: var(--primary-color);
+  color: var(--lcd-green);
 }
 
 /* Collection Selector */
-.collection-selector-section {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
-  padding: 1rem;
-  background-color: var(--background-dark);
-  border-radius: 8px;
-  max-width: 400px;
-}
-
-.collection-selector-section label {
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-.collection-select {
-  padding: 0.75rem 2.5rem 0.75rem 0.75rem;
-  font-size: 1rem;
-  background-color: var(--background-card);
-  color: var(--text-primary);
-  border: 2px solid var(--border-color);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: border-color 0.2s;
-  appearance: none;
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23cccccc' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-  background-repeat: no-repeat;
-  background-position: right 0.75rem center;
-  background-size: 1.2rem;
-}
-
-.collection-select:focus {
-  outline: none;
-  border-color: var(--primary-color);
-}
-
 /* Album List Styles */
 .albums-list {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
   max-height: 600px;
+  overflow-x: hidden;
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) var(--background-dark);
+}
+
+.albums-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.albums-list::-webkit-scrollbar-track {
+  background: var(--background-dark);
+}
+
+.albums-list::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+.albums-list::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+.infinite-scroll-sentinel {
+  height: 20px;
+  flex-shrink: 0;
+  pointer-events: none;
 }
 
 .album-item {
@@ -405,6 +394,44 @@
   min-width: 100px;
 }
 
+/* Tooltip wrapper: use data-tooltip="..." on the wrapper, hover to show */
+.admin-tooltip-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.admin-tooltip-wrap::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-6px);
+  padding: 0.4rem 0.65rem;
+  background: var(--background-dark);
+  color: var(--vintage-cream);
+  font-size: 0.8rem;
+  font-weight: 500;
+  white-space: nowrap;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+  transition-delay: 0.15s;
+  z-index: 100;
+}
+
+.admin-tooltip-wrap:hover::after {
+  opacity: 1;
+}
+
+/* In album list, show tooltip below so it isn't clipped by overflow */
+.album-item-actions .admin-tooltip-wrap::after {
+  bottom: auto;
+  top: 100%;
+  transform: translateX(-50%) translateY(6px);
+}
+
 .album-item-actions {
   display: flex;
   gap: 0.5rem;
@@ -413,22 +440,22 @@
 
 .edit-button,
 .archive-button {
-  padding: 0.5rem 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
   font-size: 0.9rem;
-  font-weight: 600;
   border-radius: 6px;
   transition: all 0.2s;
-  white-space: nowrap;
-}
-
-.edit-button {
-  background-color: var(--secondary-color);
-  color: var(--text-primary);
-  border: 1px solid var(--secondary-color);
+  background-color: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
 }
 
 .edit-button:hover {
-  background-color: #006bb3;
+  background-color: color-mix(in srgb, var(--lcd-green) 20%, transparent);
+  border-color: var(--lcd-green);
+  color: var(--lcd-green);
   transform: translateY(-1px);
 }
 
@@ -456,49 +483,3 @@
   transform: none;
 }
 
-.load-more-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 1rem;
-  background-color: var(--background-dark);
-  border-radius: 8px;
-  margin-top: 0.75rem;
-}
-
-.albums-more {
-  margin: 0;
-  text-align: center;
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-}
-
-.load-more-button,
-.load-all-button {
-  padding: 0.75rem 1.5rem;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  border-radius: 6px;
-  transition: all 0.2s;
-  min-width: 150px;
-}
-
-.load-more-button {
-  background-color: var(--secondary-color);
-}
-
-.load-more-button:hover {
-  background-color: #006bb3;
-  transform: translateY(-1px);
-}
-
-.load-all-button {
-  background-color: var(--primary-color);
-}
-
-.load-all-button:hover {
-  background-color: #ff8555;
-  transform: translateY(-1px);
-}

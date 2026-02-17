@@ -1,16 +1,21 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { MdEdit, MdAdd, MdClose, MdDelete } from 'react-icons/md';
 import { collectionsApi, adminApi } from '../../services/api';
 import AlbumEditModal from './AlbumEditModal';
 import './CollectionManager.css';
+
+const INFINITE_SCROLL_PAGE_SIZE = 50;
 
 export default function CollectionManager() {
   const queryClient = useQueryClient();
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newCollection, setNewCollection] = useState({ name: '', slug: '', description: '' });
   const [selectedCollectionSlug, setSelectedCollectionSlug] = useState<string | null>(null);
-  const [displayLimit, setDisplayLimit] = useState(50);
+  const [displayLimit, setDisplayLimit] = useState(INFINITE_SCROLL_PAGE_SIZE);
   const [editingAlbumId, setEditingAlbumId] = useState<string | null>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
   
   const { data: collections } = useQuery({
     queryKey: ['collections'],
@@ -85,18 +90,39 @@ export default function CollectionManager() {
       action: checked ? 'add' : 'remove',
     });
   };
-  
+
+  // Infinite scroll: when sentinel is visible, load more albums
+  useEffect(() => {
+    const list = listRef.current;
+    const sentinel = sentinelRef.current;
+    const total = albums?.length ?? 0;
+    if (!list || !sentinel || total === 0 || displayLimit >= total) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0].isIntersecting) return;
+        setDisplayLimit((prev) => Math.min(prev + INFINITE_SCROLL_PAGE_SIZE, total));
+      },
+      { root: list, rootMargin: '80px', threshold: 0 }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [displayLimit, albums?.length]);
+
   return (
     <div className="collection-manager">
       <div className="manager-section">
         <div className="section-header">
           <h2>Collections</h2>
-          <button
-            className="create-button"
-            onClick={() => setShowCreateForm(!showCreateForm)}
-          >
-            {showCreateForm ? 'Cancel' : '+ Create Collection'}
-          </button>
+          <span className="admin-tooltip-wrap" data-tooltip={showCreateForm ? 'Cancel' : 'Create Collection'}>
+            <button
+              className="create-button create-button-icon"
+              onClick={() => setShowCreateForm(!showCreateForm)}
+              aria-label={showCreateForm ? 'Cancel' : 'Create Collection'}
+            >
+              {showCreateForm ? <MdClose size={22} /> : <MdAdd size={22} />}
+            </button>
+          </span>
         </div>
         <p>Manage your jukebox collections. Each collection can contain different albums.</p>
         
@@ -150,24 +176,43 @@ export default function CollectionManager() {
         {collections && collections.length > 0 ? (
           <div className="collections-list">
             {collections.map((collection) => (
-              <div key={collection.id} className="collection-card">
+              <div
+                key={collection.id}
+                className={`collection-card ${selectedCollectionSlug === collection.slug ? 'selected' : ''}`}
+                onClick={() => {
+                  setSelectedCollectionSlug(collection.slug);
+                  setDisplayLimit(INFINITE_SCROLL_PAGE_SIZE);
+                }}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setSelectedCollectionSlug(collection.slug);
+                    setDisplayLimit(INFINITE_SCROLL_PAGE_SIZE);
+                  }
+                }}
+                aria-label={`Select ${collection.name} to manage albums`}
+              >
                 <div className="collection-header">
                   <h3>{collection.name}</h3>
                   <div className="collection-actions">
-                    <span className={`collection-status ${collection.is_active ? 'active' : 'inactive'}`}>
-                      {collection.is_active ? 'Active' : 'Inactive'}
+                    <span className="admin-tooltip-wrap" data-tooltip="Delete collection">
+                      <button
+                        type="button"
+                        className="collection-delete-icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (confirm(`Delete collection "${collection.name}"?`)) {
+                            deleteMutation.mutate(collection.id);
+                          }
+                        }}
+                        disabled={deleteMutation.isPending}
+                        aria-label="Delete collection"
+                      >
+                        <MdDelete size={22} />
+                      </button>
                     </span>
-                    <button
-                      className="delete-button"
-                      onClick={() => {
-                        if (confirm(`Delete collection "${collection.name}"?`)) {
-                          deleteMutation.mutate(collection.id);
-                        }
-                      }}
-                      disabled={deleteMutation.isPending}
-                    >
-                      Delete
-                    </button>
                   </div>
                 </div>
                 <div className="collection-slug">Slug: {collection.slug}</div>
@@ -186,32 +231,13 @@ export default function CollectionManager() {
       
       <div className="manager-section">
         <h2>Manage Albums in Collection</h2>
-        <p>Select a collection to manage its albums. Check/uncheck albums to add or remove them.</p>
+        <p>Click a collection above to manage its albums. Check/uncheck albums to add or remove them.</p>
         
         {collections && collections.length > 0 ? (
           <>
-            <div className="collection-selector-section">
-              <label>Select Collection:</label>
-              <select
-                value={selectedCollectionSlug || ''}
-                onChange={(e) => {
-                  setSelectedCollectionSlug(e.target.value || null);
-                  setDisplayLimit(50); // Reset display limit when changing collection
-                }}
-                className="collection-select"
-              >
-                <option value="">-- Select a collection --</option>
-                {collections.map((collection) => (
-                  <option key={collection.id} value={collection.slug}>
-                    {collection.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            
             {selectedCollectionSlug && albums && albums.length > 0 && (
               <>
-                <div className="albums-list">
+                <div ref={listRef} className="albums-list">
                   {albums.slice(0, displayLimit).map((album: any) => {
                     const inCollection = isAlbumInCollection(album.id);
                     return (
@@ -247,34 +273,23 @@ export default function CollectionManager() {
                           {album.year && <span>{album.year}</span>}
                         </div>
                         <div className="album-item-actions">
-                          <button
-                            className="edit-button"
-                            onClick={() => setEditingAlbumId(album.id)}
-                          >
-                            ✏️ Edit
-                          </button>
+                          <span className="admin-tooltip-wrap" data-tooltip="Edit album">
+                            <button
+                              className="edit-button"
+                              onClick={() => setEditingAlbumId(album.id)}
+                              aria-label="Edit album"
+                            >
+                              <MdEdit size={20} />
+                            </button>
+                          </span>
                         </div>
                       </div>
                     );
                   })}
+                  {displayLimit < albums.length && (
+                    <div ref={sentinelRef} className="infinite-scroll-sentinel" aria-hidden="true" />
+                  )}
                 </div>
-                {displayLimit < albums.length && (
-                  <div className="load-more-section">
-                    <p className="albums-more">Showing {displayLimit} of {albums.length} albums</p>
-                    <button
-                      className="load-more-button"
-                      onClick={() => setDisplayLimit(prev => Math.min(prev + 50, albums.length))}
-                    >
-                      Load More (50)
-                    </button>
-                    <button
-                      className="load-all-button"
-                      onClick={() => setDisplayLimit(albums.length)}
-                    >
-                      Load All
-                    </button>
-                  </div>
-                )}
               </>
             )}
           </>
