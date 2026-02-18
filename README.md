@@ -2,32 +2,31 @@
 
 A retro-style digital jukebox application that replicates the look and feel of 90s/early 2000s NSM-style CD wall jukeboxes.
 
+![Jukebox screenshot](images/divebarJukePreview.png)
+
 ## Features
 
-- **Local FLAC File Support**: Play high-quality FLAC files from your music library
-- **Multi-Collection Management**: Create multiple jukebox "versions" (e.g., "Dive Bar Jukebox", "Dad Rock Jukebox")
+### Admin Features
+- **Local FLAC File Support**: Play high-quality FLAC files from a local library
+- **Spotify Sync**: Includes tools and scripts for building JSON files and scripts of your Saved Music on Spotify and Tidal to be easily used with solutions like tital-dl-ng and SpotiFLAC if desired. 
+- **Library Scan**: Scans and updates local music library and updates SQL database, so that all Display data for Albums and Tracks can be edited while file metadata goes unchanged. 
+- **Multi-Collection Management**: Create multiple jukebox Collections, that can feature a different set of Albums
 - **Flexible Album Numbering**: Dynamic display numbers (001-999) based on sort order
-- **Selective Track Inclusion**: Enable/disable specific tracks per collection
-- **Retro UI**: NSM-style card carousel interface with number pad input
-- **Multi-Disc Support**: Properly handles albums with multiple discs
+- **Selective Track Inclusion**: Each album shown in the Jukbox can be edited so that only selected tracks display.
+- **Favorites and Recommendations**: Songs can be marked as "Favorite" or "Recommended", to be displayed to the user on info cards while searching for songs. Songs marked as "Favorite" will also be included in Autoplay feature. 
+- **Edit Modal Track Player**: Admin users can listen to individual tracks and use progress bar to preview different sections of songs while choosing favorites and selecting songs. 
+
+### User Interface / Jukebox View
+- **Jukebox View**: The main jukebox view is built to be used on Horizontal iPad Screens, Desktops, or touch screen interfaces. 
+- **Controls** The UX is intended to replicate the simplicity, and primitive controls of a vintage jukebox. With left/right arrow keys for flipping through Cards, and a pop out number pad for selecting songs for the Queue. 
+
 
 ## Architecture
-
 - **Backend**: Python FastAPI with SQLite database
 - **Frontend**: React + TypeScript + Vite
 - **Music Sources**: Local FLAC files (Spotify/Tidal support planned)
 - **Deployment**: Local web app, Raspberry Pi standalone (future), hosted demo (future)
 
-## Project Structure
-
-```
-divebar-jukebox/
-├── backend/           # FastAPI backend
-├── frontend/          # React frontend
-├── tools/             # Utility scripts (tidal-dl-helper)
-├── collections/       # Collection configuration files
-└── README.md
-```
 
 ## Getting Started
 
@@ -38,7 +37,6 @@ divebar-jukebox/
 - FLAC music library
 
 ### Backend Setup
-
 ```bash
 cd backend
 python3 -m venv .venv
@@ -79,38 +77,14 @@ MusicLibrary/Albums/
 │           └── ...
 ```
 
-## Collection Configuration
-
-Collections are defined in `collections/collections.json`:
-
-```json
-{
-  "collections": [
-    {
-      "name": "Dive Bar Jukebox",
-      "slug": "dive-bar",
-      "description": "Classic dive bar selection",
-      "albums": [
-        {
-          "album_path": "Artist Name/Album Name",
-          "sort_order": 1,
-          "enabled_tracks": ["all"],
-          "disabled_tracks": []
-        }
-      ]
-    }
-  ]
-}
-```
-
 ## Tools
 
 ### Tidal-DL Helper Scripts
 
 Located in `tools/tidal-dl-helper-scripts/`, these scripts help you:
-- Fetch saved albums from Spotify and Tidal
+- Fetch saved albums from Spotify and Tidal using 
 - Resolve albums on Tidal
-- Batch download FLAC files via tidal-dl-ng
+- Batch download FLAC files via tools such as tidal-dl-ng
 
 See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 
@@ -124,7 +98,7 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [x] Fix Queue issue: adding a track to the queue does not always put it last (seen when an album was in the queue)
 - [x] Examine Library Scan process and possible issues. 
 - [ ] Playback of the first song in Queue is really abrupt, maybe a fade in or delay? 
-- [ ] look into if mp3 files will work as well
+- [ ] Add Support for mp3 file playback
 - [x] Clear Queue when user switches collections 
 - [x] Fix Edit Album Modal form state issue (Album Name not holding state)
 - [ ] Star and recommended icons should append to a word so they dont break a line. 
@@ -133,7 +107,7 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 ### Admin Features
 - [ ] Add ability to add and save custom artwork to an album in edit modal
 - [ ] Add ability to filter by active in collection list
-- [ ] Add Ability to search collection and library to Admin View
+- [ ] Add functionality for searching collection and library to Admin View
 - [x] Add ability to preview individual tracks in edit modal. 
 - [ ] Add authorization to admin features
 - [ ] Add track duration to Edit Modal
@@ -141,7 +115,7 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 ### Database Updates
 - [ ] Add Category table to DB
 - [ ] Add Category column to Albums
-- [ ] Maybe add Genre Column and Genre column to Albums 
+- [ ] Add Genre Column and Genre column to Albums 
 
 ### Sorting & Organization
 - [ ] Create solution for custom sorting of albums within collections
@@ -149,7 +123,7 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [x] Create Settings Modal
 - [x] Move collection selector, Admin settings button and edit mode selector to settings modal
 - [ ] Add sort options (A-Z, Genre, Custom) to settings modal
-- [ ] Add some sort of Jump-To Functionality 
+- [ ] Add Jump-To Functionality to Jukebox View
 
 ### Track Features
 - [x] Add stars and dots/+ system next to tracks for favorites and recommendations
@@ -159,24 +133,22 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [ ] Make sure playblack and Queue use Database track data, not metadata 
 
 ### Playback Features
-- [ ] Implement random play feature (possibly favorites-only) that can be toggled in settings
-- [ ] Add 'play random after queue ends' feature
+- [ ] Implement random play feature that are triggered by "H" button on keypad. 
+- [ ] Add 'play random after queue ends' feature to be toggled in settings. 
 - [ ] Add a "Fade" Amount Feature for how much transition is between tracks
-- [ ] Add a feature for creating custom queue lists (basically a playlist) per collection. 
-- [ ] in addition to this, maybe create the ability to record the Queue History, and then save that history as queue collection. 
-- [ ] Look into playing mp3 + WAV files as well 
+- [ ] Add feature for creating custom queue lists (basically a playlist) per collection. 
+- [ ] in addition to this, maybe create the ability to record the Queue History, and then save that history as queue collection.  d
 
 
 ### Visual Enhancements
 - [x] Add paper textures to album info cards for vintage jukebox aesthetic
 - [x] Add more stylistic elements to make UI look more like a vintage jukebox
 - [x] Implement variable spacing and text sizing for track names to fill the area better
-- [ ] Improve dynamic display sizing, and account for browser header
+- [x] Improve dynamic display sizing, and account for browser header
 - [ ] Add Year to Album info card
 - [ ] Add Selection Number (ie. "002-03") to Jukebox playblack display
 - [ ] Add descriptions underneath number input for what each number means 
 - [ ] Enhance carousel slider animations for smoother transitions
-- [ ] Work on making Logo look more like an NSM jukebox. 
 - [ ] add a speaker icon for currently playing track in track info card
 - [ ] add an icon to represent that a song is already in the queue (maybe prevent duplicates)
 - [ ] Update Card Sliders to make them look like "Card Holders" seen on NSM Jukeboxes
@@ -186,8 +158,6 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [x] Add now playing to carousel controls
 - [x] Clicking outside of Queue sidebar should close sidebar
 - [ ] Add option to have 4 arrow controls. Two single arrow buttons, and two double arrow buttons. The double arrow buttons would slide two cards at once. 
-- [ ] Improve card sliding speed, or just ability to press the buttons faster, not necessarily faster sliding speed. 
-- [ ] Add "H" (Hit) Button for playing favorites
 
 ### Integration & Infrastructure
 - [ ] Add ability to add playlists as albums
@@ -196,8 +166,8 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [ ] Move music library to network harddrive and ensure compatibility.
 
 ### Testing & Deployment
-- [ ] Test application on physical iPad (1024x768)
-- [ ] Add BE Unit and API Testing
+- [x] Test application on physical iPad (1024x768)
+- [ ] Add Unit Testing
 - [ ] Set up deployment scripts for creating a deployed version of the Database that uses Spotify API
 - [ ] Create a copy of database for deployment for syncing all of the album database changes done locally
 
@@ -226,10 +196,14 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [ ] Cloud deployment
 - [ ] Spotify/Tidal integration
 
+## Disclaimer
+
+This project does not include or distribute any third-party download or ripping software. References to tools (e.g. for syncing or downloading from streaming services) are for informational purposes only. You are solely responsible for ensuring your use of this software and any tools you use with it complies with applicable laws and the terms of service of any third-party services. The authors and contributors of this project are not responsible for how you use this software or for any misuse of third-party services.
+
 ## License
 
 MIT
 
 ## Contributing
 
-This is a personal project, but suggestions and feedback are welcome!
+This is a personal project.
