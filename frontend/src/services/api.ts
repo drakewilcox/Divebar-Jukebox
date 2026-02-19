@@ -90,6 +90,13 @@ export const adminApi = {
     data: { name?: string; slug?: string; description?: string; is_active?: boolean }
   ) => api.put(`/admin/collections/${id}`, data),
   deleteCollection: (id: string) => api.delete(`/admin/collections/${id}`),
+  updateCollectionSections: (
+    collectionId: string,
+    data: {
+      sections_enabled: boolean;
+      sections?: { order: number; name: string; color: string; start_slot?: number; end_slot?: number }[];
+    }
+  ) => api.put(`/admin/collections/${collectionId}/sections`, data),
   updateCollectionAlbums: (
     slug: string,
     album_id: string,

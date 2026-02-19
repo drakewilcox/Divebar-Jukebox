@@ -1,11 +1,21 @@
 // Type definitions for the jukebox application
 
+export interface CollectionSection {
+  order: number;
+  name: string;
+  color: string;
+  start_slot?: number;  // 1-based first slot in this section
+  end_slot?: number;   // 1-based last slot in this section
+}
+
 export interface Collection {
   id: string;
   name: string;
   slug: string;
   description: string | null;
   is_active: boolean;
+  sections_enabled?: boolean;
+  sections?: CollectionSection[] | null;
 }
 
 export interface Album {
