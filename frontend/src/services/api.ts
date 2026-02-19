@@ -87,7 +87,7 @@ export const adminApi = {
     api.post('/admin/collections', { name, slug, description }),
   updateCollection: (
     id: string,
-    data: { name?: string; description?: string; is_active?: boolean }
+    data: { name?: string; slug?: string; description?: string; is_active?: boolean }
   ) => api.put(`/admin/collections/${id}`, data),
   deleteCollection: (id: string) => api.delete(`/admin/collections/${id}`),
   updateCollectionAlbums: (

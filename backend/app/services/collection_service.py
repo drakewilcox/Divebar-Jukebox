@@ -58,30 +58,37 @@ class CollectionService:
         logger.info(f"Created collection: {name} ({slug})")
         return collection
     
-    def update_collection(self, collection_id: str, name: str = None, description: str = None, is_active: bool = None) -> Optional[Collection]:
+    def update_collection(self, collection_id: str, name: str = None, slug: str = None, description: str = None, is_active: bool = None) -> Optional[Collection]:
         """
         Update a collection
-        
+
         Args:
             collection_id: Collection UUID
             name: New name (optional)
+            slug: New URL-safe slug (optional)
             description: New description (optional)
             is_active: Active status (optional)
-            
+
         Returns:
             Updated Collection instance or None
         """
         collection = self.db.query(Collection).filter(Collection.id == collection_id).first()
         if not collection:
             return None
-        
+
         if name is not None:
             collection.name = name
+        if slug is not None:
+            if slug != collection.slug:
+                existing = self.db.query(Collection).filter(Collection.slug == slug).first()
+                if existing:
+                    raise ValueError(f"Collection with slug '{slug}' already exists")
+            collection.slug = slug
         if description is not None:
             collection.description = description
         if is_active is not None:
             collection.is_active = is_active
-        
+
         self.db.commit()
         logger.info(f"Updated collection: {collection.name}")
         return collection

@@ -63,6 +63,7 @@ class CreateCollectionRequest(BaseModel):
 
 class UpdateCollectionRequest(BaseModel):
     name: str | None = None
+    slug: str | None = None
     description: str | None = None
     is_active: bool | None = None
 
@@ -232,17 +233,18 @@ def update_collection(
 ):
     """Update a collection"""
     collection_service = CollectionService(db)
-    
-    collection = collection_service.update_collection(
-        collection_id=collection_id,
-        name=request.name,
-        description=request.description,
-        is_active=request.is_active
-    )
-    
+    try:
+        collection = collection_service.update_collection(
+            collection_id=collection_id,
+            name=request.name,
+            slug=request.slug,
+            description=request.description,
+            is_active=request.is_active
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     if not collection:
         raise HTTPException(status_code=404, detail=f"Collection '{collection_id}' not found")
-    
     return {"message": "Collection updated"}
 
 

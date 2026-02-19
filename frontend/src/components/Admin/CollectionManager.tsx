@@ -4,6 +4,7 @@ import { MdEdit, MdAdd, MdClose, MdDelete } from 'react-icons/md';
 import { collectionsApi, adminApi } from '../../services/api';
 import { filterAndSortAlbums, type AlbumSortOption } from '../../utils/albumListFilter';
 import AlbumEditModal from './AlbumEditModal';
+import CollectionEditModal, { type CollectionToEdit } from './CollectionEditModal';
 import SlotManagement from './SlotManagement';
 import './CollectionManager.css';
 
@@ -19,8 +20,10 @@ export default function CollectionManager() {
   const [subTab, setSubTab] = useState<CollectionManagerSubTab>('selections');
   const [displayLimit, setDisplayLimit] = useState(INFINITE_SCROLL_PAGE_SIZE);
   const [editingAlbumId, setEditingAlbumId] = useState<string | null>(null);
+  const [editingCollection, setEditingCollection] = useState<CollectionToEdit | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<AlbumSortOption>('artist_asc');
+  const [onlyShowInCollection, setOnlyShowInCollection] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const savedScrollRef = useRef<{ el: HTMLElement; top: number } | null>(null);
   
@@ -98,14 +101,18 @@ export default function CollectionManager() {
     });
   };
 
-  const filteredSortedAlbums = useMemo(
-    () => (albums ? filterAndSortAlbums(albums, searchQuery, sortBy) : []),
-    [albums, searchQuery, sortBy]
-  );
+  const filteredSortedAlbums = useMemo(() => {
+    let list = albums ? filterAndSortAlbums(albums, searchQuery, sortBy) : [];
+    if (onlyShowInCollection && selectedCollectionSlug && collectionAlbums?.length != null) {
+      const inCollectionIds = new Set(collectionAlbums.map((a: { id: string }) => a.id));
+      list = list.filter((a: { id: string }) => inCollectionIds.has(a.id));
+    }
+    return list;
+  }, [albums, searchQuery, sortBy, onlyShowInCollection, selectedCollectionSlug, collectionAlbums]);
 
   useEffect(() => {
     setDisplayLimit(INFINITE_SCROLL_PAGE_SIZE);
-  }, [searchQuery, sortBy]);
+  }, [searchQuery, sortBy, onlyShowInCollection]);
 
   /** Find the scrollable ancestor that actually scrolls (has overflow-y scroll/auto and scrollable content) */
   const getScrollParent = (from: HTMLElement): HTMLElement | null => {
@@ -239,6 +246,24 @@ export default function CollectionManager() {
                 <div className="collection-header">
                   <h3>{collection.name}</h3>
                   <div className="collection-actions">
+                    <span className="admin-tooltip-wrap" data-tooltip="Edit collection">
+                      <button
+                        type="button"
+                        className="collection-edit-icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingCollection({
+                            id: collection.id,
+                            name: collection.name,
+                            slug: collection.slug,
+                            description: collection.description ?? null,
+                          });
+                        }}
+                        aria-label="Edit collection"
+                      >
+                        <MdEdit size={22} />
+                      </button>
+                    </span>
                     <span className="admin-tooltip-wrap" data-tooltip="Delete collection">
                       <button
                         type="button"
@@ -269,8 +294,15 @@ export default function CollectionManager() {
             <p>No collections yet. Create your first collection above!</p>
           </div>
         )}
+
+        {editingCollection && (
+          <CollectionEditModal
+            collection={editingCollection}
+            onClose={() => setEditingCollection(null)}
+          />
+        )}
       </div>
-      
+
       <div className="manager-section manager-section-tabs">
         {/* <h2>Manage Collection</h2>
         <p>Click a collection above, then use the tabs below to manage its selections, slot order, or sections.</p> */}
@@ -301,7 +333,7 @@ export default function CollectionManager() {
               </button>
             </div>
 
-            <div className="collection-manager-tab-content">
+            <div className={`collection-manager-tab-content ${selectedCollectionSlug ? 'collection-manager-tab-content-has-selection' : ''}`}>
             {!selectedCollectionSlug ? (
               <p className="collection-manager-select-hint">Select a collection above to manage its {subTab}.</p>
             ) : subTab === 'selections' && albums && albums.length > 0 ? (
@@ -330,6 +362,15 @@ export default function CollectionManager() {
                     <option value="year_asc">Year (ascending)</option>
                     <option value="year_desc">Year (descending)</option>
                   </select>
+                  <label className="albums-list-only-active">
+                    <input
+                      type="checkbox"
+                      checked={onlyShowInCollection}
+                      onChange={(e) => setOnlyShowInCollection(e.target.checked)}
+                      aria-label="Only show albums in this collection"
+                    />
+                    <span>Only show active</span>
+                  </label>
                 </div>
                 <div
                   ref={listRef}

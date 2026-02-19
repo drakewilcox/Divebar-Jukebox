@@ -103,8 +103,8 @@
   margin: 1rem 0;
 }
 
-/* Stable height so admin-content doesn't shrink when switching Selections <-> Slots (avoids scroll jump) */
-.collection-manager-tab-content {
+/* Stable height only when a collection is selected (avoids scroll jump when switching Selections <-> Slots) */
+.collection-manager-tab-content.collection-manager-tab-content-has-selection {
   min-height: 600px;
 }
 
@@ -245,6 +245,7 @@
   align-items: center;
 }
 
+.collection-edit-icon,
 .collection-delete-icon {
   display: inline-flex;
   align-items: center;
@@ -257,6 +258,7 @@
   transition: opacity 0.2s;
 }
 
+.collection-edit-icon:hover,
 .collection-delete-icon:hover:not(:disabled) {
   opacity: 0.85;
 }
@@ -383,6 +385,27 @@
 .albums-list-sort:focus {
   outline: none;
   border-color: var(--lcd-green);
+}
+
+.albums-list-only-active {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.albums-list-only-active:hover {
+  color: var(--text-primary);
+}
+
+.albums-list-only-active input[type="checkbox"] {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--lcd-green);
+  cursor: pointer;
 }
 
 .albums-list-empty {
