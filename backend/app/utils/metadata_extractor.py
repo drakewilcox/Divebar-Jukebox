@@ -128,12 +128,22 @@ class MetadataExtractor:
         # Find cover art
         cover_art_path = self.extract_cover_art(album_path, flac_files[0])
         
+        # Genre from first track (FLAC/Vorbis: can be multiple values)
+        genre_raw = first_track.get('genre', [])
+        genres = [g.strip() for g in genre_raw if g and str(g).strip()] if genre_raw else []
+        
         # Extract all tracks
         tracks = []
         for flac_file in flac_files:
             track_metadata = self.extract_track_metadata(flac_file, album_path)
             if track_metadata:
                 tracks.append(track_metadata)
+        
+        extra = {
+            'disc_count': len(disc_dirs) if has_multi_disc else 1,
+        }
+        if genres:
+            extra['genre'] = genres
         
         return {
             'file_path': relative_path,
@@ -143,9 +153,7 @@ class MetadataExtractor:
             'total_tracks': len(tracks),
             'year': year,
             'has_multi_disc': has_multi_disc,
-            'extra_metadata': {
-                'disc_count': len(disc_dirs) if has_multi_disc else 1,
-            },
+            'extra_metadata': extra,
             'tracks': tracks
         }
     

@@ -1,4 +1,5 @@
 """Admin API endpoints"""
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List
@@ -34,7 +35,8 @@ class AlbumListResponse(BaseModel):
     total_tracks: int
     year: int | None
     archived: bool
-    
+    created_at: datetime | None
+
     class Config:
         from_attributes = True
 
@@ -146,6 +148,16 @@ def get_album_details(album_id: str, db: Session = Depends(get_db)):
     ).all()
     collection_ids = [ca.collection_id for ca in collection_albums]
     
+    # Genre from extra_metadata (set during library scan; may be missing for older imports)
+    extra = album.extra_metadata or {}
+    genre = extra.get("genre")
+    if isinstance(genre, list):
+        genre_list = [str(g) for g in genre if g]
+    elif genre:
+        genre_list = [str(genre)]
+    else:
+        genre_list = []
+
     return {
         "id": album.id,
         "title": album.title,
@@ -154,6 +166,7 @@ def get_album_details(album_id: str, db: Session = Depends(get_db)):
         "cover_art_path": album.cover_art_path,
         "custom_cover_art_path": album.custom_cover_art_path,
         "archived": album.archived,
+        "genre": genre_list,
         "tracks": tracks,
         "collection_ids": collection_ids
     }
@@ -296,6 +309,32 @@ def reorder_collection_albums(
         raise HTTPException(status_code=404, detail="Album not found in collection")
     
     return {"message": "Album reordered"}
+
+
+class SetCollectionOrderRequest(BaseModel):
+    album_ids: List[str]
+
+
+@router.put("/collections/{slug}/albums/order")
+def set_collection_album_order(
+    slug: str,
+    body: SetCollectionOrderRequest,
+    db: Session = Depends(get_db)
+):
+    """Set full order of albums in a collection (list of album IDs in desired order)."""
+    collection_service = CollectionService(db)
+    
+    collection = collection_service.get_collection_by_slug(slug)
+    if not collection:
+        raise HTTPException(status_code=404, detail=f"Collection '{slug}' not found")
+    
+    if not collection_service.set_collection_album_order(collection.id, body.album_ids):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid album_ids: must match exactly the albums in the collection (no duplicates, no unknowns)"
+        )
+    
+    return {"message": "Collection order saved"}
 
 
 @router.post("/sanitize-tracks")
