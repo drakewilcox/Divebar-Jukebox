@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { MdOutlineSync, MdOutlineCleaningServices, MdEdit, MdArchive, MdUnarchive } from 'react-icons/md';
 import { adminApi } from '../../services/api';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { filterAndSortAlbums, type AlbumSortOption } from '../../utils/albumListFilter';
 import AlbumEditModal from './AlbumEditModal';
 import './LibraryScanner.css';
 
@@ -12,9 +13,11 @@ export default function LibraryScanner() {
   const [scanResults, setScanResults] = useState<any>(null);
   const [editingAlbumId, setEditingAlbumId] = useState<string | null>(null);
   const [displayLimit, setDisplayLimit] = useState(INFINITE_SCROLL_PAGE_SIZE);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<AlbumSortOption>('artist_asc');
   const listRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
-  
+
   const { data: albums } = useQuery({
     queryKey: ['admin-albums'],
     queryFn: async () => {
@@ -47,11 +50,20 @@ export default function LibraryScanner() {
     },
   });
 
+  const filteredSortedAlbums = useMemo(
+    () => (albums ? filterAndSortAlbums(albums, searchQuery, sortBy) : []),
+    [albums, searchQuery, sortBy]
+  );
+
+  useEffect(() => {
+    setDisplayLimit(INFINITE_SCROLL_PAGE_SIZE);
+  }, [searchQuery, sortBy]);
+
   // Infinite scroll: when sentinel is visible, load more albums
   useEffect(() => {
     const list = listRef.current;
     const sentinel = sentinelRef.current;
-    const total = albums?.length ?? 0;
+    const total = filteredSortedAlbums.length;
     if (!list || !sentinel || total === 0 || displayLimit >= total) return;
 
     const observer = new IntersectionObserver(
@@ -63,7 +75,7 @@ export default function LibraryScanner() {
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [displayLimit, albums?.length]);
+  }, [displayLimit, filteredSortedAlbums.length]);
 
   return (
     <div className="library-scanner">
@@ -143,11 +155,40 @@ export default function LibraryScanner() {
       <div className="scanner-section">
         <h2>Albums in Database</h2>
         <p>Total albums: {albums?.length || 0} {albums && albums.filter((a: any) => !a.archived).length !== albums.length && `(${albums.filter((a: any) => !a.archived).length} active)`}</p>
-        
+
         {albums && albums.length > 0 && (
           <>
+            <div className="albums-list-toolbar">
+              <input
+                type="search"
+                placeholder="Search by album or artist…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="albums-list-search"
+                aria-label="Search albums by title or artist"
+              />
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as AlbumSortOption)}
+                className="albums-list-sort"
+                aria-label="Sort albums"
+              >
+                <option value="artist_asc">Artist A–Z</option>
+                <option value="artist_desc">Artist Z–A</option>
+                <option value="title_asc">Title A–Z</option>
+                <option value="title_desc">Title Z–A</option>
+                <option value="date_added_asc">Date added (oldest first)</option>
+                <option value="date_added_desc">Date added (newest first)</option>
+                <option value="year_asc">Year (ascending)</option>
+                <option value="year_desc">Year (descending)</option>
+              </select>
+            </div>
             <div ref={listRef} className="albums-list">
-              {albums.slice(0, displayLimit).map((album: any) => (
+              {filteredSortedAlbums.length === 0 ? (
+                <p className="albums-list-empty">No albums match your search.</p>
+              ) : (
+              <>
+              {filteredSortedAlbums.slice(0, displayLimit).map((album: any) => (
                 <div key={album.id} className={`album-item ${album.archived ? 'archived' : ''}`}>
                   {album.cover_art_path && (
                     <div className="album-item-cover">
@@ -192,8 +233,10 @@ export default function LibraryScanner() {
                   </div>
                 </div>
               ))}
-              {displayLimit < albums.length && (
+              {displayLimit < filteredSortedAlbums.length && (
                 <div ref={sentinelRef} className="infinite-scroll-sentinel" aria-hidden="true" />
+              )}
+              </>
               )}
             </div>
           </>

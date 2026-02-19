@@ -264,6 +264,60 @@
 
 /* Collection Selector */
 /* Album List Styles */
+.albums-list-toolbar {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.albums-list-search {
+  flex: 1;
+  min-width: 180px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--background-dark);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.albums-list-search::placeholder {
+  color: var(--text-secondary);
+}
+
+.albums-list-search:focus {
+  outline: none;
+  border-color: var(--lcd-green);
+}
+
+.albums-list-sort {
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 0.5rem 2.25rem 0.5rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background-color: var(--background-dark);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 5l3 3 3-3'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 12px 12px;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  min-width: 180px;
+}
+
+.albums-list-sort:focus {
+  outline: none;
+  border-color: var(--lcd-green);
+}
+
+.albums-list-empty {
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
 .albums-list {
   display: flex;
   flex-direction: column;

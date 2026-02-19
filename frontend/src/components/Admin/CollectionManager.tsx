@@ -1,7 +1,8 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MdEdit, MdAdd, MdClose, MdDelete } from 'react-icons/md';
 import { collectionsApi, adminApi } from '../../services/api';
+import { filterAndSortAlbums, type AlbumSortOption } from '../../utils/albumListFilter';
 import AlbumEditModal from './AlbumEditModal';
 import './CollectionManager.css';
 
@@ -14,6 +15,8 @@ export default function CollectionManager() {
   const [selectedCollectionSlug, setSelectedCollectionSlug] = useState<string | null>(null);
   const [displayLimit, setDisplayLimit] = useState(INFINITE_SCROLL_PAGE_SIZE);
   const [editingAlbumId, setEditingAlbumId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<AlbumSortOption>('artist_asc');
   const listRef = useRef<HTMLDivElement>(null);
   
   const { data: collections } = useQuery({
@@ -90,10 +93,19 @@ export default function CollectionManager() {
     });
   };
 
+  const filteredSortedAlbums = useMemo(
+    () => (albums ? filterAndSortAlbums(albums, searchQuery, sortBy) : []),
+    [albums, searchQuery, sortBy]
+  );
+
+  useEffect(() => {
+    setDisplayLimit(INFINITE_SCROLL_PAGE_SIZE);
+  }, [searchQuery, sortBy]);
+
   // Infinite scroll: load more when user scrolls near the bottom of the list
   const handleAlbumsListScroll = () => {
     const list = listRef.current;
-    const total = albums?.length ?? 0;
+    const total = filteredSortedAlbums.length;
     if (!list || total === 0 || displayLimit >= total) return;
     const { scrollTop, clientHeight, scrollHeight } = list;
     const threshold = 150;
@@ -230,12 +242,40 @@ export default function CollectionManager() {
           <>
             {selectedCollectionSlug && albums && albums.length > 0 && (
               <>
+                <div className="albums-list-toolbar">
+                  <input
+                    type="search"
+                    placeholder="Search by album or artist…"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="albums-list-search"
+                    aria-label="Search albums by title or artist"
+                  />
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as AlbumSortOption)}
+                    className="albums-list-sort"
+                    aria-label="Sort albums"
+                  >
+                    <option value="artist_asc">Artist A–Z</option>
+                    <option value="artist_desc">Artist Z–A</option>
+                    <option value="title_asc">Title A–Z</option>
+                    <option value="title_desc">Title Z–A</option>
+                    <option value="date_added_asc">Date added (oldest first)</option>
+                    <option value="date_added_desc">Date added (newest first)</option>
+                    <option value="year_asc">Year (ascending)</option>
+                    <option value="year_desc">Year (descending)</option>
+                  </select>
+                </div>
                 <div
                   ref={listRef}
                   className="albums-list"
                   onScroll={handleAlbumsListScroll}
                 >
-                  {albums.slice(0, displayLimit).map((album: any) => {
+                  {filteredSortedAlbums.length === 0 ? (
+                    <p className="albums-list-empty">No albums match your search.</p>
+                  ) : (
+                  filteredSortedAlbums.slice(0, displayLimit).map((album: any) => {
                     const inCollection = isAlbumInCollection(album.id);
                     return (
                       <div
@@ -282,7 +322,8 @@ export default function CollectionManager() {
                         </div>
                       </div>
                     );
-                  })}
+                  })
+                  )}
                 </div>
               </>
             )}
