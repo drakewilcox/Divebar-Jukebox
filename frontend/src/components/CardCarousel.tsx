@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { MdStar, MdFiberManualRecord, MdSettings, MdEdit } from 'react-icons/md';
+import { MdStar, MdFiberManualRecord, MdSettings, MdEdit, MdVolumeUp, MdOutlineQueueMusic } from 'react-icons/md';
 import { Album, Collection } from '../types';
 import { albumsApi, queueApi, playbackApi } from '../services/api';
 import audioService from '../services/audio';
@@ -21,7 +21,6 @@ interface Props {
 export default function CardCarousel({ albums, collection, collections, onCollectionChange }: Props) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isSliding, setIsSliding] = useState(false);
-  const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
   const [numberInput, setNumberInput] = useState('');
   const [feedback, setFeedback] = useState('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -32,13 +31,17 @@ export default function CardCarousel({ albums, collection, collections, onCollec
   const [keypadOpen, setKeypadOpen] = useState(false);
   const [displayFlash, setDisplayFlash] = useState<string | null>(null);
   const [nowPlayingPositionMs, setNowPlayingPositionMs] = useState(0);
+  const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
+  const [jumpTargetIndex, setJumpTargetIndex] = useState<number | null>(null);
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const queuePanelRef = useRef<HTMLDivElement>(null);
   const queueToggleRef = useRef<HTMLDivElement>(null);
   const inputSectionRef = useRef<HTMLDivElement>(null);
+  const jumpToBarRef = useRef<HTMLDivElement>(null);
   const handleAddToQueueRef = useRef<() => void>(() => {});
   const lastSubmittedRef = useRef<string | null>(null);
+  const [jumpLineStyle, setJumpLineStyle] = useState({ left: 0, width: 0 });
   
   // Fetch queue and playback state
   const { data: queue } = useQuery({
@@ -112,21 +115,14 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     return albums;
   }, [albums]);
   
-  // Show current 4 albums + next 2 (for smooth sliding)
   const currentAlbums = paddedAlbums.slice(currentIndex, currentIndex + 4);
   const nextAlbums = paddedAlbums.slice(currentIndex + 2, currentIndex + 6);
   const prevAlbums = paddedAlbums.slice(Math.max(0, currentIndex - 2), currentIndex + 2);
-  
-  // Current cards
   const leftCard = currentAlbums.slice(0, 2);
   const rightCard = currentAlbums.slice(2, 4);
-  
-  // Next set for sliding left
   const nextRightCard = nextAlbums.slice(2, 4);
-  
-  // Previous set for sliding right
   const prevLeftCard = prevAlbums.slice(0, 2);
-  
+
   // Prefetch only the *next* card (2 albums) so "next" feels instant without extra requests competing.
   // No prefetch for prev to avoid 4 concurrent requests; prev may load on demand.
   useEffect(() => {
@@ -162,7 +158,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
       setIsSliding(false);
     }, 500);
   };
-  
+
   const handleNext = () => {
     if (isSliding || currentIndex >= paddedAlbums.length - 4) return;
     setPressedButton('next');
@@ -348,124 +344,222 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     return () => clearTimeout(t);
   }, [displayFlash]);
 
+  const currentTrackId = playbackState?.current_track_id ?? null;
+  const queueTrackIds = queue?.map((q) => q.track.id) ?? [];
+
+  // Jump To: 8 buttons, ranges adapt to album count (e.g. 80 albums → 1-10, 11-20, …)
+  const totalAlbums = albums.length;
+  const jumpRangeSize = totalAlbums <= 0 ? 0 : Math.ceil(totalAlbums / 8);
+  const jumpRanges = Array.from({ length: 8 }, (_, i) => {
+    const start = i * jumpRangeSize + 1;
+    const end = Math.min((i + 1) * jumpRangeSize, totalAlbums);
+    return { start, end, label: start <= totalAlbums ? `${start}-${end}` : '–' };
+  });
+  const currentRangeIndex = totalAlbums <= 0 || jumpRangeSize <= 0
+    ? 0
+    : Math.min(7, Math.floor(currentIndex / jumpRangeSize));
+
+  /* Line moves in sync with cards: use target range during slide so it animates over the same 0.5s */
+  const activeLineRangeIndex =
+    jumpTargetIndex != null && jumpRangeSize > 0
+      ? Math.min(7, Math.floor(jumpTargetIndex / jumpRangeSize))
+      : slideDirection === 'left'
+        ? Math.min(7, currentRangeIndex + 1)
+        : slideDirection === 'right'
+          ? Math.max(0, currentRangeIndex - 1)
+          : currentRangeIndex;
+
+  useLayoutEffect(() => {
+    const bar = jumpToBarRef.current;
+    if (!bar) return;
+    const button = bar.querySelectorAll('.jump-to-button')[activeLineRangeIndex] as HTMLElement | undefined;
+    if (!button) return;
+    const barRect = bar.getBoundingClientRect();
+    const btnRect = button.getBoundingClientRect();
+    setJumpLineStyle({
+      left: btnRect.left - barRect.left,
+      width: btnRect.width,
+    });
+  }, [activeLineRangeIndex]);
+
+  useEffect(() => {
+    const bar = jumpToBarRef.current;
+    if (!bar) return;
+    const resizeObserver = new ResizeObserver(() => {
+      const button = bar.querySelectorAll('.jump-to-button')[activeLineRangeIndex] as HTMLElement | undefined;
+      if (!button) return;
+      const barRect = bar.getBoundingClientRect();
+      const btnRect = button.getBoundingClientRect();
+      setJumpLineStyle({
+        left: btnRect.left - barRect.left,
+        width: btnRect.width,
+      });
+    });
+    resizeObserver.observe(bar);
+    return () => resizeObserver.disconnect();
+  }, [activeLineRangeIndex]);
+
+  const handleJumpTo = (rangeIndex: number) => {
+    const newIndex = Math.max(0, Math.min(rangeIndex * jumpRangeSize, paddedAlbums.length - 4));
+    if (newIndex === currentIndex) return;
+    setJumpTargetIndex(newIndex);
+    setIsSliding(true);
+  };
+
+  const isJumping = jumpTargetIndex != null;
+
+  const handleFullSlideEnd = () => {
+    if (jumpTargetIndex != null) {
+      setCurrentIndex(jumpTargetIndex);
+      setJumpTargetIndex(null);
+      setIsSliding(false);
+    }
+  };
+
+  // Full-page strip only for Jump To: current vs target, slide direction by whether target is ahead or behind.
+  const targetLeftCard = jumpTargetIndex != null ? paddedAlbums.slice(jumpTargetIndex, jumpTargetIndex + 2) : [];
+  const targetRightCard = jumpTargetIndex != null ? paddedAlbums.slice(jumpTargetIndex + 2, jumpTargetIndex + 4) : [];
+  const jumpSlideLeft = jumpTargetIndex != null && jumpTargetIndex > currentIndex;
+
+  const renderAlbumRow = (album: Album | null, keyPrefix: string, idx: number) =>
+    album ? (
+      <AlbumRow
+        key={album.id}
+        album={album}
+        collection={collection}
+        editMode={editMode}
+        onEditClick={setEditingAlbumId}
+        currentTrackId={currentTrackId}
+        queueTrackIds={queueTrackIds}
+      />
+    ) : (
+      <div key={`${keyPrefix}-${idx}`} className="album-row album-row-empty"></div>
+    );
+
   return (
     <div className="card-carousel">
       <div className="carousel-container">
-        {/* Left card slot */}
-        <div className="card-slot card-slot-left">
-          <div className="slider-card">
-            {slideDirection === 'right' && prevLeftCard.length === 2 ? (
-              // During left arrow: show incoming previous card underneath
-              prevLeftCard.map((album, idx) => 
-                album ? (
-                  <AlbumRow 
-                    key={album.id} 
-                    album={album} 
-                    collection={collection}
-                    editMode={editMode}
-                    onEditClick={setEditingAlbumId}
-                  />
+        {jumpTargetIndex != null ? (
+          <>
+            <div className="carousel-full-slide-wrap">
+              <div
+                className={`carousel-full-slide-strip ${jumpSlideLeft ? 'animate-full-slide-left' : 'animate-full-slide-right'}`}
+                onAnimationEnd={handleFullSlideEnd}
+              >
+                {jumpSlideLeft ? (
+                  <>
+                    <div className="carousel-full-slide-page">
+                      <div className="card-slot card-slot-left">
+                        <div className="slider-card">
+                          {leftCard.map((album, idx) => renderAlbumRow(album, 'jump-left', idx))}
+                        </div>
+                      </div>
+                      <div className="card-slot card-slot-right">
+                        <div className="slider-card">
+                          {rightCard.map((album, idx) => renderAlbumRow(album, 'jump-right', idx))}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="carousel-full-slide-page">
+                      <div className="card-slot card-slot-left">
+                        <div className="slider-card">
+                          {targetLeftCard.map((album, idx) => renderAlbumRow(album, 'target-left', idx))}
+                        </div>
+                      </div>
+                      <div className="card-slot card-slot-right">
+                        <div className="slider-card">
+                          {targetRightCard.map((album, idx) => renderAlbumRow(album, 'target-right', idx))}
+                        </div>
+                      </div>
+                    </div>
+                  </>
                 ) : (
-                  <div key={`empty-${idx}`} className="album-row album-row-empty"></div>
-                )
-              )
-            ) : (
-              // Normal: show current left card
-              leftCard.map((album, idx) => 
-                album ? (
-                  <AlbumRow 
-                    key={album.id} 
-                    album={album} 
-                    collection={collection}
-                    editMode={editMode}
-                    onEditClick={setEditingAlbumId}
-                  />
-                ) : (
-                  <div key={`empty-${idx}`} className="album-row album-row-empty"></div>
-                )
-              )
+                  <>
+                    <div className="carousel-full-slide-page">
+                      <div className="card-slot card-slot-left">
+                        <div className="slider-card">
+                          {targetLeftCard.map((album, idx) => renderAlbumRow(album, 'target-left', idx))}
+                        </div>
+                      </div>
+                      <div className="card-slot card-slot-right">
+                        <div className="slider-card">
+                          {targetRightCard.map((album, idx) => renderAlbumRow(album, 'target-right', idx))}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="carousel-full-slide-page">
+                      <div className="card-slot card-slot-left">
+                        <div className="slider-card">
+                          {leftCard.map((album, idx) => renderAlbumRow(album, 'jump-left', idx))}
+                        </div>
+                      </div>
+                      <div className="card-slot card-slot-right">
+                        <div className="slider-card">
+                          {rightCard.map((album, idx) => renderAlbumRow(album, 'jump-right', idx))}
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+            <div className="glass-overlay"></div>
+          </>
+        ) : (
+          <>
+            <div className="card-slot card-slot-left">
+              <div className="slider-card">
+                {slideDirection === 'right' && prevLeftCard.length === 2
+                  ? prevLeftCard.map((album, idx) => renderAlbumRow(album, 'prev-left', idx))
+                  : leftCard.map((album, idx) => renderAlbumRow(album, 'left', idx))}
+              </div>
+            </div>
+            <div className="card-slot card-slot-right">
+              <div className="slider-card">
+                {slideDirection === 'left' && nextRightCard.length === 2
+                  ? nextRightCard.map((album, idx) => renderAlbumRow(album, 'next-right', idx))
+                  : rightCard.map((album, idx) => renderAlbumRow(album, 'right', idx))}
+              </div>
+            </div>
+            {slideDirection === 'left' && (
+              <div className="slider-card-animated animate-slide-right-to-left">
+                {rightCard.map((album, idx) => renderAlbumRow(album, 'slide', idx))}
+              </div>
             )}
-          </div>
-        </div>
-        
-        {/* Right card slot */}
-        <div className="card-slot card-slot-right">
-          <div className="slider-card">
-            {slideDirection === 'left' && nextRightCard.length === 2 ? (
-              // During right arrow: show incoming next card underneath
-              nextRightCard.map((album, idx) => 
-                album ? (
-                  <AlbumRow 
-                    key={album.id} 
-                    album={album} 
-                    collection={collection}
-                    editMode={editMode}
-                    onEditClick={setEditingAlbumId}
-                  />
-                ) : (
-                  <div key={`empty-right-${idx}`} className="album-row album-row-empty"></div>
-                )
-              )
-            ) : (
-              // Normal: show current right card
-              rightCard.map((album, idx) => 
-                album ? (
-                  <AlbumRow 
-                    key={album.id} 
-                    album={album} 
-                    collection={collection}
-                    editMode={editMode}
-                    onEditClick={setEditingAlbumId}
-                  />
-                ) : (
-                  <div key={`empty-right-${idx}`} className="album-row album-row-empty"></div>
-                )
-              )
+            {slideDirection === 'right' && (
+              <div className="slider-card-animated animate-slide-left-to-right">
+                {leftCard.map((album, idx) => renderAlbumRow(album, 'slide-left', idx))}
+              </div>
             )}
-          </div>
-        </div>
-        
-        {/* Animated sliding cards (absolutely positioned over carousel) */}
-        {slideDirection === 'left' && (
-          // Clicking right arrow: Right card slides left to cover left card
-          <div className="slider-card-animated animate-slide-right-to-left">
-            {rightCard.map((album, idx) => 
-              album ? (
-                <AlbumRow 
-                  key={album.id} 
-                  album={album} 
-                  collection={collection}
-                  editMode={editMode}
-                  onEditClick={setEditingAlbumId}
-                />
-              ) : (
-                <div key={`empty-slide-${idx}`} className="album-row album-row-empty"></div>
-              )
-            )}
-          </div>
+            <div className="glass-overlay"></div>
+          </>
         )}
-        
-        {slideDirection === 'right' && (
-          // Clicking left arrow: Left card slides right to cover right card
-          <div className="slider-card-animated animate-slide-left-to-right">
-            {leftCard.map((album, idx) => 
-              album ? (
-                <AlbumRow 
-                  key={album.id} 
-                  album={album} 
-                  collection={collection}
-                  editMode={editMode}
-                  onEditClick={setEditingAlbumId}
-                />
-              ) : (
-                <div key={`empty-slide-left-${idx}`} className="album-row album-row-empty"></div>
-              )
-            )}
-          </div>
+      </div>
+
+      {/* Jump To: 8 buttons to jump to sections of the carousel */}
+      <div ref={jumpToBarRef} className="jump-to-bar">
+        {jumpRanges.map((range, i) => (
+          <button
+            key={i}
+            type="button"
+            className="jump-to-button"
+            onClick={() => handleJumpTo(i)}
+            disabled={range.start > totalAlbums || totalAlbums === 0}
+            aria-label={`Jump to albums ${range.label}`}
+          >
+            {range.label}
+          </button>
+        ))}
+        {totalAlbums > 0 && (
+          <div
+            className="jump-to-bar-line"
+            style={{
+              left: jumpLineStyle.left,
+              width: jumpLineStyle.width,
+            }}
+            aria-hidden
+          />
         )}
-        
-        {/* Glass overlay effect (top layer) */}
-        <div className="glass-overlay"></div>
       </div>
       
       <div className="carousel-controls-wrapper">
@@ -506,7 +600,11 @@ export default function CardCarousel({ albums, collection, collections, onCollec
                 }}
                 aria-label="Open number keypad for album and track entry"
               >
-                <LCDDisplay value={formatDisplay(displayFlash ?? numberInput)} />
+                <LCDDisplay
+                  value={formatDisplay(displayFlash ?? numberInput)}
+                  discLabel="Disc"
+                  trackLabel="Track"
+                />
               </div>
               {keypadOpen && (
                 <LCDKeypad
@@ -538,6 +636,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIsQueueOpen(prev => !prev); } }}
             title={isQueueOpen ? 'Close queue (Q)' : 'Open queue (Q)'}
           >
+            {/* Track title, album title, and artist come from playback state API (database-saved values, not file metadata) */}
             {playbackState?.current_track ? (
               <>
                 {playbackState.current_track.cover_art_path && (
@@ -556,6 +655,9 @@ export default function CardCarousel({ albums, collection, collections, onCollec
                     {playbackState.current_track.album_title}
                     {playbackState.current_track.album_year != null && ` (${playbackState.current_track.album_year})`}
                   </div>
+                  {playbackState.current_track.selection_display && (
+                    <div className="now-playing-selection">{playbackState.current_track.selection_display}</div>
+                  )}
                 </div>
                 <div className="now-playing-time">
                   {formatTimeRemaining(playbackState.current_track.duration_ms, nowPlayingPositionMs)}
@@ -610,9 +712,11 @@ interface AlbumRowProps {
   collection: Collection;
   editMode: boolean;
   onEditClick: (albumId: string) => void;
+  currentTrackId: string | null;
+  queueTrackIds: string[];
 }
 
-function AlbumRow({ album, collection, editMode, onEditClick }: AlbumRowProps) {
+function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, queueTrackIds }: AlbumRowProps) {
   const [isHovered, setIsHovered] = useState(false);
   const tracksContainerRef = useRef<HTMLDivElement>(null);
   
@@ -686,23 +790,18 @@ function AlbumRow({ album, collection, editMode, onEditClick }: AlbumRowProps) {
     // Initial calculation
     let currentFontSize = calculateAndApply(MAX_FONT_SIZE);
     
-    // Check actual rendered height after a microtask (let DOM update)
-    requestAnimationFrame(() => {
-      // Keep reducing font size until no overflow
-      const checkAndAdjust = () => {
-        const hasOverflow = container.scrollHeight > container.clientHeight;
-        
-        if (hasOverflow && currentFontSize > MIN_FONT_SIZE) {
-          // Overflow detected, try smaller font sizes
-          currentFontSize = calculateAndApply(currentFontSize - 0.5);
-          
-          // Check again after next frame
-          requestAnimationFrame(checkAndAdjust);
-        }
-      };
-      
-      checkAndAdjust();
-    });
+    // Synchronously correct any overflow before the first paint.
+    // Reading scrollHeight inside useLayoutEffect forces an immediate layout
+    // recalculation, so every correction happens before the browser renders
+    // a single frame — eliminating any mid-animation font-size flicker.
+    let safety = 20;
+    while (
+      container.scrollHeight > container.clientHeight &&
+      currentFontSize > MIN_FONT_SIZE &&
+      safety-- > 0
+    ) {
+      currentFontSize = calculateAndApply(currentFontSize - 0.5);
+    }
     
   }, [albumDetails?.tracks]);
   
@@ -773,16 +872,28 @@ function AlbumRow({ album, collection, editMode, onEditClick }: AlbumRowProps) {
         
         {albumDetails && albumDetails.tracks && (
           <div className="album-row-tracks" ref={tracksContainerRef}>
-            {albumDetails.tracks.map((track, index) => (
-              <div key={track.id} className="track-line">
-                <span className="track-number">{String(index + 1).padStart(2, '0')}</span>
-                <span className="track-title">
-                  {track.title}
-                  {track.is_favorite && <span className="track-icon track-favorite"><MdStar size={10} /></span>}
-                  {track.is_recommended && <span className="track-icon track-recommended"><MdFiberManualRecord size={8} /></span>}
-                </span>
-              </div>
-            ))}
+            {albumDetails.tracks.map((track, index) => {
+              const isNowPlaying = currentTrackId === track.id;
+              const isInQueue = queueTrackIds.includes(track.id);
+              return (
+                <div key={track.id} className="track-line">
+                  <span className="track-number" aria-hidden="true">
+                    {isNowPlaying ? (
+                      <MdVolumeUp className="track-status-icon track-status-now-playing" aria-label="Now playing" />
+                    ) : isInQueue ? (
+                      <MdOutlineQueueMusic className="track-status-icon track-status-in-queue" aria-label="In queue" />
+                    ) : (
+                      String(index + 1).padStart(2, '0')
+                    )}
+                  </span>
+                  <span className="track-title">
+                    {track.title}
+                    {track.is_favorite && <span className="track-icon track-favorite"><MdStar size={10} /></span>}
+                    {track.is_recommended && <span className="track-icon track-recommended"><MdFiberManualRecord size={8} /></span>}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

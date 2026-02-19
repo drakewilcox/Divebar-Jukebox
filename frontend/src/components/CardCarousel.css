@@ -8,10 +8,12 @@
   flex: 1;
   min-height: 0;
   width: 100%;
-  max-width: 2000px;
+  max-width: 1500px;
   min-width: 1024px;
   position: relative;
   align-self: stretch;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .carousel-container {
@@ -144,6 +146,84 @@
   z-index: 5002;
 }
 
+/* Jump To: 8 buttons above carousel controls – fill container width */
+.jump-to-bar {
+  display: flex;
+  gap: 0.35rem;
+  padding: 0.5rem 0;
+  flex-shrink: 0;
+  width: 100%;
+  position: relative;
+}
+
+/* Green LCD-style line under the current range button */
+.jump-to-bar-line {
+  position: absolute;
+  bottom: 0;
+  height: 4px;
+  background: linear-gradient(180deg, #2aff2a 0%, #00cc00 50%, #009900 100%);
+  border-radius: 2px;
+  box-shadow:
+    0 0 8px rgba(0, 255, 80, 0.6),
+    0 0 4px rgba(0, 200, 50, 0.8),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  pointer-events: none;
+  transition: left 0.5s cubic-bezier(0.4, 0, 0.2, 1), width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.jump-to-button {
+  flex: 1;
+  min-width: 0;
+  height: 50px;
+  padding: 0 0.25rem;
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: 'Orbitron', 'Courier New', Consolas, monospace;
+  color: #1a1a1a;
+  background: linear-gradient(180deg, #f5f0e8 0%, #e8dfd0 100%);
+  border: 2px solid #c0b8a8;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.15s ease;
+  box-shadow:
+    0 5px 10px rgba(0, 0, 0, 0.4),
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.15);
+}
+
+.jump-to-button:hover:not(:disabled) {
+  background: linear-gradient(180deg, #f8f3eb 0%, #ebe2d3 100%);
+  border-color: #b0a898;
+  transform: translateY(-2px);
+  box-shadow:
+    0 7px 14px rgba(0, 0, 0, 0.45),
+    0 3px 6px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.15);
+}
+
+.jump-to-button:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    inset 0 3px 6px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(0, 0, 0, 0.1);
+  background: linear-gradient(180deg, #e0d8c8 0%, #d8d0c0 100%);
+}
+
+.jump-to-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
 .carousel-controls-wrapper {
   position: relative;
   flex-shrink: 0;
@@ -155,7 +235,7 @@
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
-  padding: 1rem;
+  padding: .5rem 1rem;;
   background-color: rgba(0, 0, 0, 0.3);
   border-radius: 8px;
   position: relative;
@@ -187,14 +267,17 @@
   justify-content: flex-end;
 }
 
+/* Match height to LCD display: digits 42px + label + padding ≈ 79px */
 .now-playing-mini {
   display: flex;
   align-items: center;
   gap: 0.75rem;
   padding: 0 0.75rem;
-  height: 66px;
+  min-height: 81px;
+  height: 79px;
   width: 320px;
   flex-shrink: 0;
+  box-sizing: border-box;
   background: linear-gradient(180deg, #0d1a0d 0%, #152815 50%, #0d1a0d 100%);
   border-radius: 6px;
   box-shadow: 
@@ -234,9 +317,18 @@
   overflow: hidden;
 }
 
+.now-playing-selection {
+  font-family: 'Courier New', monospace;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--lcd-green-dim);
+  letter-spacing: 0.05em;
+  text-align: left;
+}
+
 .now-playing-title {
   color: var(--lcd-green);
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
@@ -256,8 +348,8 @@
 }
 
 .now-playing-album {
-  color: rgba(127, 255, 127, 0.7);
-  font-size: 0.75rem;
+  color: var(--lcd-green-dim);
+  font-size: 0.65rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -559,6 +651,7 @@
 }
 
 /* Right card sliding left to cover left card (clicking right arrow) */
+/* Uses transform (compositor-only) instead of animating right/left to avoid layout recalculations */
 .animate-slide-right-to-left {
   right: 0;
   animation: slideFromRightToLeft 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
@@ -566,10 +659,11 @@
 
 @keyframes slideFromRightToLeft {
   0% {
-    right: 0;
+    transform: translateX(0);
   }
   100% {
-    right: calc(50% + 0.125rem);
+    /* Move left by own width + gap to land on left slot position */
+    transform: translateX(calc(-100% - 0.25rem));
   }
 }
 
@@ -581,11 +675,68 @@
 
 @keyframes slideFromLeftToRight {
   0% {
-    left: 0;
+    transform: translateX(0);
   }
   100% {
-    left: calc(50% + 0.125rem);
+    /* Move right by own width + gap to land on right slot position */
+    transform: translateX(calc(100% + 0.25rem));
   }
+}
+
+/* Full-page slide for Jump To: whole view slides left to reveal target range */
+.carousel-full-slide-wrap {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  display: flex;
+  z-index: 1;
+}
+
+.carousel-full-slide-strip {
+  display: flex;
+  width: 200%;
+  flex: 0 0 auto;
+  min-height: 0;
+}
+
+.carousel-full-slide-strip.animate-full-slide-left {
+  animation: fullSlideStripLeft 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.carousel-full-slide-strip.animate-full-slide-right {
+  animation: fullSlideStripRight 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes fullSlideStripLeft {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes fullSlideStripRight {
+  0% {
+    transform: translateX(-50%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.carousel-full-slide-page {
+  flex: 0 0 50%;
+  width: 50%;
+  display: flex;
+  gap: 0.25rem;
+  min-height: 0;
+  min-width: 0;
+}
+
+.carousel-full-slide-page .card-slot {
+  flex: 1;
+  min-width: 0;
 }
 
 .album-row {
@@ -904,6 +1055,14 @@
   justify-content: center;
   border-radius: 50%;
   /* font-style: italic; */
+}
+
+.track-status-icon {
+  font-size: 1em;
+  width: 1.35em;
+  height: 1.35em;
+  flex-shrink: 0;
+  color: #000;
 }
 
 .track-title {
