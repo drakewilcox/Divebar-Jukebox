@@ -45,13 +45,15 @@ export const albumsApi = {
 
 // Queue API
 export const queueApi = {
-  get: (collection: string) => 
+  get: (collection: string) =>
     api.get<QueueItem[]>('/queue', { params: { collection } }),
   add: (collection: string, album_number: number, track_number: number = 0) =>
     api.post('/queue', { collection, album_number, track_number }),
   remove: (queueId: string) => api.delete(`/queue/${queueId}`),
-  clear: (collection: string) => 
+  clear: (collection: string) =>
     api.delete('/queue', { params: { collection } }),
+  reorder: (collection: string, queue_ids: string[]) =>
+    api.put('/queue/order', { queue_ids }, { params: { collection } }),
 };
 
 // Playback API
