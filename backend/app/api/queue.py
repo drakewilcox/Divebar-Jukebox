@@ -38,6 +38,10 @@ class AddToQueueRequest(BaseModel):
     track_number: int = 0  # 0 means entire album
 
 
+class ReorderQueueRequest(BaseModel):
+    queue_ids: List[str]  # Queue item IDs in desired order (including currently playing)
+
+
 @router.get("", response_model=List[QueueItemResponse])
 def get_queue(collection: str = Query(..., description="Collection slug"), db: Session = Depends(get_db)):
     """Get current queue for a collection"""
@@ -181,6 +185,32 @@ def add_to_queue(request: AddToQueueRequest, db: Session = Depends(get_db)):
     if not queue_item:
         return {"message": "Already in queue", "already_queued": True}
     return {"message": "Track added to queue", "queue_id": queue_item.id}
+
+
+@router.put("/order")
+def reorder_queue(
+    collection: str = Query(..., description="Collection slug"),
+    body: ReorderQueueRequest = ...,
+    db: Session = Depends(get_db),
+):
+    """Reorder queue by providing queue item IDs in the desired order (including currently playing)."""
+    collection_service = CollectionService(db)
+    queue_service = QueueService(db)
+
+    if collection == "all":
+        collection_id = "00000000-0000-0000-0000-000000000000"
+    else:
+        collection_obj = collection_service.get_collection_by_slug(collection)
+        if not collection_obj:
+            raise HTTPException(status_code=404, detail=f"Collection '{collection}' not found")
+        collection_id = collection_obj.id
+
+    if not queue_service.reorder_queue(collection_id, body.queue_ids):
+        raise HTTPException(
+            status_code=400,
+            detail="Reorder failed: one or more queue IDs not found or not in this collection",
+        )
+    return {"message": "Queue reordered"}
 
 
 @router.delete("/{queue_id}")

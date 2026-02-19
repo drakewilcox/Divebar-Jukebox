@@ -197,7 +197,7 @@ class QueueService:
     def _reorder_queue(self, collection_id: str):
         """
         Reorder queue positions after removal
-        
+
         Args:
             collection_id: Collection UUID
         """
@@ -205,6 +205,37 @@ class QueueService:
             Queue.collection_id == collection_id,
             Queue.status.in_([QueueStatus.PENDING, QueueStatus.PLAYING])
         ).order_by(Queue.position).all()
-        
+
         for index, item in enumerate(queue_items, start=1):
             item.position = index
+
+    def reorder_queue(self, collection_id: str, ordered_queue_ids: List[str]) -> bool:
+        """
+        Set queue order from a list of queue item IDs (playing + pending only).
+        Each ID must belong to this collection. Positions are assigned 1-based by list index.
+
+        Args:
+            collection_id: Collection UUID
+            ordered_queue_ids: Queue item IDs in desired order (including currently playing)
+
+        Returns:
+            True if reorder succeeded, False if any ID not found or wrong collection
+        """
+        if not ordered_queue_ids:
+            return True
+        items = (
+            self.db.query(Queue)
+            .filter(
+                Queue.collection_id == collection_id,
+                Queue.id.in_(ordered_queue_ids),
+                Queue.status.in_([QueueStatus.PENDING, QueueStatus.PLAYING]),
+            )
+            .all()
+        )
+        if len(items) != len(ordered_queue_ids):
+            return False
+        id_to_item = {item.id: item for item in items}
+        for position, qid in enumerate(ordered_queue_ids, start=1):
+            id_to_item[qid].position = position
+        self.db.commit()
+        return True
