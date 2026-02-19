@@ -178,15 +178,18 @@ export default function CardCarousel({ albums, collection, collections, onCollec
   const addToQueueMutation = useMutation({
     mutationFn: async ({ albumNumber, trackNumber }: { albumNumber: number; trackNumber: number }) => {
       const response = await queueApi.add(collection.slug, albumNumber, trackNumber);
-      return response.data;
+      return response.data as { already_queued?: boolean; queue_id?: string };
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['queue', collection.slug] });
-      setFeedback('✓ Added!');
-      const value = String(variables.albumNumber).padStart(3, '0') + String(variables.trackNumber).padStart(2, '0');
-      setDisplayFlash(value);
+      if (data?.already_queued) {
+        setFeedback('Already in Queue');
+        setTimeout(() => setFeedback(''), 2000);
+      } else {
+        const value = String(variables.albumNumber).padStart(3, '0') + String(variables.trackNumber).padStart(2, '0');
+        setDisplayFlash(value);
+      }
       inputRef.current?.blur();
-      setTimeout(() => setFeedback(''), 2000);
     },
     onError: () => {
       setFeedback('✗ Invalid');

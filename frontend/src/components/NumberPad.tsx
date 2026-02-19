@@ -17,13 +17,15 @@ export default function NumberPad({ collection }: Props) {
   const addToQueueMutation = useMutation({
     mutationFn: async ({ albumNumber, trackNumber }: { albumNumber: number; trackNumber: number }) => {
       const response = await queueApi.add(collection.slug, albumNumber, trackNumber);
-      return response.data;
+      return response.data as { already_queued?: boolean; queue_id?: string };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['queue', collection.slug] });
-      setFeedback('✓ Added to queue!');
+      if (data?.already_queued) {
+        setFeedback('Already in Queue');
+        setTimeout(() => setFeedback(''), 2000);
+      }
       clearNumberInput();
-      setTimeout(() => setFeedback(''), 2000);
     },
     onError: () => {
       setFeedback('✗ Invalid selection');
