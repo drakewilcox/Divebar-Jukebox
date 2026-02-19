@@ -1,7 +1,7 @@
 """Collections API endpoints"""
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Any
 from pydantic import BaseModel
 
 from app.database import get_db
@@ -16,7 +16,9 @@ class CollectionResponse(BaseModel):
     slug: str
     description: str | None
     is_active: bool
-    
+    sections_enabled: bool = False
+    sections: List[Any] | None = None
+
     class Config:
         from_attributes = True
 

@@ -68,6 +68,19 @@ class UpdateCollectionRequest(BaseModel):
     is_active: bool | None = None
 
 
+class SectionItem(BaseModel):
+    order: int
+    name: str
+    color: str
+    start_slot: int | None = None  # 1-based first slot in this section
+    end_slot: int | None = None    # 1-based last slot in this section
+
+
+class UpdateCollectionSectionsRequest(BaseModel):
+    sections_enabled: bool
+    sections: List[SectionItem] | None = None
+
+
 def run_library_scan(db: Session):
     """Background task to scan library"""
     album_service = AlbumService(db)
@@ -261,6 +274,26 @@ def delete_collection(collection_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail=f"Collection '{collection_id}' not found")
     
     return {"message": "Collection deleted"}
+
+
+@router.put("/collections/{collection_id}/sections")
+def update_collection_sections(
+    collection_id: str,
+    body: UpdateCollectionSectionsRequest,
+    db: Session = Depends(get_db),
+):
+    """Enable/disable sections and set section list (3-10 when enabled)."""
+    collection_service = CollectionService(db)
+    sections_dict = [s.model_dump() for s in body.sections] if body.sections else None
+    try:
+        collection = collection_service.update_collection_sections(
+            collection_id, body.sections_enabled, sections_dict
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    if not collection:
+        raise HTTPException(status_code=404, detail=f"Collection '{collection_id}' not found")
+    return {"message": "Sections updated"}
 
 
 @router.put("/collections/{slug}/albums")

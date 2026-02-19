@@ -2,6 +2,7 @@
 from sqlalchemy import Column, String, Boolean, DateTime
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+from sqlalchemy.types import JSON
 from datetime import datetime
 import uuid
 
@@ -19,6 +20,8 @@ class Collection(Base):
     description = Column(String, nullable=True)
     config_file = Column(String, nullable=True)  # Path to JSON config file
     is_active = Column(Boolean, default=True)
+    sections_enabled = Column(Boolean, default=False, nullable=False, server_default="0")
+    sections = Column(JSON, nullable=True)  # List of {"order": int, "name": str, "color": str}, 3-10 when enabled
     created_at = Column(DateTime, default=datetime.utcnow, server_default=func.now())
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, server_default=func.now())
     

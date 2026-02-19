@@ -92,7 +92,61 @@ class CollectionService:
         self.db.commit()
         logger.info(f"Updated collection: {collection.name}")
         return collection
-    
+
+    def update_collection_sections(
+        self, collection_id: str, sections_enabled: bool, sections: Optional[List[Dict[str, Any]]] = None
+    ) -> Optional[Collection]:
+        """
+        Update sections for a collection. When sections_enabled is True, sections must have 3-10 items.
+        Each section: {"order": int, "name": str, "color": str}.
+        """
+        collection = self.db.query(Collection).filter(Collection.id == collection_id).first()
+        if not collection:
+            return None
+        if sections_enabled:
+            if not sections or not isinstance(sections, list):
+                raise ValueError("When enabling sections, provide a list of 3-10 sections")
+            if len(sections) < 3 or len(sections) > 10:
+                raise ValueError("Collection must have between 3 and 10 sections")
+            seen_orders = set()
+            for i, sec in enumerate(sections):
+                if not isinstance(sec, dict):
+                    raise ValueError("Each section must be an object with order, name, and color")
+                order = sec.get("order", i)
+                name = (sec.get("name") or "").strip()
+                color = (sec.get("color") or "").strip()
+                if not name:
+                    raise ValueError("Section name is required")
+                if not color:
+                    raise ValueError("Section color is required")
+                if order in seen_orders:
+                    raise ValueError("Section order must be unique")
+                seen_orders.add(order)
+            # Validate ranges if present: must be contiguous 1-based, no gaps
+            has_ranges = all(isinstance(s, dict) and s.get("start_slot") is not None and s.get("end_slot") is not None for s in sections)
+            if has_ranges:
+                sorted_by_order = sorted(sections, key=lambda s: s.get("order", 0))
+                for i, sec in enumerate(sorted_by_order):
+                    start_slot = sec.get("start_slot")
+                    end_slot = sec.get("end_slot")
+                    if start_slot < 1 or end_slot < 1:
+                        raise ValueError("Section start_slot and end_slot must be >= 1")
+                    if start_slot > end_slot:
+                        raise ValueError("Section start_slot must be <= end_slot")
+                    if i == 0 and start_slot != 1:
+                        raise ValueError("First section must start at slot 1")
+                    if i > 0:
+                        prev_end = sorted_by_order[i - 1].get("end_slot")
+                        if start_slot != prev_end + 1:
+                            raise ValueError("Section ranges must be contiguous (no gaps)")
+            collection.sections = sections
+        else:
+            collection.sections = None
+        collection.sections_enabled = sections_enabled
+        self.db.commit()
+        logger.info(f"Updated sections for collection: {collection.name}")
+        return collection
+
     def delete_collection(self, collection_id: str) -> bool:
         """
         Delete a collection
