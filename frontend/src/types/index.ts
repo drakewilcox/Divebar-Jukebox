@@ -49,6 +49,7 @@ export interface QueueItem {
     album_title: string;
     album_artist: string;
     cover_art_path: string | null;
+    selection_display?: string | null;
   };
 }
 
@@ -67,6 +68,7 @@ export interface PlaybackState {
     album_artist: string;
     album_year: number | null;
     cover_art_path: string | null;
+    selection_display: string | null;
   } | null;
 }
 

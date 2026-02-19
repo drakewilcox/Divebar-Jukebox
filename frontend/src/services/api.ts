@@ -101,6 +101,8 @@ export const adminApi = {
     api.put(`/admin/collections/${slug}/albums/reorder`, null, {
       params: { album_id, new_sort_order },
     }),
+  setCollectionAlbumOrder: (slug: string, album_ids: string[]) =>
+    api.put(`/admin/collections/${slug}/albums/order`, { album_ids }),
   sanitizeTracks: () => api.post('/admin/sanitize-tracks'),
 };
 
