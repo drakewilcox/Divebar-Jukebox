@@ -5,6 +5,7 @@ import { collectionsApi, adminApi } from '../../services/api';
 import { filterAndSortAlbums, type AlbumSortOption } from '../../utils/albumListFilter';
 import AlbumEditModal from './AlbumEditModal';
 import CollectionEditModal, { type CollectionToEdit } from './CollectionEditModal';
+import CollectionSections from './CollectionSections';
 import SlotManagement from './SlotManagement';
 import './CollectionManager.css';
 
@@ -304,9 +305,6 @@ export default function CollectionManager() {
       </div>
 
       <div className="manager-section manager-section-tabs">
-        {/* <h2>Manage Collection</h2>
-        <p>Click a collection above, then use the tabs below to manage its selections, slot order, or sections.</p> */}
-
         {collections && collections.length > 0 ? (
           <>
             <div className="collection-manager-sub-tabs">
@@ -437,7 +435,10 @@ export default function CollectionManager() {
               </div>
             ) : subTab === 'sections' ? (
               <div className="collection-manager-tab-pane">
-                <p className="collection-manager-sections-placeholder">Sections content coming soon.</p>
+                <CollectionSections
+                  collection={collections?.find((c) => c.slug === selectedCollectionSlug) ?? null}
+                  albums={selectedCollectionSlug ? (collectionAlbums ?? []) : []}
+                />
               </div>
             ) : subTab === 'selections' ? (
               <p className="albums-list-empty">No albums in library. Scan your library first.</p>
