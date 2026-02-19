@@ -40,6 +40,11 @@
   justify-content: center;
 }
 
+.queue-control-button svg {
+  flex-shrink: 0;
+  color: inherit;
+}
+
 .queue-control-button:hover:not(:disabled) {
   color: var(--primary-color);
   transform: scale(1.1);
@@ -62,9 +67,33 @@
 .queue-list {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE / old Edge */
+}
+.queue-list::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}
+
+/* Extra scrollable area at bottom so you can drag an item to last position */
+.queue-list-spacer {
+  flex-shrink: 0;
+  height: 140px;
+  min-height: 140px;
+}
+
+/* Drop indicator line: shows above/below when reordering */
+.queue-drop-indicator {
+  flex-shrink: 0;
+  height: 3px;
+  margin: 2px 0;
+  background: linear-gradient(90deg, transparent 0%, var(--lcd-green) 15%, var(--lcd-green) 85%, transparent 100%);
+  border-radius: 2px;
+  box-shadow: 0 0 8px rgba(127, 255, 127, 0.5);
+  pointer-events: none;
 }
 
 .queue-empty {
@@ -146,7 +175,19 @@
   border: 2px solid var(--border-color);
   border-radius: 8px;
   transition: all 0.2s;
+}
+
+/* Draggable queue items: prevent text selection and improve touch/drag on iPad */
+.queue-item-draggable {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
   cursor: grab;
+  touch-action: none;
+  -webkit-user-drag: element;
+}
+.queue-item-draggable:active {
+  cursor: grabbing;
 }
 
 .queue-item:hover {
@@ -155,6 +196,7 @@
   box-shadow: 0 0 8px rgba(127, 255, 127, 0.2);
 }
 
+/* Dim the row being dragged; keep it visible so drop targets still work reliably */
 .queue-item.dragging {
   opacity: 0.5;
   cursor: grabbing;

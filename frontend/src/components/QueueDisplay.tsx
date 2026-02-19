@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { MdPlayArrow, MdPause, MdSkipNext, MdStop } from 'react-icons/md';
 import { Collection } from '../types';
 import { queueApi, playbackApi } from '../services/api';
 import audioService from '../services/audio';
@@ -14,7 +15,10 @@ export default function QueueDisplay({ collection, onQueueCleared }: Props) {
   const queryClient = useQueryClient();
   const [currentPositionMs, setCurrentPositionMs] = useState(0);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  
+  const [dropIndicatorIndex, setDropIndicatorIndex] = useState<number | null>(null);
+  const queueListRef = useRef<HTMLDivElement>(null);
+  const lastDragYRef = useRef<number>(0);
+
   const { data: queue } = useQuery({
     queryKey: ['queue', collection.slug],
     queryFn: async () => {
@@ -67,6 +71,25 @@ export default function QueueDisplay({ collection, onQueueCleared }: Props) {
     }
   }, [playbackState?.is_playing]);
   
+  // Auto-scroll queue list when dragging near top or bottom
+  useEffect(() => {
+    if (draggedIndex === null) return;
+    const SCROLL_ZONE = 80;
+    const SCROLL_SPEED = 10;
+    const interval = setInterval(() => {
+      const list = queueListRef.current;
+      if (!list) return;
+      const y = lastDragYRef.current;
+      const rect = list.getBoundingClientRect();
+      if (y <= rect.top + SCROLL_ZONE) {
+        list.scrollTop = Math.max(0, list.scrollTop - SCROLL_SPEED);
+      } else if (y >= rect.bottom - SCROLL_ZONE) {
+        list.scrollTop = Math.min(list.scrollHeight - list.clientHeight, list.scrollTop + SCROLL_SPEED);
+      }
+    }, 50);
+    return () => clearInterval(interval);
+  }, [draggedIndex]);
+
   // Listen for track ended event to auto-skip
   useEffect(() => {
     const handleTrackEnded = async () => {
@@ -92,6 +115,13 @@ export default function QueueDisplay({ collection, onQueueCleared }: Props) {
     },
   });
   
+  const reorderQueueMutation = useMutation({
+    mutationFn: (queueIds: string[]) => queueApi.reorder(collection.slug, queueIds),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['queue', collection.slug] });
+    },
+  });
+
   const clearQueueMutation = useMutation({
     mutationFn: () => queueApi.clear(collection.slug),
     onSuccess: () => {
@@ -155,40 +185,73 @@ export default function QueueDisplay({ collection, onQueueCleared }: Props) {
     return formatDuration(remainingMs);
   };
   
-  const handleDragStart = (index: number) => {
-    // Don't allow dragging the currently playing item
+  const handleDragStart = (e: React.DragEvent, index: number) => {
     if (queue && queue[index]?.status !== 'playing') {
       setDraggedIndex(index);
+      setDropIndicatorIndex(null);
+      lastDragYRef.current = e.clientY;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', '');
+      if (e.dataTransfer.setDragImage) {
+        const target = e.currentTarget as HTMLElement;
+        const rect = target.getBoundingClientRect();
+        e.dataTransfer.setDragImage(target, rect.width / 2, rect.height / 2);
+      }
     }
   };
-  
-  const handleDragOver = (e: React.DragEvent, index: number) => {
+
+  const handleDragOver = (e: React.DragEvent, fullIndex: number) => {
     e.preventDefault();
-    // Can't drop on or before the playing item
-    if (queue && queue[index]?.status === 'playing') {
+    e.dataTransfer.dropEffect = 'move';
+    lastDragYRef.current = e.clientY;
+    if (!queue || queue[fullIndex]?.status === 'playing') return;
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const inBottomHalf = (e.clientY - rect.top) > rect.height / 2;
+    const indicator = inBottomHalf ? Math.min(fullIndex + 1, queue.length) : fullIndex;
+    setDropIndicatorIndex(indicator >= 1 ? indicator : 1);
+  };
+
+  const handleListDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    lastDragYRef.current = e.clientY;
+  };
+
+  const handleDrop = (e: React.DragEvent, fallbackDropIndex: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (queue?.[fallbackDropIndex]?.status === 'playing') {
+      setDraggedIndex(null);
+      setDropIndicatorIndex(null);
       return;
     }
+    const dropIndex = dropIndicatorIndex ?? fallbackDropIndex;
+    performReorder(dropIndex);
   };
-  
-  const handleDrop = async (e: React.DragEvent, dropIndex: number) => {
+
+  const handleListDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     if (draggedIndex === null || !queue) return;
-    
-    // Can't drop on the playing item
-    if (queue[dropIndex]?.status === 'playing') {
-      setDraggedIndex(null);
-      return;
-    }
-    
-    // Don't allow moving if source is playing
-    if (queue[draggedIndex]?.status === 'playing') {
-      setDraggedIndex(null);
-      return;
-    }
-    
-    // Reorder logic would go here (we'd need a backend endpoint for this)
-    // For now, just reset the drag state
+    const dropIndex = dropIndicatorIndex ?? Math.min(draggedIndex + 1, queue.length);
+    performReorder(dropIndex);
+  };
+
+  const handleDragEnd = () => {
     setDraggedIndex(null);
+    setDropIndicatorIndex(null);
+  };
+
+  const performReorder = (dropIndex: number) => {
+    if (draggedIndex === null || !queue) return;
+    if (queue[draggedIndex]?.status === 'playing') return;
+    if (dropIndex < 1 || dropIndex > queue.length) return;
+    const ids = queue.map((item) => item.id);
+    const [moved] = ids.splice(draggedIndex, 1);
+    ids.splice(dropIndex, 0, moved);
+    reorderQueueMutation.mutate(ids);
+    setDraggedIndex(null);
+    setDropIndicatorIndex(null);
   };
   
   const nowPlaying = queue?.find(item => item.status === 'playing');
@@ -205,29 +268,37 @@ export default function QueueDisplay({ collection, onQueueCleared }: Props) {
             onClick={handlePlayPause}
             disabled={!hasQueue || playMutation.isPending || pauseMutation.isPending}
             title={playbackState?.is_playing ? 'Pause' : 'Play'}
+            aria-label={playbackState?.is_playing ? 'Pause' : 'Play'}
           >
-            {playbackState?.is_playing ? '⏸' : '▶'}
+            {playbackState?.is_playing ? <MdPause size={22} /> : <MdPlayArrow size={22} />}
           </button>
           <button
             className="queue-control-button"
             onClick={() => skipMutation.mutate()}
             disabled={!nowPlaying || skipMutation.isPending}
             title="Skip"
+            aria-label="Skip"
           >
-            ⏭
+            <MdSkipNext size={22} />
           </button>
           <button
             className="queue-control-button stop"
             onClick={() => stopMutation.mutate()}
             disabled={!hasQueue || stopMutation.isPending}
             title="Stop & Clear"
+            aria-label="Stop and clear queue"
           >
-            ⏹
+            <MdStop size={22} />
           </button>
         </div>
       </div>
       
-      <div className="queue-list">
+      <div
+        ref={queueListRef}
+        className="queue-list"
+        onDragOver={handleListDragOver}
+        onDrop={handleListDrop}
+      >
         {!queue || queue.length === 0 ? (
           <div className="queue-empty">
             <p>Queue is empty</p>
@@ -271,14 +342,16 @@ export default function QueueDisplay({ collection, onQueueCleared }: Props) {
               <>
                 <div className="queue-upcoming-label">Up Next ({upcomingQueue.length})</div>
                 {upcomingQueue.map((item, index) => (
-                  <div
-                    key={item.id}
-                    className={`queue-item ${draggedIndex === index + 1 ? 'dragging' : ''}`}
-                    draggable
-                    onDragStart={() => handleDragStart(index + 1)}
-                    onDragOver={(e) => handleDragOver(e, index + 1)}
-                    onDrop={(e) => handleDrop(e, index + 1)}
-                  >
+                  <React.Fragment key={item.id}>
+                    {dropIndicatorIndex === index + 1 && <div className="queue-drop-indicator" aria-hidden />}
+                    <div
+                      className={`queue-item queue-item-draggable ${draggedIndex === index + 1 ? 'dragging' : ''}`}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, index + 1)}
+                      onDragOver={(e) => handleDragOver(e, index + 1)}
+                      onDrop={(e) => handleDrop(e, index + 1)}
+                      onDragEnd={handleDragEnd}
+                    >
                     {item.track.cover_art_path && (
                       <div className="queue-item-cover">
                         <img
@@ -311,7 +384,26 @@ export default function QueueDisplay({ collection, onQueueCleared }: Props) {
                       ✕
                     </button>
                   </div>
+                  </React.Fragment>
                 ))}
+                {dropIndicatorIndex === (queue?.length ?? 0) && <div className="queue-drop-indicator" aria-hidden />}
+                {/* Extra drop zone below last item so you can scroll and drop to move item last */}
+                {queue && queue.length > 0 && (
+                  <div
+                    className="queue-list-spacer"
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = 'move';
+                      lastDragYRef.current = e.clientY;
+                      setDropIndicatorIndex(queue.length);
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      performReorder(queue.length);
+                    }}
+                  />
+                )}
               </>
             )}
           </>
