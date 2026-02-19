@@ -24,35 +24,44 @@ class QueueService:
     
     def add_to_queue(self, collection_id: str, track_id: str) -> Optional[Queue]:
         """
-        Add a track to the queue
-        
+        Add a track to the queue. Does not add if the track is already in the queue (pending or playing).
+
         Args:
             collection_id: Collection UUID
             track_id: Track UUID
-            
+
         Returns:
-            Queue instance or None on error
+            Queue instance, or None if track already in queue or on error
         """
+        existing = self.db.query(Queue).filter(
+            Queue.collection_id == collection_id,
+            Queue.track_id == track_id,
+            Queue.status.in_([QueueStatus.PENDING, QueueStatus.PLAYING])
+        ).first()
+        if existing:
+            logger.debug(f"Track {track_id} already in queue for collection {collection_id}, skipping duplicate")
+            return None
+
         # Get the maximum position value from pending/playing tracks
         from sqlalchemy import func
         max_position_result = self.db.query(func.max(Queue.position)).filter(
             Queue.collection_id == collection_id,
             Queue.status.in_([QueueStatus.PENDING, QueueStatus.PLAYING])
         ).scalar()
-        
+
         # If queue is empty, start at position 1, otherwise increment max position
         max_position = max_position_result if max_position_result is not None else 0
-        
+
         queue_item = Queue(
             collection_id=collection_id,
             track_id=track_id,
             position=max_position + 1,
             status=QueueStatus.PENDING
         )
-        
+
         self.db.add(queue_item)
         self.db.commit()
-        
+
         logger.info(f"Added track {track_id} to queue at position {queue_item.position}")
         return queue_item
     

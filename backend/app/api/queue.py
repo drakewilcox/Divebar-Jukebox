@@ -21,6 +21,7 @@ class TrackInfo(BaseModel):
     album_title: str
     album_artist: str
     cover_art_path: str | None
+    selection_display: str | None = None
 
 
 class QueueItemResponse(BaseModel):
@@ -42,6 +43,8 @@ def get_queue(collection: str = Query(..., description="Collection slug"), db: S
     """Get current queue for a collection"""
     collection_service = CollectionService(db)
     queue_service = QueueService(db)
+    track_service = TrackService(db)
+    album_service = AlbumService(db)
     
     # Handle "all" collection
     if collection == 'all':
@@ -54,10 +57,28 @@ def get_queue(collection: str = Query(..., description="Collection slug"), db: S
         
         queue_items = queue_service.get_queue(collection_obj.id, include_played=False)
     
-    # Build response with track info
+    # Build response with track info: use only database-saved values (track/album rows), not file metadata
+    collection_id = all_collection_id if collection == 'all' else collection_obj.id
     response = []
     for item in queue_items:
         if item.track and item.track.album:
+            album = item.track.album
+            cover = album.custom_cover_art_path or album.cover_art_path
+            selection_display = None
+            if collection_id == '00000000-0000-0000-0000-000000000000':
+                all_albums = album_service.get_all_albums(limit=10000)
+                for idx, a in enumerate(all_albums):
+                    if a.id == album.id:
+                        tracks = track_service.get_tracks_by_album(album.id)
+                        for ti, t in enumerate(tracks):
+                            if t.id == item.track.id:
+                                selection_display = f"{(idx + 1):03d}-{(ti + 1):02d}"
+                                break
+                        break
+            else:
+                sel = collection_service.get_selection_for_track(collection_id, item.track.id)
+                if sel:
+                    selection_display = f"{sel[0]:03d}-{sel[1]:02d}"
             response.append({
                 "id": item.id,
                 "position": item.position,
@@ -68,9 +89,10 @@ def get_queue(collection: str = Query(..., description="Collection slug"), db: S
                     "title": item.track.title,
                     "artist": item.track.artist,
                     "duration_ms": item.track.duration_ms,
-                    "album_title": item.track.album.title,
-                    "album_artist": item.track.album.artist,
-                    "cover_art_path": item.track.album.cover_art_path
+                    "album_title": album.title,
+                    "album_artist": album.artist,
+                    "cover_art_path": cover,
+                    "selection_display": selection_display,
                 }
             })
     
@@ -120,8 +142,7 @@ def add_to_queue(request: AddToQueueRequest, db: Session = Depends(get_db)):
         track = tracks[request.track_number - 1]
         queue_item = queue_service.add_to_queue(all_collection_id, track.id)
         if not queue_item:
-            raise HTTPException(status_code=500, detail="Failed to add track to queue")
-        
+            return {"message": "Already in queue", "already_queued": True}
         return {"message": "Track added to queue", "queue_id": queue_item.id}
     
     # Get collection
@@ -158,8 +179,7 @@ def add_to_queue(request: AddToQueueRequest, db: Session = Depends(get_db)):
     track = tracks[request.track_number - 1]
     queue_item = queue_service.add_to_queue(collection_obj.id, track['id'])
     if not queue_item:
-        raise HTTPException(status_code=500, detail="Failed to add track to queue")
-    
+        return {"message": "Already in queue", "already_queued": True}
     return {"message": "Track added to queue", "queue_id": queue_item.id}
 
 

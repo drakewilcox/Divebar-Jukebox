@@ -8,6 +8,7 @@ from app.database import get_db
 from app.services.playback_service import PlaybackService
 from app.services.collection_service import CollectionService
 from app.services.track_service import TrackService
+from app.services.album_service import AlbumService
 
 router = APIRouter(prefix="/api/playback", tags=["playback"])
 
@@ -41,6 +42,7 @@ def get_playback_state(collection: str = Query(..., description="Collection slug
     collection_service = CollectionService(db)
     playback_service = PlaybackService(db)
     track_service = TrackService(db)
+    album_service = AlbumService(db)
     
     # Handle "all" collection
     if collection == 'all':
@@ -53,20 +55,38 @@ def get_playback_state(collection: str = Query(..., description="Collection slug
         
         state = playback_service.get_or_create_playback_state(collection_obj.id)
     
-    # Get current track info if playing
+    # Current track display: use only database-saved values (track/album rows), not file metadata
     current_track_info = None
     if state.current_track_id:
         track = track_service.get_track_by_id(state.current_track_id)
         if track and track.album:
+            album = track.album
+            cover = album.custom_cover_art_path or album.cover_art_path
+            selection_display = None
+            if state.collection_id == '00000000-0000-0000-0000-000000000000':
+                all_albums = album_service.get_all_albums(limit=10000)
+                for idx, a in enumerate(all_albums):
+                    if a.id == album.id:
+                        tracks = track_service.get_tracks_by_album(album.id)
+                        for ti, t in enumerate(tracks):
+                            if t.id == track.id:
+                                selection_display = f"{(idx + 1):03d}-{(ti + 1):02d}"
+                                break
+                        break
+            else:
+                sel = collection_service.get_selection_for_track(state.collection_id, track.id)
+                if sel:
+                    selection_display = f"{sel[0]:03d}-{sel[1]:02d}"
             current_track_info = {
                 "id": track.id,
                 "title": track.title,
                 "artist": track.artist,
                 "duration_ms": track.duration_ms,
-                "album_title": track.album.title,
-                "album_artist": track.album.artist,
-                "album_year": track.album.year,
-                "cover_art_path": track.album.cover_art_path
+                "album_title": album.title,
+                "album_artist": album.artist,
+                "album_year": album.year,
+                "cover_art_path": cover,
+                "selection_display": selection_display,
             }
     
     return {

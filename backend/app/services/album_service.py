@@ -54,9 +54,10 @@ class AlbumService:
                     ).first()
                     
                     if existing_album:
-                        # Skip: do not overwrite user-edited metadata or custom track settings
-                        results['albums_already_exist'] += 1
-                        logger.debug(f"Already in library (skipped): {album_data['file_path']}")
+                        # Refresh file-sourced metadata only (e.g. genre); do not overwrite title/artist/year/tracks
+                        self._refresh_file_metadata(existing_album, album_data)
+                        results['albums_updated'] += 1
+                        logger.debug(f"Refreshed file metadata: {album_data['file_path']}")
                     else:
                         # New album: import
                         self._create_album_from_data(album_data)
@@ -121,6 +122,18 @@ class AlbumService:
             self.db.add(track)
         
         return album
+    
+    def _refresh_file_metadata(self, album: Album, album_data: dict) -> None:
+        """
+        Update only file-sourced metadata on an existing album (e.g. genre in extra_metadata).
+        Does not change title, artist, year, tracks, or other user-editable data.
+        """
+        file_extra = album_data.get('extra_metadata') or {}
+        existing_extra = dict(album.extra_metadata or {})
+        for key in ('genre', 'disc_count'):
+            if key in file_extra:
+                existing_extra[key] = file_extra[key]
+        album.extra_metadata = existing_extra
     
     def _update_album_from_data(self, album: Album, album_data: dict) -> Album:
         """

@@ -139,10 +139,10 @@ class CollectionService:
         Args:
             collection_id: Collection UUID
         """
-        # Get all collection albums ordered by sort_order
+        # Get all collection albums ordered by sort_order (tie-break by id for stability)
         collection_albums = self.db.query(CollectionAlbum).filter(
             CollectionAlbum.collection_id == collection_id
-        ).order_by(CollectionAlbum.sort_order).all()
+        ).order_by(CollectionAlbum.sort_order, CollectionAlbum.id).all()
         
         # Assign sequential display numbers starting from 1
         for index, collection_album in enumerate(collection_albums, start=1):
@@ -229,7 +229,36 @@ class CollectionService:
             result.append(album_dict)
         
         return result
-    
+
+    def get_selection_for_track(self, collection_id: str, track_id: str) -> Optional[tuple]:
+        """
+        Get (album_display_number, track_display_number_1based) for a track in a collection.
+        Returns None if track is not in the collection or not found.
+        """
+        track = self.db.query(Track).filter(Track.id == track_id).first()
+        if not track or not track.album_id:
+            return None
+        ca = self.db.query(CollectionAlbum).filter(
+            CollectionAlbum.collection_id == collection_id,
+            CollectionAlbum.album_id == track.album_id,
+        ).first()
+        if not ca or not ca.album or ca.album.archived:
+            return None
+        enabled_ids = set(ca.enabled_track_ids or [])
+        if track_id not in enabled_ids:
+            return None
+        tracks = self.db.query(Track).filter(
+            and_(
+                Track.album_id == track.album_id,
+                Track.id.in_(enabled_ids),
+                Track.enabled == True,
+            )
+        ).order_by(Track.disc_number, Track.track_number).all()
+        for i, t in enumerate(tracks):
+            if t.id == track_id:
+                return (ca.display_number, i + 1)
+        return None
+
     def add_album_to_collection(self, collection_id: str, album_id: str, sort_order: int = None) -> Optional[CollectionAlbum]:
         """
         Add an album to a collection
@@ -340,3 +369,28 @@ class CollectionService:
             return True
         
         return False
+    
+    def set_collection_album_order(self, collection_id: str, album_ids: list[str]) -> bool:
+        """
+        Set the full order of albums in a collection by a list of album IDs.
+        Each album in the list must belong to the collection. Order is 0-based index → sort_order.
+        Recalculates display_number after updating.
+        """
+        if not album_ids:
+            return True
+        collection_albums = {
+            ca.album_id: ca
+            for ca in self.db.query(CollectionAlbum).filter(
+                CollectionAlbum.collection_id == collection_id,
+                CollectionAlbum.album_id.in_(album_ids),
+            ).all()
+        }
+        if len(collection_albums) != len(album_ids):
+            # Duplicate or unknown album_id in list
+            return False
+        for index, album_id in enumerate(album_ids):
+            collection_albums[album_id].sort_order = index
+        self.db.flush()  # ensure sort_order is visible to the next query
+        self.recalculate_display_numbers(collection_id)
+        self.db.commit()
+        return True
