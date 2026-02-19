@@ -359,14 +359,16 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     ? 0
     : Math.min(7, Math.floor(currentIndex / jumpRangeSize));
 
-  /* Line moves in sync with cards: use target range during slide so it animates over the same 0.5s */
+  /* Line moves in sync with cards: only move to target range when the slide actually crosses into a different range */
+  const nextRangeIndex = jumpRangeSize > 0 ? Math.min(7, Math.floor((currentIndex + 2) / jumpRangeSize)) : currentRangeIndex;
+  const prevRangeIndex = jumpRangeSize > 0 ? Math.max(0, Math.floor((currentIndex - 2) / jumpRangeSize)) : currentRangeIndex;
   const activeLineRangeIndex =
     jumpTargetIndex != null && jumpRangeSize > 0
       ? Math.min(7, Math.floor(jumpTargetIndex / jumpRangeSize))
-      : slideDirection === 'left'
-        ? Math.min(7, currentRangeIndex + 1)
-        : slideDirection === 'right'
-          ? Math.max(0, currentRangeIndex - 1)
+      : slideDirection === 'left' && nextRangeIndex !== currentRangeIndex
+        ? nextRangeIndex
+        : slideDirection === 'right' && prevRangeIndex !== currentRangeIndex
+          ? prevRangeIndex
           : currentRangeIndex;
 
   useLayoutEffect(() => {
