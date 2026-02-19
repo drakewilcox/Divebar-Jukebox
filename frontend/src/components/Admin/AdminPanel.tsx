@@ -2,12 +2,11 @@ import { useState } from 'react';
 import { useJukeboxStore } from '../../stores/jukeboxStore';
 import LibraryScanner from './LibraryScanner';
 import CollectionManager from './CollectionManager';
-import SlotManagement from './SlotManagement';
 import './AdminPanel.css';
 
 export default function AdminPanel() {
-  const [activeTab, setActiveTab] = useState<'scanner' | 'collections' | 'slots'>('scanner');
-  
+  const [activeTab, setActiveTab] = useState<'scanner' | 'collections'>('scanner');
+
   return (
     <div className="admin-panel">
       <div className="admin-header">
@@ -20,7 +19,7 @@ export default function AdminPanel() {
           ←
         </button>
       </div>
-      
+
       <div className="admin-tabs">
         <button
           className={`admin-tab ${activeTab === 'scanner' ? 'admin-tab-active' : ''}`}
@@ -34,18 +33,11 @@ export default function AdminPanel() {
         >
           Collection Manager
         </button>
-        <button
-          className={`admin-tab ${activeTab === 'slots' ? 'admin-tab-active' : ''}`}
-          onClick={() => setActiveTab('slots')}
-        >
-          Slot Management
-        </button>
       </div>
-      
+
       <div className="admin-content">
         {activeTab === 'scanner' && <LibraryScanner />}
         {activeTab === 'collections' && <CollectionManager />}
-        {activeTab === 'slots' && <SlotManagement />}
       </div>
     </div>
   );

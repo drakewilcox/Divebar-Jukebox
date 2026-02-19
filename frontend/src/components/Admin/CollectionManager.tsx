@@ -1,10 +1,13 @@
-import { useState, useRef, useMemo, useEffect } from 'react';
+import { useState, useRef, useMemo, useEffect, useLayoutEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MdEdit, MdAdd, MdClose, MdDelete } from 'react-icons/md';
 import { collectionsApi, adminApi } from '../../services/api';
 import { filterAndSortAlbums, type AlbumSortOption } from '../../utils/albumListFilter';
 import AlbumEditModal from './AlbumEditModal';
+import SlotManagement from './SlotManagement';
 import './CollectionManager.css';
+
+type CollectionManagerSubTab = 'selections' | 'slots' | 'sections';
 
 const INFINITE_SCROLL_PAGE_SIZE = 50;
 
@@ -13,11 +16,13 @@ export default function CollectionManager() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newCollection, setNewCollection] = useState({ name: '', slug: '', description: '' });
   const [selectedCollectionSlug, setSelectedCollectionSlug] = useState<string | null>(null);
+  const [subTab, setSubTab] = useState<CollectionManagerSubTab>('selections');
   const [displayLimit, setDisplayLimit] = useState(INFINITE_SCROLL_PAGE_SIZE);
   const [editingAlbumId, setEditingAlbumId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<AlbumSortOption>('artist_asc');
   const listRef = useRef<HTMLDivElement>(null);
+  const savedScrollRef = useRef<{ el: HTMLElement; top: number } | null>(null);
   
   const { data: collections } = useQuery({
     queryKey: ['collections'],
@@ -101,6 +106,38 @@ export default function CollectionManager() {
   useEffect(() => {
     setDisplayLimit(INFINITE_SCROLL_PAGE_SIZE);
   }, [searchQuery, sortBy]);
+
+  /** Find the scrollable ancestor that actually scrolls (has overflow-y scroll/auto and scrollable content) */
+  const getScrollParent = (from: HTMLElement): HTMLElement | null => {
+    let el: HTMLElement | null = from;
+    while (el) {
+      const style = getComputedStyle(el);
+      const overflowY = style.overflowY;
+      if ((overflowY === 'auto' || overflowY === 'scroll' || overflowY === 'overlay') && el.scrollHeight > el.clientHeight) {
+        return el;
+      }
+      el = el.parentElement;
+    }
+    return null;
+  };
+
+  // Restore scroll position after sub-tab change (only matters if admin-content was scrolled).
+  useLayoutEffect(() => {
+    const saved = savedScrollRef.current;
+    savedScrollRef.current = null;
+    if (!saved || !saved.el.isConnected) return;
+    const maxScroll = saved.el.scrollHeight - saved.el.clientHeight;
+    saved.el.scrollTop = Math.min(saved.top, Math.max(0, maxScroll));
+  }, [subTab]);
+
+  const handleSubTabChange = (tab: CollectionManagerSubTab) => (e: React.MouseEvent<HTMLButtonElement>) => {
+    const scrollEl = getScrollParent(e.currentTarget);
+    if (scrollEl) {
+      savedScrollRef.current = { el: scrollEl, top: scrollEl.scrollTop };
+    }
+    setSubTab(tab);
+    (e.currentTarget as HTMLButtonElement).blur();
+  };
 
   // Infinite scroll: load more when user scrolls near the bottom of the list
   const handleAlbumsListScroll = () => {
@@ -234,13 +271,40 @@ export default function CollectionManager() {
         )}
       </div>
       
-      <div className="manager-section">
-        <h2>Manage Albums in Collection</h2>
-        <p>Click a collection above to manage its albums. Check/uncheck albums to add or remove them.</p>
-        
+      <div className="manager-section manager-section-tabs">
+        {/* <h2>Manage Collection</h2>
+        <p>Click a collection above, then use the tabs below to manage its selections, slot order, or sections.</p> */}
+
         {collections && collections.length > 0 ? (
           <>
-            {selectedCollectionSlug && albums && albums.length > 0 && (
+            <div className="collection-manager-sub-tabs">
+              <button
+                type="button"
+                className={`collection-manager-sub-tab ${subTab === 'selections' ? 'collection-manager-sub-tab-active' : ''}`}
+                onClick={handleSubTabChange('selections')}
+              >
+                Selections
+              </button>
+              <button
+                type="button"
+                className={`collection-manager-sub-tab ${subTab === 'slots' ? 'collection-manager-sub-tab-active' : ''}`}
+                onClick={handleSubTabChange('slots')}
+              >
+                Slots
+              </button>
+              <button
+                type="button"
+                className={`collection-manager-sub-tab ${subTab === 'sections' ? 'collection-manager-sub-tab-active' : ''}`}
+                onClick={handleSubTabChange('sections')}
+              >
+                Sections
+              </button>
+            </div>
+
+            <div className="collection-manager-tab-content">
+            {!selectedCollectionSlug ? (
+              <p className="collection-manager-select-hint">Select a collection above to manage its {subTab}.</p>
+            ) : subTab === 'selections' && albums && albums.length > 0 ? (
               <>
                 <div className="albums-list-toolbar">
                   <input
@@ -275,65 +339,76 @@ export default function CollectionManager() {
                   {filteredSortedAlbums.length === 0 ? (
                     <p className="albums-list-empty">No albums match your search.</p>
                   ) : (
-                  filteredSortedAlbums.slice(0, displayLimit).map((album: any) => {
-                    const inCollection = isAlbumInCollection(album.id);
-                    return (
-                      <div
-                        key={album.id}
-                        className={`album-item ${!inCollection ? 'not-in-collection' : ''} ${album.archived ? 'archived' : ''}`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={inCollection}
-                          onChange={(e) => handleToggleAlbum(album.id, e.target.checked)}
-                          disabled={toggleAlbumMutation.isPending || album.archived}
-                          className="album-checkbox"
-                        />
-                        {album.cover_art_path && (
-                          <div className="album-item-cover">
-                            <img
-                              src={`/api/media/${album.cover_art_path}`}
-                              alt={`${album.title} cover`}
-                            />
+                    filteredSortedAlbums.slice(0, displayLimit).map((album: any) => {
+                      const inCollection = isAlbumInCollection(album.id);
+                      return (
+                        <div
+                          key={album.id}
+                          className={`album-item ${!inCollection ? 'not-in-collection' : ''} ${album.archived ? 'archived' : ''}`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={inCollection}
+                            onChange={(e) => handleToggleAlbum(album.id, e.target.checked)}
+                            disabled={toggleAlbumMutation.isPending || album.archived}
+                            className="album-checkbox"
+                          />
+                          {album.cover_art_path && (
+                            <div className="album-item-cover">
+                              <img
+                                src={`/api/media/${album.cover_art_path}`}
+                                alt={`${album.title} cover`}
+                              />
+                            </div>
+                          )}
+                          <div className="album-item-info">
+                            <div className="album-item-title">
+                              {album.title}
+                              {album.archived && <span className="archived-badge">Archived</span>}
+                            </div>
+                            <div className="album-item-artist">{album.artist}</div>
+                            <div className="album-item-path">{album.file_path}</div>
                           </div>
-                        )}
-                        <div className="album-item-info">
-                          <div className="album-item-title">
-                            {album.title}
-                            {album.archived && <span className="archived-badge">Archived</span>}
+                          <div className="album-item-stats">
+                            <span>{album.total_tracks} tracks</span>
+                            {album.year && <span>{album.year}</span>}
                           </div>
-                          <div className="album-item-artist">{album.artist}</div>
-                          <div className="album-item-path">{album.file_path}</div>
+                          <div className="album-item-actions">
+                            <span className="admin-tooltip-wrap" data-tooltip="Edit album">
+                              <button
+                                className="edit-button"
+                                onClick={() => setEditingAlbumId(album.id)}
+                                aria-label="Edit album"
+                              >
+                                <MdEdit size={20} />
+                              </button>
+                            </span>
+                          </div>
                         </div>
-                        <div className="album-item-stats">
-                          <span>{album.total_tracks} tracks</span>
-                          {album.year && <span>{album.year}</span>}
-                        </div>
-                        <div className="album-item-actions">
-                          <span className="admin-tooltip-wrap" data-tooltip="Edit album">
-                            <button
-                              className="edit-button"
-                              onClick={() => setEditingAlbumId(album.id)}
-                              aria-label="Edit album"
-                            >
-                              <MdEdit size={20} />
-                            </button>
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })
+                      );
+                    })
                   )}
                 </div>
               </>
-            )}
+            ) : subTab === 'slots' ? (
+              <div className="collection-manager-tab-pane">
+                <SlotManagement collectionSlug={selectedCollectionSlug} />
+              </div>
+            ) : subTab === 'sections' ? (
+              <div className="collection-manager-tab-pane">
+                <p className="collection-manager-sections-placeholder">Sections content coming soon.</p>
+              </div>
+            ) : subTab === 'selections' ? (
+              <p className="albums-list-empty">No albums in library. Scan your library first.</p>
+            ) : null}
+            </div>
           </>
         ) : (
           <div className="no-collections">
             <p>Create a collection first to manage albums.</p>
           </div>
         )}
-        
+
         {editingAlbumId && (
           <AlbumEditModal
             albumId={editingAlbumId}

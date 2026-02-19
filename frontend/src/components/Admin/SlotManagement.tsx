@@ -169,13 +169,20 @@ function DroppableSlot({
   );
 }
 
-export default function SlotManagement() {
+type SlotManagementProps = {
+  /** When provided, use this collection and hide the collection selector (e.g. when embedded in Collection Manager). */
+  collectionSlug?: string;
+};
+
+export default function SlotManagement({ collectionSlug }: SlotManagementProps) {
   const queryClient = useQueryClient();
   const [selectedSlug, setSelectedSlug] = useState<string>('');
   const [orderedAlbums, setOrderedAlbums] = useState<Album[]>([]);
   const [hasLocalChanges, setHasLocalChanges] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [editingAlbumId, setEditingAlbumId] = useState<string | null>(null);
+
+  const effectiveSlug = collectionSlug ?? selectedSlug;
 
   const { data: collections } = useQuery({
     queryKey: ['collections'],
@@ -186,26 +193,26 @@ export default function SlotManagement() {
   });
 
   const { data: serverAlbums, isSuccess: albumsLoaded } = useQuery({
-    queryKey: ['collection-albums', selectedSlug],
+    queryKey: ['collection-albums', effectiveSlug],
     queryFn: async () => {
-      const response = await collectionsApi.getAlbums(selectedSlug);
+      const response = await collectionsApi.getAlbums(effectiveSlug);
       return response.data;
     },
-    enabled: !!selectedSlug,
+    enabled: !!effectiveSlug,
   });
 
   useEffect(() => {
-    if (selectedSlug && albumsLoaded && serverAlbums) {
+    if (effectiveSlug && albumsLoaded && serverAlbums) {
       setOrderedAlbums(serverAlbums);
       setHasLocalChanges(false);
     }
-  }, [selectedSlug, albumsLoaded, serverAlbums]);
+  }, [effectiveSlug, albumsLoaded, serverAlbums]);
 
   const saveMutation = useMutation({
     mutationFn: (albums: Album[]) =>
-      adminApi.setCollectionAlbumOrder(selectedSlug, albums.map((a) => a.id)),
+      adminApi.setCollectionAlbumOrder(effectiveSlug, albums.map((a) => a.id)),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['collection-albums', selectedSlug] });
+      queryClient.invalidateQueries({ queryKey: ['collection-albums', effectiveSlug] });
       setHasLocalChanges(false);
     },
     onError: () => {
@@ -214,9 +221,9 @@ export default function SlotManagement() {
   });
 
   const removeMutation = useMutation({
-    mutationFn: (albumId: string) => adminApi.updateCollectionAlbums(selectedSlug, albumId, 'remove'),
+    mutationFn: (albumId: string) => adminApi.updateCollectionAlbums(effectiveSlug, albumId, 'remove'),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['collection-albums', selectedSlug] });
+      queryClient.invalidateQueries({ queryKey: ['collection-albums', effectiveSlug] });
       queryClient.invalidateQueries({ queryKey: ['admin-albums'] });
     },
   });
@@ -226,7 +233,7 @@ export default function SlotManagement() {
   };
 
   const handleRemove = async (albumId: string) => {
-    if (!selectedSlug) return;
+    if (!effectiveSlug) return;
     if (!confirm('Remove this album from the collection?')) return;
     if (hasLocalChanges) {
       await saveMutation.mutateAsync(orderedAlbums);
@@ -295,25 +302,27 @@ export default function SlotManagement() {
   const activeSlotNum = activeId ? orderedAlbums.findIndex((a) => a.id === activeId) + 1 : 0;
 
   return (
-    <div className="slot-management">
-      <div className="slot-management-controls">
-        <label htmlFor="slot-collection-select">Collection</label>
-        <select
-          id="slot-collection-select"
-          value={selectedSlug}
-          onChange={(e) => setSelectedSlug(e.target.value)}
-          className="slot-collection-select"
-        >
-          <option value="">Select a collection…</option>
-          {collections?.map((c: { id: string; name: string; slug: string }) => (
-            <option key={c.id} value={c.slug}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-      </div>
+    <div className={`slot-management ${collectionSlug != null ? 'slot-management-embedded' : ''}`}>
+      {collectionSlug == null && (
+        <div className="slot-management-controls">
+          <label htmlFor="slot-collection-select">Collection</label>
+          <select
+            id="slot-collection-select"
+            value={selectedSlug}
+            onChange={(e) => setSelectedSlug(e.target.value)}
+            className="slot-collection-select"
+          >
+            <option value="">Select a collection…</option>
+            {collections?.map((c: { id: string; name: string; slug: string }) => (
+              <option key={c.id} value={c.slug}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
-      {selectedSlug && (
+      {effectiveSlug && (
         <div className="slot-list-scroll">
           <div className="slot-list-wrap">
           {orderedAlbums.length === 0 && !albumsLoaded ? (
@@ -388,7 +397,7 @@ export default function SlotManagement() {
           albumId={editingAlbumId}
           onClose={() => {
             setEditingAlbumId(null);
-            queryClient.invalidateQueries({ queryKey: ['collection-albums', selectedSlug] });
+            queryClient.invalidateQueries({ queryKey: ['collection-albums', effectiveSlug] });
           }}
         />
       )}

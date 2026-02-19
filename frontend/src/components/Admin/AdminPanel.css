@@ -72,6 +72,7 @@
   flex-direction: column;
   overflow-x: hidden;
   overflow-y: auto;
+  overflow-anchor: none; /* Prevent scroll jump when Collection Manager tab content changes */
   scrollbar-width: none;
 }
 

@@ -61,6 +61,79 @@
   color: var(--text-secondary);
 }
 
+/* Sub-tabs: Selections, Slots, Sections */
+.manager-section-tabs {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.collection-manager-sub-tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.collection-manager-sub-tab {
+  padding: 0.6rem 1.25rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background-color: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.collection-manager-sub-tab:hover {
+  color: var(--text-primary);
+}
+
+.collection-manager-sub-tab-active {
+  color: var(--lcd-green);
+  border-bottom-color: var(--lcd-green);
+}
+
+.collection-manager-select-hint,
+.collection-manager-sections-placeholder {
+  color: var(--text-secondary);
+  margin: 1rem 0;
+}
+
+/* Stable height so admin-content doesn't shrink when switching Selections <-> Slots (avoids scroll jump) */
+.collection-manager-tab-content {
+  min-height: 600px;
+}
+
+/* Inner scroll area for Slots/Sections so sub-tabs stay fixed (same idea as .albums-list for Selections) */
+.collection-manager-tab-pane {
+  max-height: 600px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) var(--background-dark);
+}
+
+.collection-manager-tab-pane::-webkit-scrollbar {
+  width: 8px;
+}
+
+.collection-manager-tab-pane::-webkit-scrollbar-track {
+  background: var(--background-dark);
+}
+
+.collection-manager-tab-pane::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+.collection-manager-tab-pane::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
 .manager-section code {
   background-color: var(--background-dark);
   padding: 0.25rem 0.5rem;
