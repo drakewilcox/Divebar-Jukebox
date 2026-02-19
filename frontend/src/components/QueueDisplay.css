@@ -168,6 +168,16 @@
   padding-bottom: 0.25rem;
 }
 
+.queue-item-selection {
+  font-family: 'Courier New', monospace;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.05em;
+  margin-bottom: 0.15rem;
+  opacity: 0.7;
+}
+
 .queue-item-title {
   font-size: 0.85rem;
   font-weight: 600;

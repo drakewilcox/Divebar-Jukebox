@@ -250,9 +250,13 @@ export default function QueueDisplay({ collection, onQueueCleared }: Props) {
                   )}
                   
                   <div className="queue-item-info">
+                   
                     <div className="queue-item-title">{nowPlaying.track.title}</div>
                     <div className="queue-item-artist">{nowPlaying.track.artist}</div>
                     <div className="queue-item-album">{nowPlaying.track.album_title}</div>
+                    {nowPlaying.track.selection_display && (
+                      <div className="queue-item-selection">{nowPlaying.track.selection_display}</div>
+                    )}
                   </div>
                   
                   <div className="queue-item-duration now-playing-countdown">
@@ -285,9 +289,13 @@ export default function QueueDisplay({ collection, onQueueCleared }: Props) {
                     )}
                     
                     <div className="queue-item-info">
+                     
                       <div className="queue-item-title">{item.track.title}</div>
                       <div className="queue-item-artist">{item.track.artist}</div>
                       <div className="queue-item-album">{item.track.album_title}</div>
+                      {item.track.selection_display && (
+                        <div className="queue-item-selection">{item.track.selection_display}</div>
+                      )}
                     </div>
                     
                     <div className="queue-item-duration">
