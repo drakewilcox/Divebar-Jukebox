@@ -330,6 +330,15 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
                 />
               </div>
             </div>
+            <div className="form-group album-edit-genre">
+              <label>Genre</label>
+              <div className="album-edit-genre-value">
+                {(() => {
+                  const g = (albumData as { genre?: string[] }).genre;
+                  return Array.isArray(g) && g.length > 0 ? g.join(', ') : '—';
+                })()}
+              </div>
+            </div>
           </div>
 
           <div className="edit-section">

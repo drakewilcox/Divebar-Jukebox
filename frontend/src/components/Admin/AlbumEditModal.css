@@ -114,6 +114,15 @@
   max-width: 100px;
 }
 
+.album-edit-genre {
+  margin-top: 0.5rem;
+}
+
+.album-edit-genre-value {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  padding: 0.25rem 0;
+}
 
 .form-group label {
   font-size: 0.9rem;
