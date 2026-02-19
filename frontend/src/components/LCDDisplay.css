@@ -1,8 +1,8 @@
 .lcd-display {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.5rem;
-  padding: 0.75rem 1rem;
+  padding: 0.75rem 1rem 0.5rem;
   background: linear-gradient(180deg, #0d1a0d 0%, #152815 50%, #0d1a0d 100%);
   border-radius: 6px;
   box-shadow: 
@@ -11,9 +11,24 @@
   cursor: pointer;
 }
 
+.lcd-group-with-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+
 .lcd-group {
   display: flex;
   gap: 0.3rem;
+}
+
+.lcd-group-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: rgba(100, 255, 100, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .lcd-dash {

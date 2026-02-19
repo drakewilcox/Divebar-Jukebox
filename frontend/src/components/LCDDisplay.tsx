@@ -3,9 +3,11 @@ import './LCDDisplay.css';
 
 interface Props {
   value: string; // Format: "XXX-YY" where X and Y can be digits or _
+  discLabel?: string;
+  trackLabel?: string;
 }
 
-export default function LCDDisplay({ value }: Props) {
+export default function LCDDisplay({ value, discLabel = 'Disc Number', trackLabel = 'Track Number' }: Props) {
   // Parse the value into individual character positions
   // Expected format: "XXX-YY" (5 positions + dash)
   const getCharAtPosition = (position: number): string => {
@@ -34,15 +36,21 @@ export default function LCDDisplay({ value }: Props) {
 
   return (
     <div className="lcd-display">
-      <div className="lcd-group">
-        <LCDDigit value={digits[0]} />
-        <LCDDigit value={digits[1]} />
-        <LCDDigit value={digits[2]} />
+      <div className="lcd-group-with-label">
+        <div className="lcd-group">
+          <LCDDigit value={digits[0]} />
+          <LCDDigit value={digits[1]} />
+          <LCDDigit value={digits[2]} />
+        </div>
+        <span className="lcd-group-label">{discLabel}</span>
       </div>
       <div className={`lcd-dash ${isDashActive ? 'active' : 'inactive'}`}>-</div>
-      <div className="lcd-group">
-        <LCDDigit value={digits[3]} />
-        <LCDDigit value={digits[4]} />
+      <div className="lcd-group-with-label">
+        <div className="lcd-group">
+          <LCDDigit value={digits[3]} />
+          <LCDDigit value={digits[4]} />
+        </div>
+        <span className="lcd-group-label">{trackLabel}</span>
       </div>
     </div>
   );
