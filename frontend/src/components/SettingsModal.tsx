@@ -25,6 +25,10 @@ export default function SettingsModal({
   const queryClient = useQueryClient();
   const [defaultCollectionSlug, setDefaultCollectionSlug] = useState<string>('all');
   const [editMode, setEditMode] = useState<boolean>(false);
+  const [sortOrder, setSortOrder] = useState<'alphabetical' | 'curated'>('curated');
+  const [showJumpToBar, setShowJumpToBar] = useState<boolean>(true);
+  const [jumpButtonType, setJumpButtonType] = useState<'letter-ranges' | 'number-ranges' | 'sections'>('number-ranges');
+  const [showColorCoding, setShowColorCoding] = useState<boolean>(true);
   const [collectionSelectOpen, setCollectionSelectOpen] = useState(false);
   const collectionSelectRef = useRef<HTMLDivElement>(null);
 
@@ -55,6 +59,25 @@ export default function SettingsModal({
     if (savedEditMode) {
       setEditMode(savedEditMode === 'true');
     }
+    const savedSortOrder = localStorage.getItem('sortOrder');
+    if (savedSortOrder === 'alphabetical' || savedSortOrder === 'curated') {
+      setSortOrder(savedSortOrder);
+    }
+    const savedShowJumpToBar = localStorage.getItem('showJumpToBar');
+    if (savedShowJumpToBar !== null) {
+      setShowJumpToBar(savedShowJumpToBar === 'true');
+    }
+    const savedJumpButtonType = localStorage.getItem('jumpButtonType');
+    if (savedJumpButtonType === 'letter-ranges' || savedJumpButtonType === 'number-ranges' || savedJumpButtonType === 'sections') {
+      setJumpButtonType(savedJumpButtonType);
+    } else {
+      const legacyNavBarMode = localStorage.getItem('navBarMode');
+      if (legacyNavBarMode === 'sections') setJumpButtonType('sections');
+    }
+    const savedShowColorCoding = localStorage.getItem('showColorCoding');
+    if (savedShowColorCoding !== null) {
+      setShowColorCoding(savedShowColorCoding === 'true');
+    }
   }, []);
 
   useEffect(() => {
@@ -71,6 +94,35 @@ export default function SettingsModal({
     localStorage.setItem('editMode', editMode.toString());
     window.dispatchEvent(new CustomEvent('edit-mode-changed', { detail: editMode }));
   }, [editMode]);
+
+  const sectionsEnabledForCollection =
+    currentCollection.sections_enabled &&
+    Array.isArray(currentCollection.sections) &&
+    currentCollection.sections.length > 0;
+
+  useEffect(() => {
+    if (sortOrder === 'alphabetical' && jumpButtonType === 'sections') {
+      setJumpButtonType('number-ranges');
+    }
+  }, [sortOrder]);
+
+  useEffect(() => {
+    if (sortOrder === 'curated' && !sectionsEnabledForCollection && jumpButtonType === 'sections') {
+      setJumpButtonType('number-ranges');
+    }
+  }, [sortOrder, sectionsEnabledForCollection, jumpButtonType]);
+
+  useEffect(() => {
+    localStorage.setItem('sortOrder', sortOrder);
+    localStorage.setItem('showJumpToBar', String(showJumpToBar));
+    localStorage.setItem('jumpButtonType', jumpButtonType);
+    localStorage.setItem('showColorCoding', String(showColorCoding));
+    window.dispatchEvent(
+      new CustomEvent('navigation-settings-changed', {
+        detail: { sortOrder, showJumpToBar, jumpButtonType, showColorCoding },
+      })
+    );
+  }, [sortOrder, showJumpToBar, jumpButtonType, showColorCoding]);
 
   const handleSetAsDefault = async () => {
     try {
@@ -198,18 +250,159 @@ export default function SettingsModal({
           </div>
 
           <div className="settings-section">
+            <h3>Sort Order</h3>
+            <div className="form-group">
+              <div className="radio-group" role="radiogroup" aria-label="Sort order">
+                <label className="radio-option">
+                  <input
+                    type="radio"
+                    name="sortOrder"
+                    value="alphabetical"
+                    checked={sortOrder === 'alphabetical'}
+                    onChange={() => setSortOrder('alphabetical')}
+                  />
+                  <span>Alphabetical</span>
+                </label>
+                <label className="radio-option">
+                  <input
+                    type="radio"
+                    name="sortOrder"
+                    value="curated"
+                    checked={sortOrder === 'curated'}
+                    onChange={() => setSortOrder('curated')}
+                  />
+                  <span>Curated</span>
+                </label>
+              </div>
+              <p className="help-text">
+                Curated uses the collection&apos;s custom order. Alphabetical sorts by album title (coming soon).
+              </p>
+            </div>
+          </div>
+
+          <div className="settings-section">
+            <h3>Jump-To Buttons</h3>
+            <div className="form-group">
+              <label className="toggle-label">
+                <div className="toggle-label-content">
+                  <input
+                    type="checkbox"
+                    checked={showJumpToBar}
+                    onChange={(e) => setShowJumpToBar(e.target.checked)}
+                    className="toggle-checkbox"
+                  />
+                  <span className="toggle-text">{showJumpToBar ? 'Show' : 'Hide'}</span>
+                </div>
+              </label>
+              <p className="help-text">
+                When enabled, a bar above the carousel lets you jump to ranges or sections.
+              </p>
+            </div>
+
+            {showJumpToBar && (
+              <div className="form-group">
+                <label className="radio-group-label jump-type"><h3>Jump button type</h3></label>
+                <div className="radio-group" role="radiogroup" aria-label="Jump button type">
+                  {sortOrder === 'alphabetical' && (
+                    <>
+                      <label className="radio-option">
+                        <input
+                          type="radio"
+                          name="jumpButtonType"
+                          value="letter-ranges"
+                          checked={jumpButtonType === 'letter-ranges'}
+                          onChange={() => setJumpButtonType('letter-ranges')}
+                        />
+                        <span>Letter ranges</span>
+                      </label>
+                      <label className="radio-option">
+                        <input
+                          type="radio"
+                          name="jumpButtonType"
+                          value="number-ranges"
+                          checked={jumpButtonType === 'number-ranges'}
+                          onChange={() => setJumpButtonType('number-ranges')}
+                        />
+                        <span>Number ranges</span>
+                      </label>
+                    </>
+                  )}
+                  {sortOrder === 'curated' && (
+                    <>
+                      <label className="radio-option">
+                        <input
+                          type="radio"
+                          name="jumpButtonType"
+                          value="number-ranges"
+                          checked={jumpButtonType === 'number-ranges'}
+                          onChange={() => setJumpButtonType('number-ranges')}
+                        />
+                        <span>Number ranges</span>
+                      </label>
+                      {sectionsEnabledForCollection && (
+                          <label className="radio-option">
+                            <input
+                              type="radio"
+                              name="jumpButtonType"
+                              value="sections"
+                              checked={jumpButtonType === 'sections'}
+                              onChange={() => setJumpButtonType('sections')}
+                            />
+                            <span>Sections</span>
+                          </label>
+                        )}
+                    </>
+                  )}
+                </div>
+                <p className="help-text">
+                  {sortOrder === 'curated' && sectionsEnabledForCollection
+                    ? 'Sections shows one button per collection section and jumps to the start of each section.'
+                    : 'Number ranges split the list into 8 ranges (e.g. 1–10, 11–20).'}
+                </p>
+              </div>
+            )}
+
+            {showJumpToBar &&
+              sortOrder === 'curated' &&
+              sectionsEnabledForCollection &&
+              jumpButtonType === 'sections' && (
+                <>
+                  <h3>Color Coding</h3>
+                  <div className="form-group">
+                    <label className="toggle-label">
+                      <div className="toggle-label-content">
+                        <input
+                          type="checkbox"
+                          checked={showColorCoding}
+                          onChange={(e) => setShowColorCoding(e.target.checked)}
+                          className="toggle-checkbox"
+                        />
+                        <span className="toggle-text">{showColorCoding ? 'Show' : 'Hide'}</span>
+                      </div>
+                    </label>
+                    <p className="help-text">
+                      When enabled, section buttons and album cards use each section&apos;s color.
+                    </p>
+                  </div>
+                </>
+              )}
+          </div>
+
+          <div className="settings-section">
             <h3>Edit Mode</h3>
             <div className="form-group">
               <label className="toggle-label">
-                <input
-                  type="checkbox"
-                  checked={editMode}
-                  onChange={(e) => setEditMode(e.target.checked)}
-                  className="toggle-checkbox"
-                />
-                <span className="toggle-text">
-                  {/* {editMode ? 'Edit Mode: ON' : 'Edit Mode: OFF'} */}
-                </span>
+                <div className="toggle-label-content">
+                  <input
+                    type="checkbox"
+                    checked={editMode}
+                    onChange={(e) => setEditMode(e.target.checked)}
+                    className="toggle-checkbox"
+                  />
+                  <span className="toggle-text">
+                    {editMode ? 'ON' : 'OFF'}
+                  </span>
+                </div>
               </label>
               <p className="help-text">
                 When enabled, hover over album covers to quickly edit albums from the jukebox view.
