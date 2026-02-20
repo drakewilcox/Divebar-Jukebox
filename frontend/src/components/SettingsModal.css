@@ -114,6 +114,68 @@
   margin-bottom: 0.5rem;
 }
 
+.radio-group-label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.radio-group-label.section-header-style {
+  font-size: 1.1rem;
+  color: var(--vintage-cream);
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--vintage-cream);
+}
+
+.jump-type h3 {
+  font-family: var(--font-ui);
+  font-size: .75rem;
+  color: var(--vintage-cream);
+  margin: 2rem 0 8px 0;
+  border-bottom: none;
+}
+
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Override .form-group label (display: block) so radio option is a row: radio left, label right */
+.radio-option,
+.form-group label.radio-option {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: normal;
+  color: var(--text-primary);
+  margin-bottom: 0;
+}
+
+.radio-option input,
+.form-group label.radio-option input {
+  flex-shrink: 0;
+  order: 1;
+  width: 1.15rem;
+  height: 1.15rem;
+  margin: 0;
+  accent-color: var(--lcd-green);
+  cursor: pointer;
+}
+
+.radio-option span,
+.form-group label.radio-option span {
+  order: 2;
+}
+
 .form-select-wrap {
   position: relative;
   width: 100%;
@@ -261,6 +323,13 @@
   tap-highlight-color: transparent;
 }
 
+.toggle-label-content {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .toggle-label:hover {
   border-color: var(--vintage-cream);
 }
@@ -285,7 +354,7 @@
 .toggle-checkbox::before {
   content: '';
   position: absolute;
-  width: 22px;
+  width: 20px;
   height: 22px;
   border-radius: 50%;
   background-color: var(--text-secondary);
@@ -303,6 +372,34 @@
   background-color: #1a1a1a;
   transform: translateX(22px);
 }
+
+.edit-mode-section h3 {
+  font-size: 1.1rem;
+  color: var(--vintage-cream);
+  border-bottom: none;
+  padding: 0;
+  margin: 0;
+
+}
+
+.edit-mode-section .form-group{
+  border-bottom: 1px solid var(--vintage-cream);
+  padding-bottom: 0.5rem;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 1rem;
+
+  label {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 1rem;
+    padding: 0;
+    margin: 0;
+  }
+}
+
 
 /* Override .form-group input:focus from CollectionManager.css (orange border) – keep cream focus for our toggle */
 .settings-modal .form-group input.toggle-checkbox:focus,
