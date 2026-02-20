@@ -138,7 +138,7 @@
   background-color: var(--background-dark);
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-mono);
 }
 
 .collections-list {
@@ -277,7 +277,7 @@
 .collection-slug {
   font-size: 0.9rem;
   color: var(--text-secondary);
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-mono);
   margin-bottom: 0.5rem;
 }
 
@@ -308,7 +308,7 @@
   overflow-x: auto;
   font-size: 0.9rem;
   color: #00ff00;
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-mono);
 }
 
 .config-notes {
@@ -546,7 +546,7 @@
   font-size: 0.85rem;
   color: var(--text-secondary);
   opacity: 0.7;
-  font-family: monospace;
+  font-family: var(--font-mono);
 }
 
 .album-item-stats {

@@ -129,7 +129,7 @@
   font-weight: 600;
   color: var(--text-primary);
   text-transform: uppercase;
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-mono);
 }
 
 .album-edit-modal .form-input {
@@ -139,7 +139,7 @@
   border-radius: 6px;
   color: var(--text-primary);
   font-size: 1rem;
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-mono);
   transition: border-color 0.2s;
 }
 
@@ -175,7 +175,7 @@
   cursor: pointer;
   color: var(--text-primary);
   font-size: 0.95rem;
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-mono);
 }
 
 .checkbox-label input[type="checkbox"] {
@@ -223,7 +223,7 @@
   min-width: 40px;
   font-weight: 600;
   color: var(--primary-color);
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-mono);
 }
 
 .track-title-input {
@@ -234,7 +234,7 @@
   border-radius: 4px;
   color: var(--text-primary);
   font-size: 0.9rem;
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-mono);
 }
 
 .album-edit-modal .track-title-input:focus {
@@ -246,7 +246,7 @@
 .track-edit-duration {
   flex-shrink: 0;
   font-size: 0.85rem;
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-mono);
   color: var(--text-secondary);
   min-width: 3.5em;
 }
@@ -357,7 +357,7 @@
 .track-preview-time {
   flex-shrink: 0;
   font-size: 0.8rem;
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-mono);
   color: var(--primary-color);
 }
 

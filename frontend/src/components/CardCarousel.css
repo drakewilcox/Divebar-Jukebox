@@ -178,7 +178,7 @@
   padding: 0 0.25rem;
   font-size: 1rem;
   font-weight: 700;
-  font-family: 'Orbitron', 'Courier New', Consolas, monospace;
+  font-family: var(--font-display);
   color: #1a1a1a;
   background: linear-gradient(180deg, #f5f0e8 0%, #e8dfd0 100%);
   border: 2px solid #c0b8a8;
@@ -222,6 +222,63 @@
   box-shadow:
     0 2px 4px rgba(0, 0, 0, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+/* Section bar: one button per collection section (section color + name) – font size by text length, up to 2 lines */
+.section-button.jump-to-button {
+  /* Override jump-to-button gradient so inline background (section color) shows */
+  background: none;
+}
+.section-button {
+  font-family: var(--font-mono);
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  color: #1a1a1a;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  text-shadow: 0 0 2px rgba(255, 255, 255, 0.4);
+  min-height: 40px;
+  height: auto;
+  padding: 0.35rem 0.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.section-button-text-short .section-button-label {
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.section-button-text-medium .section-button-label {
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.section-button-text-long .section-button-label {
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.section-button-label {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  line-height: 1.25;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.section-button:hover {
+  background: var(--section-bg) !important;
+  filter: brightness(1.08);
+  border-color: rgba(0, 0, 0, 0.3);
+}
+
+.section-button:active {
+  background: var(--section-bg) !important;
+  filter: brightness(0.95);
 }
 
 .carousel-controls-wrapper {
@@ -318,7 +375,7 @@
 }
 
 .now-playing-selection {
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-mono);
   font-size: 0.65rem;
   font-weight: 600;
   color: var(--lcd-green-dim);
@@ -360,7 +417,7 @@
   color: var(--lcd-green);
   font-size: 0.9rem;
   font-weight: 600;
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-mono);
   flex-shrink: 0;
   text-shadow: 
     0 0 6px rgba(100, 255, 100, 0.6),
@@ -461,7 +518,7 @@
   font-weight: 700;
   color: var(--primary-color);
   text-shadow: 0 0 10px var(--accent-glow);
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-mono);
   letter-spacing: 0.05rem;
 }
 
@@ -510,7 +567,7 @@
   padding: 0.75rem 1rem;
   font-size: 1.5rem;
   font-weight: 700;
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-mono);
   color: var(--primary-color);
   background-color: rgba(0, 0, 0, 0.5);
   border: 2px solid var(--border-color);
@@ -857,7 +914,7 @@
   flex-direction: column;
   min-width: 0;
   overflow: hidden;
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-mono);
   background-color: #f5f0e8;
   background-image: 
     repeating-linear-gradient(

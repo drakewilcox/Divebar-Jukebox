@@ -36,7 +36,7 @@
 }
 
 .lcd-keypad-key {
-  font-family: 'Orbitron', 'Courier New', Consolas, monospace;
+  font-family: var(--font-display);
   font-weight: 800;
   border: none;
   border-radius: 6px;

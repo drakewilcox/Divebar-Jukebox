@@ -406,7 +406,7 @@
 
 .collection-sections-divider-section-name {
   font-size: 1rem;
-  font-family: 'Courier New', Courier, monospace;
+  font-family: var(--font-mono);
   text-transform: uppercase;
   font-weight: 600;
   color: black;

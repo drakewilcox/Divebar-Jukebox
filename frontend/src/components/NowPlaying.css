@@ -99,7 +99,7 @@
   justify-content: space-between;
   font-size: 0.9rem;
   color: var(--text-secondary);
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-mono);
 }
 
 .now-playing-controls {
