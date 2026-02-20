@@ -113,24 +113,21 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [ ] Add track duration to Edit Modal
 
 ### Database Updates
-- [ ] Add Category table to DB
-- [ ] Add Category column to Albums
-- [ ] Add Genre Column and Genre column to Albums 
+- [ ] Add Architecture for Collection Sections
 
 ### Sorting & Organization
-- [ ] Create solution for custom sorting of albums within collections
-- [ ] Set default sort order to alphabetical for collections
+- [x] Create solution for custom sorting of albums within collections
 - [x] Create Settings Modal
 - [x] Move collection selector, Admin settings button and edit mode selector to settings modal
 - [ ] Add sort options (A-Z, Genre, Custom) to settings modal
-- [ ] Add Jump-To Functionality to Jukebox View
+- [x] Add Jump-To Functionality to Jukebox View
 
 ### Track Features
 - [x] Add stars and dots/+ system next to tracks for favorites and recommendations
 - [x] Add track preview playback feature in album edit modal for listening while editing/starring
 - [x] Add Playback display to control bar, and move Queue Display above this. 
 - [x] Add Green LCD effect to mini playback display and album image 
-- [ ] Make sure playblack and Queue use Database track data, not metadata 
+- [x] Make sure playblack and Queue use Database track data, not metadata 
 
 ### Playback Features
 - [ ] Implement random play feature that are triggered by "H" button on keypad. 

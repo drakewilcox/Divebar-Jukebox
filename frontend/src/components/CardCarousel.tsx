@@ -11,6 +11,52 @@ import LCDKeypad from './LCDKeypad';
 import QueueDisplay from './QueueDisplay';
 import './CardCarousel.css';
 
+function hexToRgba(hex: string, alpha: number): string {
+  const m = hex.match(/^#?([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (!m) return hex;
+  let r: number, g: number, b: number;
+  if (m[1].length === 3) {
+    r = parseInt(m[1][0] + m[1][0], 16);
+    g = parseInt(m[1][1] + m[1][1], 16);
+    b = parseInt(m[1][2] + m[1][2], 16);
+  } else {
+    r = parseInt(m[1].slice(0, 2), 16);
+    g = parseInt(m[1].slice(2, 4), 16);
+    b = parseInt(m[1].slice(4, 6), 16);
+  }
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+const SECTION_BUTTON_CREAM = '#f5f0e8';
+
+function parseHex(hex: string): [number, number, number] | null {
+  const m = hex.match(/^#?([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (!m) return null;
+  if (m[1].length === 3) {
+    return [
+      parseInt(m[1][0] + m[1][0], 16),
+      parseInt(m[1][1] + m[1][1], 16),
+      parseInt(m[1][2] + m[1][2], 16),
+    ];
+  }
+  return [
+    parseInt(m[1].slice(0, 2), 16),
+    parseInt(m[1].slice(2, 4), 16),
+    parseInt(m[1].slice(4, 6), 16),
+  ];
+}
+
+/** Blend base (cream) with tint (section color). weight 0 = all cream, 1 = all tint. Lower weight = lighter. */
+function blendWithCream(sectionHex: string, weight: number): string {
+  const cream = parseHex(SECTION_BUTTON_CREAM);
+  const tint = parseHex(sectionHex);
+  if (!cream || !tint) return sectionHex;
+  const r = Math.round(cream[0] * (1 - weight) + tint[0] * weight);
+  const g = Math.round(cream[1] * (1 - weight) + tint[1] * weight);
+  const b = Math.round(cream[2] * (1 - weight) + tint[2] * weight);
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+}
+
 interface Props {
   albums: Album[];
   collection: Collection;
@@ -33,6 +79,30 @@ export default function CardCarousel({ albums, collection, collections, onCollec
   const [nowPlayingPositionMs, setNowPlayingPositionMs] = useState(0);
   const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
   const [jumpTargetIndex, setJumpTargetIndex] = useState<number | null>(null);
+  type NavSettings = {
+    sortOrder: 'alphabetical' | 'curated';
+    showJumpToBar: boolean;
+    jumpButtonType: 'letter-ranges' | 'number-ranges' | 'sections';
+    showColorCoding: boolean;
+  };
+  const [navSettings, setNavSettings] = useState<NavSettings>(() => {
+    const sortOrder = localStorage.getItem('sortOrder');
+    const showJumpToBar = localStorage.getItem('showJumpToBar');
+    const jumpButtonType = localStorage.getItem('jumpButtonType');
+    const showColorCoding = localStorage.getItem('showColorCoding');
+    const legacy = localStorage.getItem('navBarMode');
+    return {
+      sortOrder: sortOrder === 'alphabetical' || sortOrder === 'curated' ? sortOrder : 'curated',
+      showJumpToBar: showJumpToBar !== null ? showJumpToBar === 'true' : true,
+      jumpButtonType:
+        jumpButtonType === 'letter-ranges' || jumpButtonType === 'number-ranges' || jumpButtonType === 'sections'
+          ? jumpButtonType
+          : legacy === 'sections'
+            ? 'sections'
+            : 'number-ranges',
+      showColorCoding: showColorCoding !== null ? showColorCoding === 'true' : true,
+    };
+  });
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const queuePanelRef = useRef<HTMLDivElement>(null);
@@ -103,6 +173,17 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     window.addEventListener('edit-mode-changed', handleEditModeChange as EventListener);
     return () => {
       window.removeEventListener('edit-mode-changed', handleEditModeChange as EventListener);
+    };
+  }, []);
+
+  // Listen for navigation settings changes from Settings modal
+  useEffect(() => {
+    const handleNavSettingsChange = (event: CustomEvent<NavSettings>) => {
+      setNavSettings(event.detail);
+    };
+    window.addEventListener('navigation-settings-changed', handleNavSettingsChange as EventListener);
+    return () => {
+      window.removeEventListener('navigation-settings-changed', handleNavSettingsChange as EventListener);
     };
   }, []);
   
@@ -350,6 +431,38 @@ export default function CardCarousel({ albums, collection, collections, onCollec
   const currentTrackId = playbackState?.current_track_id ?? null;
   const queueTrackIds = queue?.map((q) => q.track.id) ?? [];
 
+  // Sections bar: when show jump-to bar, jump type is sections, sort is curated, and collection has sections with ranges
+  const sortedSections = React.useMemo(() => {
+    if (!collection.sections_enabled || !Array.isArray(collection.sections) || collection.sections.length === 0) return [];
+    return [...collection.sections].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  }, [collection.sections_enabled, collection.sections]);
+  const sectionsHaveRanges = sortedSections.length > 0 && sortedSections.every((s) => s.start_slot != null && s.end_slot != null);
+  const showBar = navSettings.showJumpToBar;
+  const showSectionsBar =
+    showBar &&
+    navSettings.sortOrder === 'curated' &&
+    navSettings.jumpButtonType === 'sections' &&
+    sectionsHaveRanges;
+  const showJumpToRangesBar = showBar && !showSectionsBar;
+  const applySectionColors = navSettings.showColorCoding;
+
+  // Which section contains the given 1-based slot?
+  const getSectionIndexForSlot = (slot: number): number => {
+    for (let i = 0; i < sortedSections.length; i++) {
+      const s = sortedSections[i];
+      if (s.start_slot != null && s.end_slot != null && slot >= s.start_slot && slot <= s.end_slot) return i;
+    }
+    return 0;
+  };
+
+  // Section color for a 1-based slot (for album-row-info background); only when showColorCoding and sections bar active
+  const getSectionBackgroundForSlot = (slot: number): string | undefined => {
+    if (!applySectionColors || !showSectionsBar || !sectionsHaveRanges) return undefined;
+    const i = getSectionIndexForSlot(slot);
+    const c = sortedSections[i]?.color;
+    return c ? blendWithCream(c, 0.5) : undefined;
+  };
+
   // Jump To: 8 buttons, ranges adapt to album count (e.g. 80 albums → 1-10, 11-20, …)
   const totalAlbums = albums.length;
   const jumpRangeSize = totalAlbums <= 0 ? 0 : Math.ceil(totalAlbums / 8);
@@ -374,10 +487,15 @@ export default function CardCarousel({ albums, collection, collections, onCollec
           ? prevRangeIndex
           : currentRangeIndex;
 
+  const slotForLine = (jumpTargetIndex ?? currentIndex) + 1;
+  const activeSectionIndex = showSectionsBar ? getSectionIndexForSlot(slotForLine) : 0;
+  const activeButtonIndex = showSectionsBar ? activeSectionIndex : activeLineRangeIndex;
+  const navBarButtonSelector = showSectionsBar ? '.section-button' : '.jump-to-button';
+
   useLayoutEffect(() => {
     const bar = jumpToBarRef.current;
     if (!bar) return;
-    const button = bar.querySelectorAll('.jump-to-button')[activeLineRangeIndex] as HTMLElement | undefined;
+    const button = bar.querySelectorAll(navBarButtonSelector)[activeButtonIndex] as HTMLElement | undefined;
     if (!button) return;
     const barRect = bar.getBoundingClientRect();
     const btnRect = button.getBoundingClientRect();
@@ -385,13 +503,13 @@ export default function CardCarousel({ albums, collection, collections, onCollec
       left: btnRect.left - barRect.left,
       width: btnRect.width,
     });
-  }, [activeLineRangeIndex]);
+  }, [activeButtonIndex, navBarButtonSelector]);
 
   useEffect(() => {
     const bar = jumpToBarRef.current;
     if (!bar) return;
     const resizeObserver = new ResizeObserver(() => {
-      const button = bar.querySelectorAll('.jump-to-button')[activeLineRangeIndex] as HTMLElement | undefined;
+      const button = bar.querySelectorAll(navBarButtonSelector)[activeButtonIndex] as HTMLElement | undefined;
       if (!button) return;
       const barRect = bar.getBoundingClientRect();
       const btnRect = button.getBoundingClientRect();
@@ -402,10 +520,19 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     });
     resizeObserver.observe(bar);
     return () => resizeObserver.disconnect();
-  }, [activeLineRangeIndex]);
+  }, [activeButtonIndex, navBarButtonSelector]);
 
   const handleJumpTo = (rangeIndex: number) => {
     const newIndex = Math.max(0, Math.min(rangeIndex * jumpRangeSize, paddedAlbums.length - 4));
+    if (newIndex === currentIndex) return;
+    setJumpTargetIndex(newIndex);
+    setIsSliding(true);
+  };
+
+  const handleJumpToSection = (sectionIndex: number) => {
+    const section = sortedSections[sectionIndex];
+    if (!section?.start_slot) return;
+    const newIndex = Math.max(0, section.start_slot - 1);
     if (newIndex === currentIndex) return;
     setJumpTargetIndex(newIndex);
     setIsSliding(true);
@@ -426,7 +553,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
   const targetRightCard = jumpTargetIndex != null ? paddedAlbums.slice(jumpTargetIndex + 2, jumpTargetIndex + 4) : [];
   const jumpSlideLeft = jumpTargetIndex != null && jumpTargetIndex > currentIndex;
 
-  const renderAlbumRow = (album: Album | null, keyPrefix: string, idx: number) =>
+  const renderAlbumRow = (album: Album | null, keyPrefix: string, idx: number, slotIndex: number) =>
     album ? (
       <AlbumRow
         key={album.id}
@@ -436,6 +563,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
         onEditClick={setEditingAlbumId}
         currentTrackId={currentTrackId}
         queueTrackIds={queueTrackIds}
+        sectionBackgroundColor={getSectionBackgroundForSlot(slotIndex + 1)}
       />
     ) : (
       <div key={`${keyPrefix}-${idx}`} className="album-row album-row-empty"></div>
@@ -456,24 +584,24 @@ export default function CardCarousel({ albums, collection, collections, onCollec
                     <div className="carousel-full-slide-page">
                       <div className="card-slot card-slot-left">
                         <div className="slider-card">
-                          {leftCard.map((album, idx) => renderAlbumRow(album, 'jump-left', idx))}
+                          {leftCard.map((album, idx) => renderAlbumRow(album, 'jump-left', idx, currentIndex + idx))}
                         </div>
                       </div>
                       <div className="card-slot card-slot-right">
                         <div className="slider-card">
-                          {rightCard.map((album, idx) => renderAlbumRow(album, 'jump-right', idx))}
+                          {rightCard.map((album, idx) => renderAlbumRow(album, 'jump-right', idx, currentIndex + 2 + idx))}
                         </div>
                       </div>
                     </div>
                     <div className="carousel-full-slide-page">
                       <div className="card-slot card-slot-left">
                         <div className="slider-card">
-                          {targetLeftCard.map((album, idx) => renderAlbumRow(album, 'target-left', idx))}
+                          {targetLeftCard.map((album, idx) => renderAlbumRow(album, 'target-left', idx, jumpTargetIndex! + idx))}
                         </div>
                       </div>
                       <div className="card-slot card-slot-right">
                         <div className="slider-card">
-                          {targetRightCard.map((album, idx) => renderAlbumRow(album, 'target-right', idx))}
+                          {targetRightCard.map((album, idx) => renderAlbumRow(album, 'target-right', idx, jumpTargetIndex! + 2 + idx))}
                         </div>
                       </div>
                     </div>
@@ -483,24 +611,24 @@ export default function CardCarousel({ albums, collection, collections, onCollec
                     <div className="carousel-full-slide-page">
                       <div className="card-slot card-slot-left">
                         <div className="slider-card">
-                          {targetLeftCard.map((album, idx) => renderAlbumRow(album, 'target-left', idx))}
+                          {targetLeftCard.map((album, idx) => renderAlbumRow(album, 'target-left', idx, jumpTargetIndex! + idx))}
                         </div>
                       </div>
                       <div className="card-slot card-slot-right">
                         <div className="slider-card">
-                          {targetRightCard.map((album, idx) => renderAlbumRow(album, 'target-right', idx))}
+                          {targetRightCard.map((album, idx) => renderAlbumRow(album, 'target-right', idx, jumpTargetIndex! + 2 + idx))}
                         </div>
                       </div>
                     </div>
                     <div className="carousel-full-slide-page">
                       <div className="card-slot card-slot-left">
                         <div className="slider-card">
-                          {leftCard.map((album, idx) => renderAlbumRow(album, 'jump-left', idx))}
+                          {leftCard.map((album, idx) => renderAlbumRow(album, 'jump-left', idx, currentIndex + idx))}
                         </div>
                       </div>
                       <div className="card-slot card-slot-right">
                         <div className="slider-card">
-                          {rightCard.map((album, idx) => renderAlbumRow(album, 'jump-right', idx))}
+                          {rightCard.map((album, idx) => renderAlbumRow(album, 'jump-right', idx, currentIndex + 2 + idx))}
                         </div>
                       </div>
                     </div>
@@ -515,25 +643,25 @@ export default function CardCarousel({ albums, collection, collections, onCollec
             <div className="card-slot card-slot-left">
               <div className="slider-card">
                 {slideDirection === 'right' && prevLeftCard.length === 2
-                  ? prevLeftCard.map((album, idx) => renderAlbumRow(album, 'prev-left', idx))
-                  : leftCard.map((album, idx) => renderAlbumRow(album, 'left', idx))}
+                  ? prevLeftCard.map((album, idx) => renderAlbumRow(album, 'prev-left', idx, currentIndex - 2 + idx))
+                  : leftCard.map((album, idx) => renderAlbumRow(album, 'left', idx, currentIndex + idx))}
               </div>
             </div>
             <div className="card-slot card-slot-right">
               <div className="slider-card">
                 {slideDirection === 'left' && nextRightCard.length === 2
-                  ? nextRightCard.map((album, idx) => renderAlbumRow(album, 'next-right', idx))
-                  : rightCard.map((album, idx) => renderAlbumRow(album, 'right', idx))}
+                  ? nextRightCard.map((album, idx) => renderAlbumRow(album, 'next-right', idx, currentIndex + 4 + idx))
+                  : rightCard.map((album, idx) => renderAlbumRow(album, 'right', idx, currentIndex + 2 + idx))}
               </div>
             </div>
             {slideDirection === 'left' && (
               <div className="slider-card-animated animate-slide-right-to-left">
-                {rightCard.map((album, idx) => renderAlbumRow(album, 'slide', idx))}
+                {rightCard.map((album, idx) => renderAlbumRow(album, 'slide', idx, currentIndex + 2 + idx))}
               </div>
             )}
             {slideDirection === 'right' && (
               <div className="slider-card-animated animate-slide-left-to-right">
-                {leftCard.map((album, idx) => renderAlbumRow(album, 'slide-left', idx))}
+                {leftCard.map((album, idx) => renderAlbumRow(album, 'slide-left', idx, currentIndex + idx))}
               </div>
             )}
             <div className="glass-overlay"></div>
@@ -541,31 +669,60 @@ export default function CardCarousel({ albums, collection, collections, onCollec
         )}
       </div>
 
-      {/* Jump To: 8 buttons to jump to sections of the carousel */}
-      <div ref={jumpToBarRef} className="jump-to-bar">
-        {jumpRanges.map((range, i) => (
-          <button
-            key={i}
-            type="button"
-            className="jump-to-button"
-            onClick={() => handleJumpTo(i)}
-            disabled={range.start > totalAlbums || totalAlbums === 0}
-            aria-label={`Jump to albums ${range.label}`}
-          >
-            {range.label}
-          </button>
-        ))}
-        {totalAlbums > 0 && (
-          <div
-            className="jump-to-bar-line"
-            style={{
-              left: jumpLineStyle.left,
-              width: jumpLineStyle.width,
-            }}
-            aria-hidden
-          />
-        )}
-      </div>
+      {/* Navigation bar: only when Show Jump-To Buttons; Jump-to (ranges) or Sections */}
+      {showBar && (
+        <div ref={jumpToBarRef} className="jump-to-bar">
+          {showSectionsBar ? (
+            sortedSections.map((section, i) => {
+              const nameLen = (section.name ?? '').length;
+              const textSizeClass =
+                nameLen > 24 ? 'section-button-text-long' : nameLen > 14 ? 'section-button-text-medium' : 'section-button-text-short';
+              const bgColor = applySectionColors
+                ? blendWithCream(section.color ?? SECTION_BUTTON_CREAM, 0.65)
+                : SECTION_BUTTON_CREAM;
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  className={`section-button jump-to-button ${textSizeClass}`}
+                  style={{
+                    ['--section-bg' as string]: bgColor,
+                    background: bgColor,
+                    backgroundColor: bgColor,
+                  }}
+                  onClick={() => handleJumpToSection(i)}
+                  aria-label={`Jump to ${section.name}`}
+                >
+                  <span className="section-button-label">{section.name}</span>
+                </button>
+              );
+            })
+          ) : showJumpToRangesBar ? (
+            jumpRanges.map((range, i) => (
+              <button
+                key={i}
+                type="button"
+                className="jump-to-button"
+                onClick={() => handleJumpTo(i)}
+                disabled={range.start > totalAlbums || totalAlbums === 0}
+                aria-label={`Jump to albums ${range.label}`}
+              >
+                {range.label}
+              </button>
+            ))
+          ) : null}
+          {((showSectionsBar && sortedSections.length > 0) || (showJumpToRangesBar && totalAlbums > 0)) && (
+            <div
+              className="jump-to-bar-line"
+              style={{
+                left: jumpLineStyle.left,
+                width: jumpLineStyle.width,
+              }}
+              aria-hidden
+            />
+          )}
+        </div>
+      )}
       
       <div className="carousel-controls-wrapper">
         {/* Upward-expanding queue panel */}
@@ -719,9 +876,10 @@ interface AlbumRowProps {
   onEditClick: (albumId: string) => void;
   currentTrackId: string | null;
   queueTrackIds: string[];
+  sectionBackgroundColor?: string;
 }
 
-function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, queueTrackIds }: AlbumRowProps) {
+function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, queueTrackIds, sectionBackgroundColor }: AlbumRowProps) {
   const [isHovered, setIsHovered] = useState(false);
   const tracksContainerRef = useRef<HTMLDivElement>(null);
   
@@ -848,7 +1006,10 @@ function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, qu
         )}
       </div>
       
-      <div className="album-row-info">
+      <div
+        className="album-row-info"
+        style={sectionBackgroundColor ? { backgroundColor: sectionBackgroundColor } : undefined}
+      >
         <div className="vintage-card-header">
           <div className="header-left">
             <div className="header-label">TRACK NO.</div>
