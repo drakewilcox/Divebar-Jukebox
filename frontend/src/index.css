@@ -12,6 +12,12 @@
   /* LCD / now-playing green (classic jukebox display) */
   --lcd-green: rgb(149, 194, 149);
   --lcd-green-dim: color-mix(in srgb, var(--lcd-green) 85%, transparent);
+
+  /* Font stacks (use these instead of inline font-family) */
+  --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  --font-mono: 'Courier New', Consolas, Courier, monospace;
+  --font-display: 'Orbitron', 'Courier New', Consolas, monospace;
 }
 
 * {
@@ -21,9 +27,7 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: var(--font-ui);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: var(--background-dark);
@@ -31,8 +35,7 @@ body {
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family: var(--font-mono);
 }
 
 button {
