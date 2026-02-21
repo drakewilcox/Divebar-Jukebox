@@ -156,6 +156,33 @@
   position: relative;
 }
 
+/* Letter ranges: 20 buttons in two halves (A-K left, L-V right), vintage cream */
+.jump-to-bar.jump-to-bar-letters {
+  gap: 0.25rem;
+}
+.jump-to-bar-letters-left,
+.jump-to-bar-letters-right {
+  display: flex;
+  flex: 1;
+  gap: 0.25rem;
+  min-width: 0;
+}
+.jump-to-bar-letters-left {
+  justify-content: flex-end;
+  padding-right: 0.25rem;
+}
+.jump-to-bar-letters-right {
+  justify-content: flex-start;
+  padding-left: 0.25rem;
+}
+.letter-jump-button.jump-to-button {
+  flex: 1;
+  min-width: 0;
+  background: var(--vintage-cream) !important;
+  background-color: var(--vintage-cream) !important;
+  font-weight: 900;
+}
+
 /* Green LCD-style line under the current range button */
 .jump-to-bar-line {
   position: absolute;
@@ -176,7 +203,7 @@
   min-width: 0;
   height: 40px;
   padding: 0 0.25rem;
-  font-size: 1rem;
+  font-size: 1.2rem;
   font-weight: 700;
   font-family: var(--font-display);
   color: #1a1a1a;

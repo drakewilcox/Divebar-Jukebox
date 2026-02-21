@@ -29,6 +29,11 @@ function hexToRgba(hex: string, alpha: number): string {
 
 const SECTION_BUTTON_CREAM = '#f5f0e8';
 
+// Old jukebox letter buttons (I and O skipped - looked like 1 and 0)
+const LETTERS_LEFT = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K'];
+const LETTERS_RIGHT = ['L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'U', 'V'];
+const LETTERS = [...LETTERS_LEFT, ...LETTERS_RIGHT];
+
 function parseHex(hex: string): [number, number, number] | null {
   const m = hex.match(/^#?([0-9a-f]{3}|[0-9a-f]{6})$/i);
   if (!m) return null;
@@ -186,15 +191,27 @@ export default function CardCarousel({ albums, collection, collections, onCollec
       window.removeEventListener('navigation-settings-changed', handleNavSettingsChange as EventListener);
     };
   }, []);
-  
-  // Pad albums array to ensure even number (each card needs 2 albums)
-  const paddedAlbums = React.useMemo(() => {
-    if (albums.length % 2 !== 0) {
-      // Add a null placeholder for odd-numbered collections
-      return [...albums, null as any];
+
+  // Apply sort order: curated = collection order, alphabetical = by artist name then album title
+  const displayAlbums = React.useMemo(() => {
+    if (navSettings.sortOrder === 'alphabetical') {
+      return [...albums].sort((a, b) => {
+        const artistCmp = (a.artist || '').localeCompare(b.artist || '', undefined, { sensitivity: 'base' });
+        if (artistCmp !== 0) return artistCmp;
+        return (a.title || '').localeCompare(b.title || '', undefined, { sensitivity: 'base' });
+      });
     }
     return albums;
-  }, [albums]);
+  }, [albums, navSettings.sortOrder]);
+
+  // Pad albums array to ensure even number (each card needs 2 albums)
+  const paddedAlbums = React.useMemo(() => {
+    if (displayAlbums.length % 2 !== 0) {
+      // Add a null placeholder for odd-numbered collections
+      return [...displayAlbums, null as any];
+    }
+    return displayAlbums;
+  }, [displayAlbums]);
   
   const currentAlbums = paddedAlbums.slice(currentIndex, currentIndex + 4);
   const nextAlbums = paddedAlbums.slice(currentIndex + 2, currentIndex + 6);
@@ -436,21 +453,34 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     if (!collection.sections_enabled || !Array.isArray(collection.sections) || collection.sections.length === 0) return [];
     return [...collection.sections].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   }, [collection.sections_enabled, collection.sections]);
-  const sectionsHaveRanges = sortedSections.length > 0 && sortedSections.every((s) => s.start_slot != null && s.end_slot != null);
+  const sectionsHaveRanges =
+    sortedSections.length > 0 &&
+    sortedSections.every(
+      (s, i) => s.start_slot != null && (s.end_slot != null || i === sortedSections.length - 1)
+    );
   const showBar = navSettings.showJumpToBar;
   const showSectionsBar =
     showBar &&
     navSettings.sortOrder === 'curated' &&
     navSettings.jumpButtonType === 'sections' &&
     sectionsHaveRanges;
-  const showJumpToRangesBar = showBar && !showSectionsBar;
+  const showLetterRangesBar =
+    showBar &&
+    navSettings.sortOrder === 'alphabetical' &&
+    navSettings.jumpButtonType === 'letter-ranges';
+  const showJumpToRangesBar = showBar && !showSectionsBar && !showLetterRangesBar;
   const applySectionColors = navSettings.showColorCoding;
 
-  // Which section contains the given 1-based slot?
+  // Which section contains the given 1-based slot? Last section always extends to current end so new albums are included.
   const getSectionIndexForSlot = (slot: number): number => {
+    const totalSlots = paddedAlbums.length;
     for (let i = 0; i < sortedSections.length; i++) {
       const s = sortedSections[i];
-      if (s.start_slot != null && s.end_slot != null && slot >= s.start_slot && slot <= s.end_slot) return i;
+      const start = s.start_slot;
+      if (start == null) continue;
+      const end =
+        i === sortedSections.length - 1 ? totalSlots : (s.end_slot ?? totalSlots);
+      if (slot >= start && slot <= end) return i;
     }
     return 0;
   };
@@ -464,7 +494,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
   };
 
   // Jump To: 8 buttons, ranges adapt to album count (e.g. 80 albums → 1-10, 11-20, …)
-  const totalAlbums = albums.length;
+  const totalAlbums = displayAlbums.length;
   const jumpRangeSize = totalAlbums <= 0 ? 0 : Math.ceil(totalAlbums / 8);
   const jumpRanges = Array.from({ length: 8 }, (_, i) => {
     const start = i * jumpRangeSize + 1;
@@ -489,8 +519,41 @@ export default function CardCarousel({ albums, collection, collections, onCollec
 
   const slotForLine = (jumpTargetIndex ?? currentIndex) + 1;
   const activeSectionIndex = showSectionsBar ? getSectionIndexForSlot(slotForLine) : 0;
-  const activeButtonIndex = showSectionsBar ? activeSectionIndex : activeLineRangeIndex;
-  const navBarButtonSelector = showSectionsBar ? '.section-button' : '.jump-to-button';
+
+  // Letter ranges: first index where artist starts with each letter (or nearest if none)
+  const letterStartIndices = React.useMemo(() => {
+    const result: number[] = new Array(LETTERS.length);
+    for (let i = LETTERS.length - 1; i >= 0; i--) {
+      const L = LETTERS[i];
+      const idx = displayAlbums.findIndex((a) =>
+        (a.artist || '').toUpperCase().startsWith(L)
+      );
+      if (idx >= 0) result[i] = idx;
+      else result[i] = i < LETTERS.length - 1 ? result[i + 1] : displayAlbums.length;
+    }
+    return result;
+  }, [displayAlbums]);
+
+  const letterIndexForSlot = (slot: number): number => {
+    let idx = 0;
+    for (let i = 0; i < LETTERS.length; i++) {
+      if (letterStartIndices[i] <= slot) idx = i;
+    }
+    return idx;
+  };
+
+  const activeLetterIndex =
+    jumpTargetIndex != null ? letterIndexForSlot(jumpTargetIndex) : letterIndexForSlot(currentIndex);
+  const activeButtonIndex = showSectionsBar
+    ? activeSectionIndex
+    : showLetterRangesBar
+      ? activeLetterIndex
+      : activeLineRangeIndex;
+  const navBarButtonSelector = showSectionsBar
+    ? '.section-button'
+    : showLetterRangesBar
+      ? '.letter-jump-button'
+      : '.jump-to-button';
 
   useLayoutEffect(() => {
     const bar = jumpToBarRef.current;
@@ -522,8 +585,13 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     return () => resizeObserver.disconnect();
   }, [activeButtonIndex, navBarButtonSelector]);
 
+  // Align jump so two-per-column layout is correct: even indices (0,2,4...) top, odd (1,3,5...) bottom.
+  const alignJumpIndex = (startIndex: number) =>
+    startIndex % 2 === 1 ? Math.max(0, startIndex - 1) : startIndex;
+
   const handleJumpTo = (rangeIndex: number) => {
-    const newIndex = Math.max(0, Math.min(rangeIndex * jumpRangeSize, paddedAlbums.length - 4));
+    const rawIndex = rangeIndex * jumpRangeSize;
+    const newIndex = Math.max(0, Math.min(alignJumpIndex(rawIndex), paddedAlbums.length - 4));
     if (newIndex === currentIndex) return;
     setJumpTargetIndex(newIndex);
     setIsSliding(true);
@@ -532,7 +600,32 @@ export default function CardCarousel({ albums, collection, collections, onCollec
   const handleJumpToSection = (sectionIndex: number) => {
     const section = sortedSections[sectionIndex];
     if (!section?.start_slot) return;
-    const newIndex = Math.max(0, section.start_slot - 1);
+    const startIndex0 = section.start_slot - 1;
+    const newIndex = Math.max(0, Math.min(alignJumpIndex(startIndex0), paddedAlbums.length - 4));
+    if (newIndex === currentIndex) return;
+    setJumpTargetIndex(newIndex);
+    setIsSliding(true);
+  };
+
+  // Letter ranges: jump to first artist starting with letter (or nearest if none)
+  const handleJumpToLetter = (letter: string) => {
+    const idx = LETTERS.indexOf(letter);
+    if (idx < 0) return;
+    let rawIndex = displayAlbums.length;
+    for (let i = idx; i < LETTERS.length; i++) {
+      const L = LETTERS[i];
+      const found = displayAlbums.findIndex((a) =>
+        (a.artist || '').toUpperCase().startsWith(L)
+      );
+      if (found >= 0) {
+        rawIndex = found;
+        break;
+      }
+    }
+    const newIndex = Math.max(
+      0,
+      Math.min(alignJumpIndex(rawIndex), paddedAlbums.length - 4)
+    );
     if (newIndex === currentIndex) return;
     setJumpTargetIndex(newIndex);
     setIsSliding(true);
@@ -671,7 +764,10 @@ export default function CardCarousel({ albums, collection, collections, onCollec
 
       {/* Navigation bar: only when Show Jump-To Buttons; Jump-to (ranges) or Sections */}
       {showBar && (
-        <div ref={jumpToBarRef} className="jump-to-bar">
+        <div
+          ref={jumpToBarRef}
+          className={`jump-to-bar ${showLetterRangesBar ? 'jump-to-bar-letters' : ''}`}
+        >
           {showSectionsBar ? (
             sortedSections.map((section, i) => {
               const nameLen = (section.name ?? '').length;
@@ -697,6 +793,37 @@ export default function CardCarousel({ albums, collection, collections, onCollec
                 </button>
               );
             })
+          ) : showLetterRangesBar ? (
+            <>
+              <div className="jump-to-bar-letters-left">
+                {LETTERS_LEFT.map((letter) => (
+                  <button
+                    key={letter}
+                    type="button"
+                    className="jump-to-button letter-jump-button"
+                    onClick={() => handleJumpToLetter(letter)}
+                    disabled={displayAlbums.length === 0}
+                    aria-label={`Jump to artists starting with ${letter}`}
+                  >
+                    {letter}
+                  </button>
+                ))}
+              </div>
+              <div className="jump-to-bar-letters-right">
+                {LETTERS_RIGHT.map((letter) => (
+                  <button
+                    key={letter}
+                    type="button"
+                    className="jump-to-button letter-jump-button"
+                    onClick={() => handleJumpToLetter(letter)}
+                    disabled={displayAlbums.length === 0}
+                    aria-label={`Jump to artists starting with ${letter}`}
+                  >
+                    {letter}
+                  </button>
+                ))}
+              </div>
+            </>
           ) : showJumpToRangesBar ? (
             jumpRanges.map((range, i) => (
               <button
@@ -711,7 +838,9 @@ export default function CardCarousel({ albums, collection, collections, onCollec
               </button>
             ))
           ) : null}
-          {((showSectionsBar && sortedSections.length > 0) || (showJumpToRangesBar && totalAlbums > 0)) && (
+          {((showSectionsBar && sortedSections.length > 0) ||
+            (showLetterRangesBar && displayAlbums.length > 0) ||
+            (showJumpToRangesBar && totalAlbums > 0)) && (
             <div
               className="jump-to-bar-line"
               style={{
@@ -1012,7 +1141,7 @@ function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, qu
       >
         <div className="vintage-card-header">
           <div className="header-left">
-            <div className="header-label">TRACK NO.</div>
+            <div className="header-label">TRACK</div>
             {/* <div className="header-subtext">NEXT 2 #s</div> */}
             <div className="triangle-down">▼</div>
           </div>
@@ -1023,7 +1152,7 @@ function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, qu
           
           <div className="header-right">
             <div className="triangle-left">◀</div>
-            <div className="header-label">DISC NO.</div>
+            <div className="header-label">DISC</div>
             {/* <div className="header-subtext">FIRST 3 DIG.</div> */}
           </div>
         </div>
