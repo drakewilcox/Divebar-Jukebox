@@ -524,8 +524,39 @@ export default function CardCarousel({ albums, collection, collections, onCollec
           ? prevRangeIndex
           : currentRangeIndex;
 
-  const slotForLine = (jumpTargetIndex ?? currentIndex) + 1;
-  const activeSectionIndex = showSectionsBar ? getSectionIndexForSlot(slotForLine) : 0;
+  // Sections bar line: show the section most represented by the 4 visible cards (not just the first card)
+  const activeSectionIndex = React.useMemo(() => {
+    if (!showSectionsBar || sortedSections.length === 0) return 0;
+    const start = jumpTargetIndex ?? currentIndex;
+    const totalSlots = paddedAlbums.length;
+    const sectionForSlot = (slot1Based: number): number => {
+      for (let i = 0; i < sortedSections.length; i++) {
+        const s = sortedSections[i];
+        const startSlot = s.start_slot;
+        if (startSlot == null) continue;
+        const end =
+          i === sortedSections.length - 1 ? totalSlots : (s.end_slot ?? totalSlots);
+        if (slot1Based >= startSlot && slot1Based <= end) return i;
+      }
+      return 0;
+    };
+    const counts = new Array(sortedSections.length).fill(0);
+    for (let offset = 0; offset < 4; offset++) {
+      const slot1Based = start + offset + 1;
+      counts[sectionForSlot(slot1Based)]++;
+    }
+    let maxCount = 0;
+    let bestIdx = sectionForSlot(start + 1);
+    for (let i = 0; i < sortedSections.length; i++) {
+      if (counts[i] > maxCount) {
+        maxCount = counts[i];
+        bestIdx = i;
+      } else if (counts[i] === maxCount && maxCount > 0 && sectionForSlot(start + 1) === i) {
+        bestIdx = i;
+      }
+    }
+    return bestIdx;
+  }, [showSectionsBar, sortedSections, jumpTargetIndex, currentIndex, paddedAlbums.length]);
 
   // Letter ranges: first index where artist starts with each letter (or nearest if none)
   const letterStartIndices = React.useMemo(() => {
@@ -541,16 +572,38 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     return result;
   }, [displayAlbums]);
 
-  const letterIndexForSlot = (slot: number): number => {
-    let idx = 0;
-    for (let i = 0; i < LETTERS.length; i++) {
-      if (letterStartIndices[i] <= slot) idx = i;
+  // Letter bar line: show the letter most represented by the 4 visible cards (not just the first card)
+  const activeLetterIndex = React.useMemo(() => {
+    const start = jumpTargetIndex ?? currentIndex;
+    const visible = paddedAlbums.slice(start, start + 4).filter(Boolean) as Album[];
+    if (visible.length === 0) return 0;
+    const counts = new Array(LETTERS.length).fill(0);
+    for (const album of visible) {
+      const first = (album.artist || '').toUpperCase().charAt(0);
+      for (let i = 0; i < LETTERS.length; i++) {
+        if (LETTERS[i] === first) {
+          counts[i]++;
+          break;
+        }
+      }
+      if (first === 'I') counts[LETTERS.indexOf('J')]++;
+      else if (first === 'O') counts[LETTERS.indexOf('P')]++;
     }
-    return idx;
-  };
-
-  const activeLetterIndex =
-    jumpTargetIndex != null ? letterIndexForSlot(jumpTargetIndex) : letterIndexForSlot(currentIndex);
+    let maxCount = 0;
+    let bestIdx = 0;
+    for (let i = 0; i < LETTERS.length; i++) {
+      if (letterStartIndices[i] <= start) bestIdx = i;
+    }
+    for (let i = 0; i < LETTERS.length; i++) {
+      if (counts[i] > maxCount) {
+        maxCount = counts[i];
+        bestIdx = i;
+      } else if (counts[i] === maxCount && maxCount > 0 && letterStartIndices[i] <= start) {
+        bestIdx = i;
+      }
+    }
+    return bestIdx;
+  }, [jumpTargetIndex, currentIndex, paddedAlbums, letterStartIndices]);
   const activeButtonIndex = showSectionsBar
     ? activeSectionIndex
     : showLetterRangesBar
