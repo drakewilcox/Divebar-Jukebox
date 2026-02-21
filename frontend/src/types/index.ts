@@ -5,7 +5,7 @@ export interface CollectionSection {
   name: string;
   color: string;
   start_slot?: number;  // 1-based first slot in this section
-  end_slot?: number;   // 1-based last slot in this section
+  end_slot?: number;   // 1-based last slot; omit for last section = "to end" (new albums included)
 }
 
 export interface Collection {
@@ -79,6 +79,8 @@ export interface PlaybackState {
     album_year: number | null;
     cover_art_path: string | null;
     selection_display: string | null;
+    /** ReplayGain in dB (e.g. -5.23); null if not present. Applied to normalize loudness. */
+    replaygain_track_gain: number | null;
   } | null;
 }
 

@@ -77,6 +77,16 @@ def get_playback_state(collection: str = Query(..., description="Collection slug
                 sel = collection_service.get_selection_for_track(state.collection_id, track.id)
                 if sel:
                     selection_display = f"{sel[0]:03d}-{sel[1]:02d}"
+            # ReplayGain: normalize loudness; prefer track gain, fallback to album gain
+            extra = track.extra_metadata or {}
+            replaygain_track_gain = extra.get("replaygain_track_gain")
+            replaygain_album_gain = extra.get("replaygain_album_gain")
+            replaygain_db = None
+            if replaygain_track_gain is not None:
+                replaygain_db = float(replaygain_track_gain)
+            elif replaygain_album_gain is not None:
+                replaygain_db = float(replaygain_album_gain)
+
             current_track_info = {
                 "id": track.id,
                 "title": track.title,
@@ -87,6 +97,7 @@ def get_playback_state(collection: str = Query(..., description="Collection slug
                 "album_year": album.year,
                 "cover_art_path": cover,
                 "selection_display": selection_display,
+                "replaygain_track_gain": replaygain_db,
             }
     
     return {

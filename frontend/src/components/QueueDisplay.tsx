@@ -53,7 +53,9 @@ export default function QueueDisplay({ collection, onQueueCleared }: Props) {
   useEffect(() => {
     if (playbackState?.current_track_id) {
       setCurrentPositionMs(0);
-      audioService.loadTrack(playbackState.current_track_id);
+      const replaygain =
+        playbackState.current_track?.replaygain_track_gain ?? undefined;
+      audioService.loadTrack(playbackState.current_track_id, replaygain);
       if (playbackState.is_playing) {
         audioService.play();
       }

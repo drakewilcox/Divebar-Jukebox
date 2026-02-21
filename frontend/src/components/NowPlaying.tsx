@@ -59,7 +59,9 @@ export default function NowPlaying({ collection }: Props) {
   // Load track when current track changes
   useEffect(() => {
     if (playbackState?.current_track_id) {
-      audioService.loadTrack(playbackState.current_track_id);
+      const replaygain =
+        playbackState.current_track?.replaygain_track_gain ?? undefined;
+      audioService.loadTrack(playbackState.current_track_id, replaygain);
       setCurrentPositionMs(0); // Reset position for new track
       if (playbackState.is_playing) {
         audioService.play();

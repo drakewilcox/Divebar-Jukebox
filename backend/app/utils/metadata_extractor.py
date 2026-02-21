@@ -216,7 +216,40 @@ class MetadataExtractor:
             
             # Duration in milliseconds
             duration_ms = int(audio.info.length * 1000) if audio.info else 0
-            
+
+            # ReplayGain: normalize playback loudness (e.g. "-5.23 dB" or "-2.09")
+            def parse_replaygain(val):
+                if val is None:
+                    return None
+                s = str(val).strip().upper().rstrip('DB').strip()
+                try:
+                    return float(s)
+                except (ValueError, TypeError):
+                    return None
+
+            replaygain_track_db = None
+            replaygain_album_db = None
+            if 'REPLAYGAIN_TRACK_GAIN' in audio:
+                try:
+                    replaygain_track_db = parse_replaygain(audio['REPLAYGAIN_TRACK_GAIN'][0])
+                except (ValueError, IndexError, TypeError):
+                    pass
+            if 'REPLAYGAIN_ALBUM_GAIN' in audio:
+                try:
+                    replaygain_album_db = parse_replaygain(audio['REPLAYGAIN_ALBUM_GAIN'][0])
+                except (ValueError, IndexError, TypeError):
+                    pass
+
+            extra = {
+                'bitrate': audio.info.bitrate if audio.info else 0,
+                'sample_rate': audio.info.sample_rate if audio.info else 0,
+                'channels': audio.info.channels if audio.info else 0,
+            }
+            if replaygain_track_db is not None:
+                extra['replaygain_track_gain'] = replaygain_track_db
+            if replaygain_album_db is not None:
+                extra['replaygain_album_gain'] = replaygain_album_db
+
             return {
                 'file_path': relative_file_path,
                 'disc_number': disc_number,
@@ -224,11 +257,7 @@ class MetadataExtractor:
                 'title': title,
                 'artist': artist,
                 'duration_ms': duration_ms,
-                'extra_metadata': {
-                    'bitrate': audio.info.bitrate if audio.info else 0,
-                    'sample_rate': audio.info.sample_rate if audio.info else 0,
-                    'channels': audio.info.channels if audio.info else 0,
-                }
+                'extra_metadata': extra,
             }
         except Exception as e:
             logger.error(f"Error extracting track metadata from {track_path}: {e}")

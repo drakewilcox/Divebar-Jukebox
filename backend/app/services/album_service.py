@@ -126,14 +126,38 @@ class AlbumService:
     def _refresh_file_metadata(self, album: Album, album_data: dict) -> None:
         """
         Update only file-sourced metadata on an existing album (e.g. genre in extra_metadata).
-        Does not change title, artist, year, tracks, or other user-editable data.
+        Also refreshes ReplayGain on existing tracks. Does not change title, artist, year,
+        tracks, or other user-editable data.
         """
+        # Album-level: genre, disc_count
         file_extra = album_data.get('extra_metadata') or {}
         existing_extra = dict(album.extra_metadata or {})
         for key in ('genre', 'disc_count'):
             if key in file_extra:
                 existing_extra[key] = file_extra[key]
         album.extra_metadata = existing_extra
+
+        # Track-level: ReplayGain only (replaygain_track_gain, replaygain_album_gain)
+        self._refresh_track_replaygain(album, album_data)
+
+    def _refresh_track_replaygain(self, album: Album, album_data: dict) -> None:
+        """
+        Update ReplayGain in extra_metadata for existing tracks. Matches by file_path.
+        Only merges replaygain_track_gain and replaygain_album_gain; nothing else is changed.
+        """
+        scanned_tracks = {t['file_path']: t for t in album_data.get('tracks', [])}
+        existing_tracks = self.db.query(Track).filter(Track.album_id == album.id).all()
+
+        for track in existing_tracks:
+            scanned = scanned_tracks.get(track.file_path)
+            if not scanned:
+                continue
+            extra = scanned.get('extra_metadata') or {}
+            existing = dict(track.extra_metadata or {})
+            for key in ('replaygain_track_gain', 'replaygain_album_gain'):
+                if key in extra:
+                    existing[key] = extra[key]
+            track.extra_metadata = existing
     
     def _update_album_from_data(self, album: Album, album_data: dict) -> Album:
         """
