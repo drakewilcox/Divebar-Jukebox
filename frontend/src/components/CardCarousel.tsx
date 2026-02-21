@@ -294,6 +294,22 @@ export default function CardCarousel({ albums, collection, collections, onCollec
       setTimeout(() => setFeedback(''), 2000);
     },
   });
+
+  const addFavoritesRandomMutation = useMutation({
+    mutationFn: async () => {
+      const response = await queueApi.addFavoritesRandom(collection.slug, 10);
+      return response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['queue', collection.slug] });
+      setFeedback(data?.message ?? `Added ${data?.added ?? 0} favorites`);
+      setTimeout(() => setFeedback(''), 3000);
+    },
+    onError: () => {
+      setFeedback('Could not add favorites');
+      setTimeout(() => setFeedback(''), 2000);
+    },
+  });
   
   const handleAddToQueue = () => {
     if (numberInput.length !== 5) {
@@ -967,7 +983,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
                 <LCDKeypad
                   onDigit={(d) => setNumberInput((prev) => (prev.length < 5 ? prev + d : prev))}
                   onClear={() => setNumberInput('')}
-                  onHit={() => {}}
+                  onHit={() => addFavoritesRandomMutation.mutate()}
                 />
               )}
             </div>

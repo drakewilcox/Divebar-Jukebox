@@ -54,6 +54,11 @@ export const queueApi = {
     api.delete('/queue', { params: { collection } }),
   reorder: (collection: string, queue_ids: string[]) =>
     api.put('/queue/order', { queue_ids }, { params: { collection } }),
+  addFavoritesRandom: (collection: string, count: number = 10) =>
+    api.post<{ message: string; added: number }>('/queue/add-favorites-random', {
+      collection,
+      count,
+    }),
 };
 
 // Playback API
