@@ -306,6 +306,7 @@ class CollectionService:
                         'title': track.title,
                         'artist': track.artist,
                         'duration_ms': track.duration_ms,
+                        'is_favorite': track.is_favorite,
                     }
                     for track in tracks
                 ]

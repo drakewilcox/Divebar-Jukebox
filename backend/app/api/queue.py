@@ -1,4 +1,5 @@
 """Queue API endpoints"""
+import random
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List
@@ -40,6 +41,11 @@ class AddToQueueRequest(BaseModel):
 
 class ReorderQueueRequest(BaseModel):
     queue_ids: List[str]  # Queue item IDs in desired order (including currently playing)
+
+
+class AddFavoritesRandomRequest(BaseModel):
+    collection: str
+    count: int = 10  # Number of random favorite tracks to add
 
 
 @router.get("", response_model=List[QueueItemResponse])
@@ -185,6 +191,54 @@ def add_to_queue(request: AddToQueueRequest, db: Session = Depends(get_db)):
     if not queue_item:
         return {"message": "Already in queue", "already_queued": True}
     return {"message": "Track added to queue", "queue_id": queue_item.id}
+
+
+@router.post("/add-favorites-random")
+def add_favorites_random(request: AddFavoritesRandomRequest, db: Session = Depends(get_db)):
+    """Add up to `count` random favorite tracks from the collection to the queue, avoiding duplicates."""
+    collection_service = CollectionService(db)
+    queue_service = QueueService(db)
+    album_service = AlbumService(db)
+    track_service = TrackService(db)
+    count = max(1, min(request.count, 100))
+
+    all_collection_id = "00000000-0000-0000-0000-000000000000"
+
+    if request.collection == "all":
+        all_albums = album_service.get_all_albums(limit=10000)
+        favorite_track_ids = []
+        for album in all_albums:
+            tracks = track_service.get_tracks_by_album(album.id)
+            favorite_track_ids.extend(t.id for t in tracks if t.is_favorite)
+        collection_id_for_queue = all_collection_id
+    else:
+        collection_obj = collection_service.get_collection_by_slug(request.collection)
+        if not collection_obj:
+            raise HTTPException(status_code=404, detail=f"Collection '{request.collection}' not found")
+        albums = collection_service.get_collection_albums(collection_obj.id, include_tracks=True)
+        favorite_track_ids = []
+        for album in albums:
+            for t in album.get("tracks", []):
+                if t.get("is_favorite"):
+                    favorite_track_ids.append(t["id"])
+        collection_id_for_queue = collection_obj.id
+
+    queue_items = queue_service.get_queue(collection_id_for_queue, include_played=False)
+    queued_track_ids = {item.track_id for item in queue_items}
+    available = [tid for tid in favorite_track_ids if tid not in queued_track_ids]
+    random.shuffle(available)
+    to_add = available[:count]
+    added = 0
+    for track_id in to_add:
+        if queue_service.add_to_queue(collection_id_for_queue, track_id):
+            added += 1
+
+    message = f"Added {added} favorite track{'s' if added != 1 else ''} to the queue."
+    if added < count and len(available) < count and len(favorite_track_ids) < count:
+        message = f"Only {len(favorite_track_ids)} favorite(s) in collection; added {added}."
+    elif added < count and len(available) < count:
+        message = f"No more favorites available (already in queue). Added {added}."
+    return {"message": message, "added": added}
 
 
 @router.put("/order")
