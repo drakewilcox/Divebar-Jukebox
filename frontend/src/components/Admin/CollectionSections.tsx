@@ -29,12 +29,17 @@ function defaultSections(): CollectionSection[] {
   ];
 }
 
-function defaultRanges(albumCount: number, sectionCount: number): { start_slot: number; end_slot: number }[] {
+/** Last section has end_slot undefined = "to end" so new albums are automatically in that section. */
+function defaultRanges(
+  albumCount: number,
+  sectionCount: number
+): { start_slot: number; end_slot?: number }[] {
   if (albumCount <= 0 || sectionCount <= 0) return [];
-  const ranges: { start_slot: number; end_slot: number }[] = [];
+  const ranges: { start_slot: number; end_slot?: number }[] = [];
   for (let i = 0; i < sectionCount; i++) {
     const start = Math.floor((i * albumCount) / sectionCount) + 1;
-    const end = Math.floor(((i + 1) * albumCount) / sectionCount);
+    const isLast = i === sectionCount - 1;
+    const end = isLast ? undefined : Math.floor(((i + 1) * albumCount) / sectionCount);
     ranges.push({ start_slot: start, end_slot: end });
   }
   return ranges;
@@ -80,10 +85,12 @@ export default function CollectionSections({ collection, albums = [] }: Props) {
     }
   }, [collection?.id, collection?.sections_enabled, collection?.sections]);
 
-  // When sections are enabled and we have albums but no ranges, fill default ranges
+  // When sections are enabled and we have albums but no ranges, fill default ranges (last section = to end)
   useEffect(() => {
     if (!sectionsEnabled || albumCount === 0 || sections.length === 0) return;
-    const hasRanges = sortedSections.every((s) => s.start_slot != null && s.end_slot != null);
+    const hasRanges = sortedSections.every(
+      (s, i) => s.start_slot != null && (s.end_slot != null || i === sortedSections.length - 1)
+    );
     if (hasRanges) return;
     const ranges = defaultRanges(albumCount, sections.length);
     setSections((prev) =>
@@ -91,7 +98,7 @@ export default function CollectionSections({ collection, albums = [] }: Props) {
         ...s,
         order: i,
         start_slot: ranges[i]?.start_slot ?? 1,
-        end_slot: ranges[i]?.end_slot ?? albumCount,
+        end_slot: ranges[i]?.end_slot ?? (i === prev.length - 1 ? undefined : albumCount),
       }))
     );
   }, [sectionsEnabled, albumCount, sections.length]); // intentional: run when album count or section count changes
@@ -139,7 +146,7 @@ export default function CollectionSections({ collection, albums = [] }: Props) {
           ...s,
           order: i,
           start_slot: nextRanges[i]?.start_slot ?? 1,
-          end_slot: nextRanges[i]?.end_slot ?? albumCount,
+          end_slot: nextRanges[i]?.end_slot ?? (i === next.length - 1 ? undefined : albumCount),
         }))
       );
     } else {
@@ -157,7 +164,7 @@ export default function CollectionSections({ collection, albums = [] }: Props) {
         next.map((s, i) => ({
           ...s,
           start_slot: nextRanges[i]?.start_slot ?? 1,
-          end_slot: nextRanges[i]?.end_slot ?? albumCount,
+          end_slot: nextRanges[i]?.end_slot ?? (i === next.length - 1 ? undefined : albumCount),
         }))
       );
     } else {
@@ -180,7 +187,9 @@ export default function CollectionSections({ collection, albums = [] }: Props) {
       for (let i = 0; i < sortedSections.length; i++) {
         const s = sortedSections[i];
         const start = s.start_slot ?? 1;
-        const end = s.end_slot ?? albumCount;
+        // Last section always extends to current album count so new albums are included
+        const end =
+          i === sortedSections.length - 1 ? albumCount : (s.end_slot ?? albumCount);
         if (slot >= start && slot <= end) return i;
       }
       return 0;
@@ -194,7 +203,8 @@ export default function CollectionSections({ collection, albums = [] }: Props) {
       const s1 = sortedSections[sectionIndex + 1];
       if (!s0 || !s1) return;
       const minEnd = s0.start_slot ?? 1;
-      const maxEnd = (s1.end_slot ?? albumCount) - 1;
+      const s1End = s1.end_slot ?? albumCount; // last section may have end_slot undefined
+      const maxEnd = s1End - 1;
       const clamped = Math.min(Math.max(newEndSlot, minEnd), maxEnd);
       setSections((prev) =>
         prev.map((s, i) => {
@@ -253,7 +263,9 @@ export default function CollectionSections({ collection, albums = [] }: Props) {
 
   const canAdd = sections.length < MAX_SECTIONS;
   const canRemove = sections.length > MIN_SECTIONS;
-  const hasRanges = sortedSections.every((s) => s.start_slot != null && s.end_slot != null);
+  const hasRanges = sortedSections.every(
+    (s, i) => s.start_slot != null && (s.end_slot != null || i === sortedSections.length - 1)
+  );
   const hasChanges =
     collection.sections_enabled !== sectionsEnabled ||
     (sectionsEnabled && JSON.stringify(collection.sections ?? []) !== JSON.stringify(sections));
@@ -371,8 +383,13 @@ export default function CollectionSections({ collection, albums = [] }: Props) {
                       const section = sortedSections[sectionIndex];
                       const isFirstInSection =
                         section && (section.start_slot ?? 1) === slot;
+                      // Last section always extends to current album count so new albums are included
+                      const effectiveEnd =
+                        sectionIndex === sortedSections.length - 1
+                          ? albumCount
+                          : (section?.end_slot ?? albumCount);
                       const rowSpan = section
-                        ? (section.end_slot ?? slot) - (section.start_slot ?? slot) + 1
+                        ? effectiveEnd - (section.start_slot ?? slot) + 1
                         : 1;
                       const showDivider =
                         sectionIndex < sortedSections.length - 1 &&

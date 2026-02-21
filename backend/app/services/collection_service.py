@@ -122,21 +122,44 @@ class CollectionService:
                 if order in seen_orders:
                     raise ValueError("Section order must be unique")
                 seen_orders.add(order)
-            # Validate ranges if present: must be contiguous 1-based, no gaps
-            has_ranges = all(isinstance(s, dict) and s.get("start_slot") is not None and s.get("end_slot") is not None for s in sections)
-            if has_ranges:
+            # Validate ranges if present: contiguous 1-based; last section may have end_slot omitted ("to end")
+            def has_ranges(sections_list):
+                if not sections_list:
+                    return False
+                sorted_sec = sorted(sections_list, key=lambda s: s.get("order", 0))
+                for i, s in enumerate(sorted_sec):
+                    if not isinstance(s, dict) or s.get("start_slot") is None:
+                        return False
+                    if i < len(sorted_sec) - 1 and s.get("end_slot") is None:
+                        return False  # non-last section must have end_slot
+                return True
+
+            if has_ranges(sections):
                 sorted_by_order = sorted(sections, key=lambda s: s.get("order", 0))
                 for i, sec in enumerate(sorted_by_order):
                     start_slot = sec.get("start_slot")
                     end_slot = sec.get("end_slot")
-                    if start_slot < 1 or end_slot < 1:
-                        raise ValueError("Section start_slot and end_slot must be >= 1")
-                    if start_slot > end_slot:
-                        raise ValueError("Section start_slot must be <= end_slot")
+                    if start_slot is None or start_slot < 1:
+                        raise ValueError("Section start_slot must be >= 1")
+                    is_last = i == len(sorted_by_order) - 1
+                    if is_last:
+                        # Last section: end_slot may be None (open-ended so new albums are included)
+                        if end_slot is not None and end_slot < 1:
+                            raise ValueError("Section end_slot must be >= 1 when set")
+                        if end_slot is not None and start_slot > end_slot:
+                            raise ValueError("Section start_slot must be <= end_slot when end_slot is set")
+                    else:
+                        if end_slot is None or end_slot < 1:
+                            raise ValueError("Non-last section end_slot must be >= 1")
+                        if start_slot > end_slot:
+                            raise ValueError("Section start_slot must be <= end_slot")
                     if i == 0 and start_slot != 1:
                         raise ValueError("First section must start at slot 1")
                     if i > 0:
                         prev_end = sorted_by_order[i - 1].get("end_slot")
+                        prev_start = sorted_by_order[i - 1].get("start_slot")
+                        if prev_end is None:
+                            raise ValueError("Only the last section may have end_slot omitted")
                         if start_slot != prev_end + 1:
                             raise ValueError("Section ranges must be contiguous (no gaps)")
             collection.sections = sections
