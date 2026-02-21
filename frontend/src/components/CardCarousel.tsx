@@ -301,9 +301,13 @@ export default function CardCarousel({ albums, collection, collections, onCollec
       setTimeout(() => setFeedback(''), 2000);
       return;
     }
-    const albumNumber = parseInt(numberInput.slice(0, 3), 10);
+    const positionOrDisplay = parseInt(numberInput.slice(0, 3), 10);
     const trackNumber = parseInt(numberInput.slice(3), 10);
-    addToQueueMutation.mutate({ albumNumber, trackNumber });
+    const apiAlbumNumber =
+      navSettings.sortOrder === 'alphabetical'
+        ? (displayAlbums[positionOrDisplay - 1]?.display_number ?? positionOrDisplay)
+        : positionOrDisplay;
+    addToQueueMutation.mutate({ albumNumber: apiAlbumNumber, trackNumber });
   };
   handleAddToQueueRef.current = handleAddToQueue;
   
@@ -428,11 +432,14 @@ export default function CardCarousel({ albums, collection, collections, onCollec
   useEffect(() => {
     if (numberInput.length !== 5 || numberInput === lastSubmittedRef.current) return;
     lastSubmittedRef.current = numberInput;
-    addToQueueMutation.mutate({
-      albumNumber: parseInt(numberInput.slice(0, 3), 10),
-      trackNumber: parseInt(numberInput.slice(3), 10),
-    });
-  }, [numberInput, addToQueueMutation]);
+    const positionOrDisplay = parseInt(numberInput.slice(0, 3), 10);
+    const trackNumber = parseInt(numberInput.slice(3), 10);
+    const apiAlbumNumber =
+      navSettings.sortOrder === 'alphabetical'
+        ? (displayAlbums[positionOrDisplay - 1]?.display_number ?? positionOrDisplay)
+        : positionOrDisplay;
+    addToQueueMutation.mutate({ albumNumber: apiAlbumNumber, trackNumber });
+  }, [numberInput, addToQueueMutation, navSettings.sortOrder, displayAlbums]);
 
   // After adding to queue: show numbers, flash twice, then clear
   useEffect(() => {
@@ -646,8 +653,12 @@ export default function CardCarousel({ albums, collection, collections, onCollec
   const targetRightCard = jumpTargetIndex != null ? paddedAlbums.slice(jumpTargetIndex + 2, jumpTargetIndex + 4) : [];
   const jumpSlideLeft = jumpTargetIndex != null && jumpTargetIndex > currentIndex;
 
-  const renderAlbumRow = (album: Album | null, keyPrefix: string, idx: number, slotIndex: number) =>
-    album ? (
+  const renderAlbumRow = (album: Album | null, keyPrefix: string, idx: number, slotIndex: number) => {
+    const cardDisplayNumber =
+      album && navSettings.sortOrder === 'alphabetical'
+        ? slotIndex + 1
+        : (album?.display_number ?? 0);
+    return album ? (
       <AlbumRow
         key={album.id}
         album={album}
@@ -657,10 +668,12 @@ export default function CardCarousel({ albums, collection, collections, onCollec
         currentTrackId={currentTrackId}
         queueTrackIds={queueTrackIds}
         sectionBackgroundColor={getSectionBackgroundForSlot(slotIndex + 1)}
+        cardDisplayNumber={cardDisplayNumber}
       />
     ) : (
       <div key={`${keyPrefix}-${idx}`} className="album-row album-row-empty"></div>
     );
+  };
 
   return (
     <div className="card-carousel">
@@ -1006,9 +1019,11 @@ interface AlbumRowProps {
   currentTrackId: string | null;
   queueTrackIds: string[];
   sectionBackgroundColor?: string;
+  /** Number shown in card-number-box: position (1-based) when alphabetical, display_number when curated */
+  cardDisplayNumber: number;
 }
 
-function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, queueTrackIds, sectionBackgroundColor }: AlbumRowProps) {
+function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, queueTrackIds, sectionBackgroundColor, cardDisplayNumber }: AlbumRowProps) {
   const [isHovered, setIsHovered] = useState(false);
   const tracksContainerRef = useRef<HTMLDivElement>(null);
   
@@ -1096,9 +1111,9 @@ function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, qu
     }
     
   }, [albumDetails?.tracks]);
-  
-  const displayNumber = String(album.display_number || 0).padStart(3, '0');
-  
+
+  const displayNumber = String(cardDisplayNumber || 0).padStart(3, '0');
+
   return (
     <div className="album-row">
       <div 
