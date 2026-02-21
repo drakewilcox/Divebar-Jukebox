@@ -106,14 +106,15 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 
 ### Admin Features
 - [ ] Add ability to add and save custom artwork to an album in edit modal
-- [ ] Add ability to filter by active in collection list
-- [ ] Add functionality for searching collection and library to Admin View
+- [x] Add ability to filter by active in collection list
+- [x] Add functionality for searching collection and library to Admin View
 - [x] Add ability to preview individual tracks in edit modal. 
 - [ ] Add authorization to admin features
-- [ ] Add track duration to Edit Modal
+- [x] Add track duration to Edit Modal
+- [ ] Add an archive track button in addition to Hide. Hide means it is hidden from display, but will still play during Full Album Play. Archive means it will not play or display.
 
 ### Database Updates
-- [ ] Add Architecture for Collection Sections
+- [x] Add Architecture for Collection Sections
 
 ### Sorting & Organization
 - [x] Create solution for custom sorting of albums within collections
@@ -143,11 +144,11 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [x] Implement variable spacing and text sizing for track names to fill the area better
 - [x] Improve dynamic display sizing, and account for browser header
 - [ ] Add Year to Album info card
-- [ ] Add Selection Number (ie. "002-03") to Jukebox playblack display
-- [ ] Add descriptions underneath number input for what each number means 
+- [x] Add Selection Number (ie. "002-03") to Jukebox playblack display
+- [x] Add descriptions underneath number input for what each number means 
 - [ ] Enhance carousel slider animations for smoother transitions
-- [ ] add a speaker icon for currently playing track in track info card
-- [ ] add an icon to represent that a song is already in the queue (maybe prevent duplicates)
+- [x] add a speaker icon for currently playing track in track info card
+- [x] add an icon to represent that a song is already in the queue (maybe prevent duplicates)
 - [ ] Update Card Sliders to make them look like "Card Holders" seen on NSM Jukeboxes
 
 ### UI Features
@@ -176,12 +177,12 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [x] Collection management
 - [x] Basic jukebox UI
 - [x] Local playback
-- [ ] Custom Sort Functionality
+- [x] Custom Sort Functionality
 
 ### Phase 2: Enhanced Features
 - [x] Admin interface
 - [x] Advanced collection management
-- [ ] Search and filtering and Sorting
+- [x] Search and filtering and Sorting
 
 ### Phase 3: Raspberry Pi
 - [ ] GPIO hardware controls
