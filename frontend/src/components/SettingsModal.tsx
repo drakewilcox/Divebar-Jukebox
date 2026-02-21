@@ -275,7 +275,7 @@ export default function SettingsModal({
                 </label>
               </div>
               <p className="help-text">
-                Curated uses the collection&apos;s custom order. Alphabetical sorts by album title (coming soon).
+                Curated uses the collection&apos;s custom order. Alphabetical sorts by artist name.
               </p>
             </div>
           </div>
