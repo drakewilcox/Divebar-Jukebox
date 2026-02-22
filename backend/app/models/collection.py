@@ -1,5 +1,5 @@
 """Collection model"""
-from sqlalchemy import Column, String, Boolean, DateTime
+from sqlalchemy import Column, String, Boolean, Integer, DateTime
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from sqlalchemy.types import JSON
@@ -28,6 +28,7 @@ class Collection(Base):
     default_jump_button_type = Column(String, nullable=True)  # 'letter-ranges' | 'number-ranges' | 'sections'
     default_show_color_coding = Column(Boolean, nullable=True)
     default_edit_mode = Column(Boolean, nullable=True)
+    default_crossfade_seconds = Column(Integer, nullable=True)  # 0-12, null = use 0
     created_at = Column(DateTime, default=datetime.utcnow, server_default=func.now())
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, server_default=func.now())
     

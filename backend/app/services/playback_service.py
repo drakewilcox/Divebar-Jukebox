@@ -1,11 +1,13 @@
 """Playback service for managing playback state"""
 from sqlalchemy.orm import Session
-from typing import Optional
+from typing import Optional, Tuple
 import logging
 
 from app.models.playback_state import PlaybackState
 from app.models.queue import Queue, QueueStatus
+from app.models.track import Track
 from app.services.queue_service import QueueService
+from app.services.track_service import TrackService
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +24,50 @@ class PlaybackService:
         """
         self.db = db
         self.queue_service = QueueService(db)
+        self.track_service = TrackService(db)
+
+    def get_next_transition(self, collection_id: str) -> Tuple[Optional[str], Optional[float], bool]:
+        """
+        Get next track id, its replaygain db, and whether to apply crossfade.
+        apply_crossfade is False only when the next track is the literal next track
+        on the same album (consecutive album play).
+        """
+        state = self.get_playback_state(collection_id)
+        next_queue = self.queue_service.get_next_track(collection_id)
+        if not next_queue or not next_queue.track_id:
+            return None, None, False
+        next_track = self.track_service.get_track_by_id(next_queue.track_id)
+        if not next_track:
+            return next_queue.track_id, None, True
+        next_replaygain = None
+        if next_track.extra_metadata:
+            tg = next_track.extra_metadata.get("replaygain_track_gain")
+            ag = next_track.extra_metadata.get("replaygain_album_gain")
+            if tg is not None:
+                next_replaygain = float(tg)
+            elif ag is not None:
+                next_replaygain = float(ag)
+        if not state or not state.current_track_id:
+            return next_queue.track_id, next_replaygain, True
+        current_track = self.track_service.get_track_by_id(state.current_track_id)
+        if not current_track or not current_track.album_id:
+            return next_queue.track_id, next_replaygain, True
+        if current_track.album_id != next_track.album_id:
+            return next_queue.track_id, next_replaygain, True
+        album_tracks = self.track_service.get_tracks_by_album(current_track.album_id)
+        current_index = None
+        for i, t in enumerate(album_tracks):
+            if t.id == current_track.id:
+                current_index = i
+                break
+        if current_index is None:
+            return next_queue.track_id, next_replaygain, True
+        next_index = current_index + 1
+        if next_index >= len(album_tracks):
+            return next_queue.track_id, next_replaygain, True
+        if album_tracks[next_index].id != next_track.id:
+            return next_queue.track_id, next_replaygain, True
+        return next_queue.track_id, next_replaygain, False
     
     def get_playback_state(self, collection_id: str) -> Optional[PlaybackState]:
         """

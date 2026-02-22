@@ -224,6 +224,32 @@ def set_volume(request: SetVolumeRequest, db: Session = Depends(get_db)):
     return {"message": "Volume updated", "volume": state.volume if state else 70}
 
 
+class NextTransitionResponse(BaseModel):
+    next_track_id: str | None
+    next_replaygain_db: float | None
+    apply_crossfade: bool
+
+
+@router.get("/next-transition", response_model=NextTransitionResponse)
+def get_next_transition(collection: str = Query(..., description="Collection slug"), db: Session = Depends(get_db)):
+    """Get next track id, replaygain, and whether to apply crossfade (false when next is consecutive on same album)."""
+    playback_service = PlaybackService(db)
+    collection_service = CollectionService(db)
+    if collection == "all":
+        collection_id = "00000000-0000-0000-0000-000000000000"
+    else:
+        collection_obj = collection_service.get_collection_by_slug(collection)
+        if not collection_obj:
+            raise HTTPException(status_code=404, detail=f"Collection '{collection}' not found")
+        collection_id = collection_obj.id
+    next_id, replaygain, apply_crossfade = playback_service.get_next_transition(collection_id)
+    return NextTransitionResponse(
+        next_track_id=next_id,
+        next_replaygain_db=replaygain,
+        apply_crossfade=apply_crossfade,
+    )
+
+
 @router.get("/stream/{track_id}")
 def stream_track(track_id: str, db: Session = Depends(get_db)):
     """Stream a FLAC file"""

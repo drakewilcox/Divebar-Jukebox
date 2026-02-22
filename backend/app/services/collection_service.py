@@ -178,6 +178,7 @@ class CollectionService:
         default_jump_button_type: str = None,
         default_show_color_coding: bool = None,
         default_edit_mode: bool = None,
+        default_crossfade_seconds: int = None,
     ) -> Optional[Collection]:
         """Update default display settings for a collection."""
         collection = self.db.query(Collection).filter(Collection.id == collection_id).first()
@@ -197,6 +198,10 @@ class CollectionService:
             collection.default_show_color_coding = default_show_color_coding
         if default_edit_mode is not None:
             collection.default_edit_mode = default_edit_mode
+        if default_crossfade_seconds is not None:
+            if not (0 <= default_crossfade_seconds <= 12):
+                raise ValueError("default_crossfade_seconds must be between 0 and 12")
+            collection.default_crossfade_seconds = default_crossfade_seconds
         self.db.commit()
         logger.info(f"Updated settings for collection: {collection.name}")
         return collection

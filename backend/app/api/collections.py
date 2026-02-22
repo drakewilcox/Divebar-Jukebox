@@ -23,6 +23,7 @@ class CollectionResponse(BaseModel):
     default_jump_button_type: str | None = None
     default_show_color_coding: bool | None = None
     default_edit_mode: bool | None = None
+    default_crossfade_seconds: int | None = None
 
     class Config:
         from_attributes = True

@@ -88,6 +88,7 @@ class UpdateCollectionSettingsRequest(BaseModel):
     default_jump_button_type: str | None = None  # 'letter-ranges' | 'number-ranges' | 'sections'
     default_show_color_coding: bool | None = None
     default_edit_mode: bool | None = None
+    default_crossfade_seconds: int | None = None  # 0-12
 
 
 def run_library_scan(db: Session):
@@ -321,6 +322,7 @@ def update_collection_settings(
             default_jump_button_type=body.default_jump_button_type,
             default_show_color_coding=body.default_show_color_coding,
             default_edit_mode=body.default_edit_mode,
+            default_crossfade_seconds=body.default_crossfade_seconds,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
