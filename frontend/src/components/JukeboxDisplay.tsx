@@ -70,6 +70,9 @@ export default function JukeboxDisplay({ collection, collections, onCollectionCh
   // mounted when switching collections (otherwise the loading div would unmount it).
   const albumsToShow = albums ?? [];
 
+  // Use the freshest collection from the query so we get updated default_* after saving in Admin
+  const resolvedCollection = collections?.find((c) => c.id === collection.id) ?? collection;
+
   return (
     <div className="jukebox-display">
       {isLoading && albumsToShow.length === 0 && (
@@ -78,7 +81,7 @@ export default function JukeboxDisplay({ collection, collections, onCollectionCh
       <div className="jukebox-main">
         <CardCarousel 
           albums={albumsToShow} 
-          collection={collection}
+          collection={resolvedCollection}
           collections={collections}
           onCollectionChange={onCollectionChange}
         />
