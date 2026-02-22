@@ -164,22 +164,66 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     return `${minutes}:${String(seconds).padStart(2, '0')}`;
   };
 
-  // Listen for edit mode changes from localStorage
+  // Edit mode: use collection.default_edit_mode when available, otherwise localStorage fallback
   useEffect(() => {
-    const savedEditMode = localStorage.getItem('editMode');
-    if (savedEditMode) {
-      setEditMode(savedEditMode === 'true');
+    if (collection.default_edit_mode != null) {
+      setEditMode(collection.default_edit_mode);
+    } else {
+      const saved = localStorage.getItem('editMode');
+      if (saved != null) {
+        setEditMode(saved === 'true');
+      }
     }
+  }, [collection.id, collection.default_edit_mode]);
 
-    const handleEditModeChange = (event: CustomEvent) => {
-      setEditMode(event.detail);
-    };
-
-    window.addEventListener('edit-mode-changed', handleEditModeChange as EventListener);
-    return () => {
-      window.removeEventListener('edit-mode-changed', handleEditModeChange as EventListener);
-    };
-  }, []);
+  // Apply collection defaults for nav settings when collection changes
+  useEffect(() => {
+    const ls = localStorage.getItem('sortOrder');
+    const sortOrder =
+      collection.default_sort_order === 'alphabetical' || collection.default_sort_order === 'curated'
+        ? collection.default_sort_order
+        : ls === 'alphabetical' || ls === 'curated'
+          ? ls
+          : 'curated';
+    const lj = localStorage.getItem('showJumpToBar');
+    const showJumpToBar =
+      collection.default_show_jump_to_bar != null
+        ? collection.default_show_jump_to_bar
+        : lj != null
+          ? lj === 'true'
+          : true;
+    const jt = collection.default_jump_button_type;
+    const ljt = localStorage.getItem('jumpButtonType');
+    const leg = localStorage.getItem('navBarMode');
+    const jumpButtonType: NavSettings['jumpButtonType'] =
+      jt === 'letter-ranges' || jt === 'number-ranges' || jt === 'sections'
+        ? jt
+        : ljt === 'letter-ranges' || ljt === 'number-ranges' || ljt === 'sections'
+          ? ljt
+          : leg === 'sections'
+            ? 'sections'
+            : 'number-ranges';
+    const lc = localStorage.getItem('showColorCoding');
+    const showColorCoding =
+      collection.default_show_color_coding != null
+        ? collection.default_show_color_coding
+        : lc != null
+          ? lc === 'true'
+          : true;
+    const next: NavSettings = { sortOrder, showJumpToBar, jumpButtonType, showColorCoding };
+    setNavSettings(next);
+    localStorage.setItem('sortOrder', next.sortOrder);
+    localStorage.setItem('showJumpToBar', String(next.showJumpToBar));
+    localStorage.setItem('jumpButtonType', next.jumpButtonType);
+    localStorage.setItem('showColorCoding', String(next.showColorCoding));
+    window.dispatchEvent(new CustomEvent('navigation-settings-changed', { detail: next }));
+  }, [
+    collection.id,
+    collection.default_sort_order,
+    collection.default_show_jump_to_bar,
+    collection.default_jump_button_type,
+    collection.default_show_color_coding,
+  ]);
 
   // Listen for navigation settings changes from Settings modal
   useEffect(() => {

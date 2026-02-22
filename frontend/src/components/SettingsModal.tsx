@@ -24,7 +24,6 @@ export default function SettingsModal({
 }: Props) {
   const queryClient = useQueryClient();
   const [defaultCollectionSlug, setDefaultCollectionSlug] = useState<string>('all');
-  const [editMode, setEditMode] = useState<boolean>(false);
   const [sortOrder, setSortOrder] = useState<'alphabetical' | 'curated'>('curated');
   const [showJumpToBar, setShowJumpToBar] = useState<boolean>(true);
   const [jumpButtonType, setJumpButtonType] = useState<'letter-ranges' | 'number-ranges' | 'sections'>('number-ranges');
@@ -53,32 +52,50 @@ export default function SettingsModal({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [collectionSelectOpen]);
 
-  // Load settings from backend when available; fallback to localStorage on mount
+  // Sync nav settings when currentCollection changes (collection defaults or localStorage)
+  // This runs on mount and when user switches collection in the modal
   useEffect(() => {
-    const savedEditMode = localStorage.getItem('editMode');
-    if (savedEditMode) {
-      setEditMode(savedEditMode === 'true');
-    }
-    const savedSortOrder = localStorage.getItem('sortOrder');
-    if (savedSortOrder === 'alphabetical' || savedSortOrder === 'curated') {
-      setSortOrder(savedSortOrder);
-    }
-    const savedShowJumpToBar = localStorage.getItem('showJumpToBar');
-    if (savedShowJumpToBar !== null) {
-      setShowJumpToBar(savedShowJumpToBar === 'true');
-    }
-    const savedJumpButtonType = localStorage.getItem('jumpButtonType');
-    if (savedJumpButtonType === 'letter-ranges' || savedJumpButtonType === 'number-ranges' || savedJumpButtonType === 'sections') {
-      setJumpButtonType(savedJumpButtonType);
-    } else {
-      const legacyNavBarMode = localStorage.getItem('navBarMode');
-      if (legacyNavBarMode === 'sections') setJumpButtonType('sections');
-    }
-    const savedShowColorCoding = localStorage.getItem('showColorCoding');
-    if (savedShowColorCoding !== null) {
-      setShowColorCoding(savedShowColorCoding === 'true');
-    }
-  }, []);
+    const c = currentCollection;
+    const sortOrder =
+      c.default_sort_order === 'alphabetical' || c.default_sort_order === 'curated'
+        ? c.default_sort_order
+        : (() => {
+            const s = localStorage.getItem('sortOrder');
+            return s === 'alphabetical' || s === 'curated' ? s : 'curated';
+          })();
+    const showJumpToBar =
+      c.default_show_jump_to_bar != null
+        ? c.default_show_jump_to_bar
+        : (() => {
+            const s = localStorage.getItem('showJumpToBar');
+            return s != null ? s === 'true' : true;
+          })();
+    const jumpButtonType =
+      c.default_jump_button_type === 'letter-ranges' ||
+      c.default_jump_button_type === 'number-ranges' ||
+      c.default_jump_button_type === 'sections'
+        ? c.default_jump_button_type
+        : (() => {
+            const j = localStorage.getItem('jumpButtonType');
+            const leg = localStorage.getItem('navBarMode');
+            return j === 'letter-ranges' || j === 'number-ranges' || j === 'sections'
+              ? j
+              : leg === 'sections'
+                ? 'sections'
+                : 'number-ranges';
+          })();
+    const showColorCoding =
+      c.default_show_color_coding != null
+        ? c.default_show_color_coding
+        : (() => {
+            const s = localStorage.getItem('showColorCoding');
+            return s != null ? s === 'true' : true;
+          })();
+    setSortOrder(sortOrder);
+    setShowJumpToBar(showJumpToBar);
+    setJumpButtonType(jumpButtonType);
+    setShowColorCoding(showColorCoding);
+  }, [currentCollection.id, currentCollection.default_sort_order, currentCollection.default_show_jump_to_bar, currentCollection.default_jump_button_type, currentCollection.default_show_color_coding]);
 
   useEffect(() => {
     const slug = settings?.default_collection_slug ?? localStorage.getItem('defaultCollection') ?? 'all';
@@ -89,11 +106,6 @@ export default function SettingsModal({
   useEffect(() => {
     localStorage.setItem('defaultCollection', defaultCollectionSlug);
   }, [defaultCollectionSlug]);
-
-  useEffect(() => {
-    localStorage.setItem('editMode', editMode.toString());
-    window.dispatchEvent(new CustomEvent('edit-mode-changed', { detail: editMode }));
-  }, [editMode]);
 
   const sectionsEnabledForCollection =
     currentCollection.sections_enabled &&
@@ -386,28 +398,6 @@ export default function SettingsModal({
                   </div>
                 </>
               )}
-          </div>
-
-          <div className="settings-section">
-            <h3>Edit Mode</h3>
-            <div className="form-group">
-              <label className="toggle-label">
-                <div className="toggle-label-content">
-                  <input
-                    type="checkbox"
-                    checked={editMode}
-                    onChange={(e) => setEditMode(e.target.checked)}
-                    className="toggle-checkbox"
-                  />
-                  <span className="toggle-text">
-                    {editMode ? 'ON' : 'OFF'}
-                  </span>
-                </div>
-              </label>
-              <p className="help-text">
-                When enabled, hover over album covers to quickly edit albums from the jukebox view.
-              </p>
-            </div>
           </div>
         </div>
 
