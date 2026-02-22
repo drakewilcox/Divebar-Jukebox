@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Collection } from '../types';
 import { playbackApi } from '../services/api';
 import audioService from '../services/audio';
@@ -12,6 +12,7 @@ interface Props {
 export default function NowPlaying({ collection }: Props) {
   const queryClient = useQueryClient();
   const [currentPositionMs, setCurrentPositionMs] = useState(0);
+  const progressBarRef = useRef<HTMLDivElement>(null);
   
   const { data: playbackState } = useQuery({
     queryKey: ['playback-state', collection.slug],
@@ -22,15 +23,13 @@ export default function NowPlaying({ collection }: Props) {
     refetchInterval: 1000, // Poll every second
   });
   
-  // Update progress from audio service
+  // Update progress from audio service (playing + when paused so seek is reflected)
   useEffect(() => {
     const interval = setInterval(() => {
-      if (audioService.isPlaying()) {
-        const positionMs = audioService.getCurrentTime() * 1000;
-        setCurrentPositionMs(positionMs);
-      }
-    }, 100); // Update every 100ms for smooth progress
-    
+      const positionMs = audioService.getCurrentTime() * 1000;
+      setCurrentPositionMs(positionMs);
+    }, 100);
+
     return () => clearInterval(interval);
   }, []);
   
@@ -61,13 +60,14 @@ export default function NowPlaying({ collection }: Props) {
     if (playbackState?.current_track_id) {
       const replaygain =
         playbackState.current_track?.replaygain_track_gain ?? undefined;
-      audioService.loadTrack(playbackState.current_track_id, replaygain);
+      const durationMs = playbackState.current_track?.duration_ms ?? undefined;
+      audioService.loadTrack(playbackState.current_track_id, replaygain, collection.slug, durationMs);
       setCurrentPositionMs(0); // Reset position for new track
       if (playbackState.is_playing) {
         audioService.play();
       }
     }
-  }, [playbackState?.current_track_id]);
+  }, [playbackState?.current_track_id, collection.slug]);
   
   // Sync play/pause state
   useEffect(() => {
@@ -80,10 +80,9 @@ export default function NowPlaying({ collection }: Props) {
     }
   }, [playbackState?.is_playing]);
   
-  // Listen for track ended event to auto-skip
+  // Listen for track ended event to auto-skip (no crossfade path)
   useEffect(() => {
     const handleTrackEnded = async () => {
-      console.log('Track ended, skipping to next...');
       try {
         await playbackApi.skip(collection.slug);
         queryClient.invalidateQueries({ queryKey: ['playback-state', collection.slug] });
@@ -92,9 +91,16 @@ export default function NowPlaying({ collection }: Props) {
         console.error('Failed to skip to next track:', error);
       }
     };
-    
+    const handleCrossfadeComplete = () => {
+      queryClient.invalidateQueries({ queryKey: ['playback-state', collection.slug] });
+      queryClient.invalidateQueries({ queryKey: ['queue', collection.slug] });
+    };
     window.addEventListener('track-ended', handleTrackEnded);
-    return () => window.removeEventListener('track-ended', handleTrackEnded);
+    window.addEventListener('crossfade-complete', handleCrossfadeComplete);
+    return () => {
+      window.removeEventListener('track-ended', handleTrackEnded);
+      window.removeEventListener('crossfade-complete', handleCrossfadeComplete);
+    };
   }, [collection.slug, queryClient]);
   
   const handlePlayPause = () => {
@@ -110,7 +116,18 @@ export default function NowPlaying({ collection }: Props) {
     const seconds = Math.floor((ms % 60000) / 1000);
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
-  
+
+  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const bar = progressBarRef.current;
+    const durationMs = playbackState?.current_track?.duration_ms;
+    if (!bar || durationMs == null || durationMs <= 0) return;
+    const rect = bar.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const seekMs = ratio * durationMs;
+    audioService.seek(seekMs / 1000);
+    setCurrentPositionMs(seekMs);
+  };
+
   if (!playbackState?.current_track) {
     return (
       <div className="now-playing">
@@ -123,7 +140,7 @@ export default function NowPlaying({ collection }: Props) {
   }
   
   const { current_track } = playbackState;
-  const progress = (currentPositionMs / current_track.duration_ms) * 100;
+  const progress = Math.min(100, (currentPositionMs / current_track.duration_ms) * 100) || 0;
   
   return (
     <div className="now-playing">
@@ -145,7 +162,16 @@ export default function NowPlaying({ collection }: Props) {
       </div>
       
       <div className="now-playing-progress">
-        <div className="progress-bar">
+        <div
+          ref={progressBarRef}
+          className="progress-bar progress-bar-seekable"
+          onClick={handleProgressClick}
+          role="slider"
+          aria-label="Track position"
+          aria-valuemin={0}
+          aria-valuemax={current_track.duration_ms}
+          aria-valuenow={currentPositionMs}
+        >
           <div className="progress-fill" style={{ width: `${progress}%` }} />
         </div>
         <div className="progress-time">

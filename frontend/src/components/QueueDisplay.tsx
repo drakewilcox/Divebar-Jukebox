@@ -55,12 +55,13 @@ export default function QueueDisplay({ collection, onQueueCleared }: Props) {
       setCurrentPositionMs(0);
       const replaygain =
         playbackState.current_track?.replaygain_track_gain ?? undefined;
-      audioService.loadTrack(playbackState.current_track_id, replaygain);
+      const durationMs = playbackState.current_track?.duration_ms ?? undefined;
+      audioService.loadTrack(playbackState.current_track_id, replaygain, collection.slug, durationMs);
       if (playbackState.is_playing) {
         audioService.play();
       }
     }
-  }, [playbackState?.current_track_id]);
+  }, [playbackState?.current_track_id, collection.slug]);
   
   // Sync play/pause state
   useEffect(() => {
@@ -92,10 +93,9 @@ export default function QueueDisplay({ collection, onQueueCleared }: Props) {
     return () => clearInterval(interval);
   }, [draggedIndex]);
 
-  // Listen for track ended event to auto-skip
+  // Listen for track ended (no crossfade) and crossfade-complete
   useEffect(() => {
     const handleTrackEnded = async () => {
-      console.log('Track ended, skipping to next...');
       try {
         await playbackApi.skip(collection.slug);
         queryClient.invalidateQueries({ queryKey: ['playback-state', collection.slug] });
@@ -104,9 +104,16 @@ export default function QueueDisplay({ collection, onQueueCleared }: Props) {
         console.error('Failed to skip to next track:', error);
       }
     };
-    
+    const handleCrossfadeComplete = () => {
+      queryClient.invalidateQueries({ queryKey: ['playback-state', collection.slug] });
+      queryClient.invalidateQueries({ queryKey: ['queue', collection.slug] });
+    };
     window.addEventListener('track-ended', handleTrackEnded);
-    return () => window.removeEventListener('track-ended', handleTrackEnded);
+    window.addEventListener('crossfade-complete', handleCrossfadeComplete);
+    return () => {
+      window.removeEventListener('track-ended', handleTrackEnded);
+      window.removeEventListener('crossfade-complete', handleCrossfadeComplete);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [collection.slug]);
   
