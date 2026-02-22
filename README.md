@@ -97,7 +97,6 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [x] Fix issue when only one album or no albums are in a collection. 
 - [x] Fix Queue issue: adding a track to the queue does not always put it last (seen when an album was in the queue)
 - [x] Examine Library Scan process and possible issues. 
-- [ ] Playback of the first song in Queue is really abrupt, maybe a fade in or delay? 
 - [ ] Add Support for mp3 file playback
 - [x] Clear Queue when user switches collections 
 - [x] Fix Edit Album Modal form state issue (Album Name not holding state)
@@ -134,7 +133,7 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 ### Playback Features
 - [x] Implement random play feature that are triggered by "H" button on keypad. 
 - [ ] Add 'play random after queue ends' feature to be toggled in settings. 
-- [ ] Add a "Fade" Amount Feature for how much transition is between tracks
+- [x] Add a "Fade" Amount Feature for how much transition is between tracks.
 - [ ] Add feature for creating custom queue lists (basically a playlist) per collection. 
 - [ ] in addition to this, maybe create the ability to record the Queue History, and then save that history as queue collection.
 - [x] import replay-gain from track meta data and implement in playback. 
@@ -145,13 +144,13 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [x] Add more stylistic elements to make UI look more like a vintage jukebox
 - [x] Implement variable spacing and text sizing for track names to fill the area better
 - [x] Improve dynamic display sizing, and account for browser header
-- [ ] Add Year to Album info card
+- [x] Add Year to Album info card
 - [x] Add Selection Number (ie. "002-03") to Jukebox playblack display
 - [x] Add descriptions underneath number input for what each number means 
 - [ ] Enhance carousel slider animations for smoother transitions
 - [x] add a speaker icon for currently playing track in track info card
 - [x] add an icon to represent that a song is already in the queue (maybe prevent duplicates)
-- [ ] Update Card Sliders to make them look like "Card Holders" seen on NSM Jukeboxes
+- [x] Update Card Sliders to make them look like "Card Holders" seen on NSM Jukeboxes
 
 ### UI Features
 - [x] Setup edit mode in the carousel for quick album management
