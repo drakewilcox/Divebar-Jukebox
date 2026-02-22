@@ -299,6 +299,19 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
         <div className="modal-body">
           <div className="edit-section">
             <h3>Album Information</h3>
+            <div className="album-edit-cover-row">
+              <div className="album-edit-cover-wrap">
+                {(() => {
+                  const coverPath = (albumData as { cover_art_path?: string | null; custom_cover_art_path?: string | null })?.custom_cover_art_path ||
+                    (albumData as { cover_art_path?: string | null })?.cover_art_path;
+                  return coverPath ? (
+                    <img src={`/api/media/${coverPath}`} alt={`${title} cover`} className="album-edit-cover-img" />
+                  ) : (
+                    <div className="album-edit-cover-placeholder">🎵</div>
+                  );
+                })()}
+              </div>
+              <div className="album-edit-form-fields">
             <div className="form-group">
               <label>Title</label>
               <input
@@ -330,13 +343,6 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
                 />
               </div>
             </div>
-            <div className="form-group album-edit-genre">
-              <label>Genre</label>
-              <div className="album-edit-genre-value">
-                {(() => {
-                  const g = (albumData as { genre?: string[] }).genre;
-                  return Array.isArray(g) && g.length > 0 ? g.join(', ') : '—';
-                })()}
               </div>
             </div>
           </div>
