@@ -114,6 +114,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
   const queueToggleRef = useRef<HTMLDivElement>(null);
   const inputSectionRef = useRef<HTMLDivElement>(null);
   const jumpToBarRef = useRef<HTMLDivElement>(null);
+  const nowPlayingProgressBarRef = useRef<HTMLDivElement>(null);
   const handleAddToQueueRef = useRef<() => void>(() => {});
   const lastSubmittedRef = useRef<string | null>(null);
   const [jumpLineStyle, setJumpLineStyle] = useState({ left: 0, width: 0 });
@@ -139,12 +140,10 @@ export default function CardCarousel({ albums, collection, collections, onCollec
   
   const hasQueueContent = queue && queue.length > 0;
 
-  // Live position for now-playing countdown (updates from audio service)
+  // Live position for now-playing (updates from audio service so progress bar and seek stay in sync)
   useEffect(() => {
     const interval = setInterval(() => {
-      if (audioService.isPlaying()) {
-        setNowPlayingPositionMs(audioService.getCurrentTime() * 1000);
-      }
+      setNowPlayingPositionMs(audioService.getCurrentTime() * 1000);
     }, 100);
     return () => clearInterval(interval);
   }, []);
@@ -162,6 +161,18 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     const minutes = Math.floor(remainingMs / 60000);
     const seconds = Math.floor((remainingMs % 60000) / 1000);
     return `${minutes}:${String(seconds).padStart(2, '0')}`;
+  };
+
+  const handleNowPlayingProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    const bar = nowPlayingProgressBarRef.current;
+    const durationMs = playbackState?.current_track?.duration_ms;
+    if (!bar || durationMs == null || durationMs <= 0) return;
+    const rect = bar.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const seekMs = ratio * durationMs;
+    audioService.seek(seekMs / 1000);
+    setNowPlayingPositionMs(seekMs);
   };
 
   // Edit mode: use collection.default_edit_mode when available, otherwise localStorage fallback
@@ -217,12 +228,25 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     localStorage.setItem('jumpButtonType', next.jumpButtonType);
     localStorage.setItem('showColorCoding', String(next.showColorCoding));
     window.dispatchEvent(new CustomEvent('navigation-settings-changed', { detail: next }));
+    const cf =
+      collection.default_crossfade_seconds != null &&
+      collection.default_crossfade_seconds >= 0 &&
+      collection.default_crossfade_seconds <= 12
+        ? collection.default_crossfade_seconds
+        : (() => {
+            const x = localStorage.getItem('crossfadeSeconds');
+            const n = x != null ? parseInt(x, 10) : NaN;
+            return Number.isNaN(n) || n < 0 || n > 12 ? 0 : n;
+          })();
+    localStorage.setItem('crossfadeSeconds', String(cf));
+    window.dispatchEvent(new CustomEvent('crossfade-changed', { detail: cf }));
   }, [
     collection.id,
     collection.default_sort_order,
     collection.default_show_jump_to_bar,
     collection.default_jump_button_type,
     collection.default_show_color_coding,
+    collection.default_crossfade_seconds,
   ]);
 
   // Listen for navigation settings changes from Settings modal
@@ -1056,28 +1080,47 @@ export default function CardCarousel({ albums, collection, collections, onCollec
             {/* Track title, album title, and artist come from playback state API (database-saved values, not file metadata) */}
             {playbackState?.current_track ? (
               <>
-                {playbackState.current_track.cover_art_path && (
-                  <div className="now-playing-cover-wrap">
-                    <img 
-                      src={`/api/media/${playbackState.current_track.cover_art_path}`}
-                      alt={playbackState.current_track.album_title}
-                      className="now-playing-cover"
-                    />
-                  </div>
-                )}
-                <div className="now-playing-info">
-                  <div className="now-playing-title">{playbackState.current_track.title}</div>
-                  <div className="now-playing-artist">{playbackState.current_track.artist}</div>
-                  <div className="now-playing-album">
-                    {playbackState.current_track.album_title}
-                    {playbackState.current_track.album_year != null && ` (${playbackState.current_track.album_year})`}
-                  </div>
-                  {playbackState.current_track.selection_display && (
-                    <div className="now-playing-selection">{playbackState.current_track.selection_display}</div>
+                <div className="now-playing-mini-row">
+                  {playbackState.current_track.cover_art_path && (
+                    <div className="now-playing-cover-wrap">
+                      <img 
+                        src={`/api/media/${playbackState.current_track.cover_art_path}`}
+                        alt={playbackState.current_track.album_title}
+                        className="now-playing-cover"
+                      />
+                    </div>
                   )}
+                  <div className="now-playing-info">
+                    <div className="now-playing-title">{playbackState.current_track.title}</div>
+                    <div className="now-playing-artist">{playbackState.current_track.artist}</div>
+                    <div className="now-playing-album">
+                      {playbackState.current_track.album_title}
+                      {playbackState.current_track.album_year != null && ` (${playbackState.current_track.album_year})`}
+                    </div>
+                    {playbackState.current_track.selection_display && (
+                      <div className="now-playing-selection">{playbackState.current_track.selection_display}</div>
+                    )}
+                  </div>
+                  <div className="now-playing-time">
+                    {formatTimeRemaining(playbackState.current_track.duration_ms, nowPlayingPositionMs)}
+                  </div>
                 </div>
-                <div className="now-playing-time">
-                  {formatTimeRemaining(playbackState.current_track.duration_ms, nowPlayingPositionMs)}
+                <div
+                  ref={nowPlayingProgressBarRef}
+                  className="now-playing-mini-progress"
+                  onClick={handleNowPlayingProgressClick}
+                  role="slider"
+                  aria-label="Track position"
+                  aria-valuemin={0}
+                  aria-valuemax={playbackState.current_track.duration_ms}
+                  aria-valuenow={nowPlayingPositionMs}
+                >
+                  <div
+                    className="now-playing-mini-progress-fill"
+                    style={{
+                      width: `${Math.min(100, (nowPlayingPositionMs / playbackState.current_track.duration_ms) * 100) || 0}%`,
+                    }}
+                  />
                 </div>
               </>
             ) : null}

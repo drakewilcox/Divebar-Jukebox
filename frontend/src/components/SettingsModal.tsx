@@ -28,6 +28,7 @@ export default function SettingsModal({
   const [showJumpToBar, setShowJumpToBar] = useState<boolean>(true);
   const [jumpButtonType, setJumpButtonType] = useState<'letter-ranges' | 'number-ranges' | 'sections'>('number-ranges');
   const [showColorCoding, setShowColorCoding] = useState<boolean>(true);
+  const [crossfadeSeconds, setCrossfadeSeconds] = useState<number>(0);
   const [collectionSelectOpen, setCollectionSelectOpen] = useState(false);
   const collectionSelectRef = useRef<HTMLDivElement>(null);
 
@@ -91,11 +92,20 @@ export default function SettingsModal({
             const s = localStorage.getItem('showColorCoding');
             return s != null ? s === 'true' : true;
           })();
+    const crossfade =
+      c.default_crossfade_seconds != null && c.default_crossfade_seconds >= 0 && c.default_crossfade_seconds <= 12
+        ? c.default_crossfade_seconds
+        : (() => {
+            const x = localStorage.getItem('crossfadeSeconds');
+            const n = x != null ? parseInt(x, 10) : NaN;
+            return Number.isNaN(n) || n < 0 || n > 12 ? 0 : n;
+          })();
     setSortOrder(sortOrder);
     setShowJumpToBar(showJumpToBar);
     setJumpButtonType(jumpButtonType);
     setShowColorCoding(showColorCoding);
-  }, [currentCollection.id, currentCollection.default_sort_order, currentCollection.default_show_jump_to_bar, currentCollection.default_jump_button_type, currentCollection.default_show_color_coding]);
+    setCrossfadeSeconds(crossfade);
+  }, [currentCollection.id, currentCollection.default_sort_order, currentCollection.default_show_jump_to_bar, currentCollection.default_jump_button_type, currentCollection.default_show_color_coding, currentCollection.default_crossfade_seconds]);
 
   useEffect(() => {
     const slug = settings?.default_collection_slug ?? localStorage.getItem('defaultCollection') ?? 'all';
@@ -129,12 +139,14 @@ export default function SettingsModal({
     localStorage.setItem('showJumpToBar', String(showJumpToBar));
     localStorage.setItem('jumpButtonType', jumpButtonType);
     localStorage.setItem('showColorCoding', String(showColorCoding));
+    localStorage.setItem('crossfadeSeconds', String(crossfadeSeconds));
     window.dispatchEvent(
       new CustomEvent('navigation-settings-changed', {
         detail: { sortOrder, showJumpToBar, jumpButtonType, showColorCoding },
       })
     );
-  }, [sortOrder, showJumpToBar, jumpButtonType, showColorCoding]);
+    window.dispatchEvent(new CustomEvent('crossfade-changed', { detail: crossfadeSeconds }));
+  }, [sortOrder, showJumpToBar, jumpButtonType, showColorCoding, crossfadeSeconds]);
 
   const handleSetAsDefault = async () => {
     try {
@@ -398,6 +410,31 @@ export default function SettingsModal({
                   </div>
                 </>
               )}
+          </div>
+
+          <div className="settings-section">
+            <h3>Fade between songs</h3>
+            <div className="form-group">
+              <label htmlFor="settings-crossfade">
+                Crossfade: {crossfadeSeconds} second{crossfadeSeconds !== 1 ? 's' : ''}
+              </label>
+              <input
+                id="settings-crossfade"
+                type="range"
+                min={0}
+                max={12}
+                value={crossfadeSeconds}
+                onChange={(e) => setCrossfadeSeconds(Number(e.target.value))}
+                className="settings-crossfade-slider"
+                aria-valuemin={0}
+                aria-valuemax={12}
+                aria-valuenow={crossfadeSeconds}
+                aria-valuetext={`${crossfadeSeconds} seconds`}
+              />
+              <p className="help-text">
+                Blend the end of one song into the start of the next. No fade is used when the next track is the next track on the same album.
+              </p>
+            </div>
           </div>
         </div>
 

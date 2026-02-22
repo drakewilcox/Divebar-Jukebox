@@ -15,6 +15,7 @@ export default function CollectionSettings({ collection }: Props) {
   const [jumpButtonType, setJumpButtonType] = useState<'letter-ranges' | 'number-ranges' | 'sections'>('number-ranges');
   const [showColorCoding, setShowColorCoding] = useState(true);
   const [editMode, setEditMode] = useState(false);
+  const [crossfadeSeconds, setCrossfadeSeconds] = useState(0);
 
   const sectionsEnabledForCollection =
     !!collection?.sections_enabled &&
@@ -38,7 +39,11 @@ export default function CollectionSettings({ collection }: Props) {
     );
     setShowColorCoding(collection.default_show_color_coding ?? true);
     setEditMode(collection.default_edit_mode ?? false);
-  }, [collection?.id, collection?.default_sort_order, collection?.default_show_jump_to_bar, collection?.default_jump_button_type, collection?.default_show_color_coding, collection?.default_edit_mode]);
+    const cf = collection.default_crossfade_seconds;
+    setCrossfadeSeconds(
+      cf != null && cf >= 0 && cf <= 12 ? cf : 0
+    );
+  }, [collection?.id, collection?.default_sort_order, collection?.default_show_jump_to_bar, collection?.default_jump_button_type, collection?.default_show_color_coding, collection?.default_edit_mode, collection?.default_crossfade_seconds]);
 
   useEffect(() => {
     if (sortOrder === 'alphabetical' && jumpButtonType === 'sections') {
@@ -61,6 +66,7 @@ export default function CollectionSettings({ collection }: Props) {
         default_jump_button_type: jumpButtonType,
         default_show_color_coding: showColorCoding,
         default_edit_mode: editMode,
+        default_crossfade_seconds: crossfadeSeconds,
       });
     },
     onSuccess: () => {
@@ -74,7 +80,8 @@ export default function CollectionSettings({ collection }: Props) {
       showJumpToBar !== (collection.default_show_jump_to_bar ?? true) ||
       jumpButtonType !== (collection.default_jump_button_type ?? 'number-ranges') ||
       showColorCoding !== (collection.default_show_color_coding ?? true) ||
-      editMode !== (collection.default_edit_mode ?? false));
+      editMode !== (collection.default_edit_mode ?? false) ||
+      crossfadeSeconds !== (collection.default_crossfade_seconds ?? 0));
 
   const handleSave = () => {
     if (!hasChanges) return;
@@ -223,6 +230,30 @@ export default function CollectionSettings({ collection }: Props) {
             </div>
           </>
         )}
+      </div>
+
+      <div className="collection-settings-section">
+        <h3>Default crossfade</h3>
+        <div className="form-group">
+          <label htmlFor="collection-default-crossfade">
+            Fade between songs: {crossfadeSeconds} second{crossfadeSeconds !== 1 ? 's' : ''}
+          </label>
+          <input
+            id="collection-default-crossfade"
+            type="range"
+            min={0}
+            max={12}
+            value={crossfadeSeconds}
+            onChange={(e) => setCrossfadeSeconds(Number(e.target.value))}
+            className="collection-settings-crossfade-slider"
+            aria-valuemin={0}
+            aria-valuemax={12}
+            aria-valuenow={crossfadeSeconds}
+          />
+          <p className="help-text">
+            Default crossfade (0–12 seconds) when viewing this collection. No fade is applied between consecutive tracks on the same album.
+          </p>
+        </div>
       </div>
 
       <div className="collection-settings-section">
