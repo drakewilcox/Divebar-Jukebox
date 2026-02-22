@@ -74,6 +74,11 @@ export const playbackApi = {
   setVolume: (collection: string, volume: number) =>
     api.post('/playback/volume', { collection, volume }),
   getStreamUrl: (trackId: string) => `/api/playback/stream/${trackId}`,
+  getNextTransition: (collection: string) =>
+    api.get<{ next_track_id: string | null; next_replaygain_db: number | null; apply_crossfade: boolean }>(
+      '/playback/next-transition',
+      { params: { collection } }
+    ),
 };
 
 // Admin API
@@ -110,6 +115,7 @@ export const adminApi = {
       default_jump_button_type?: 'letter-ranges' | 'number-ranges' | 'sections';
       default_show_color_coding?: boolean;
       default_edit_mode?: boolean;
+      default_crossfade_seconds?: number;
     }
   ) => api.put(`/admin/collections/${collectionId}/settings`, data),
   updateCollectionAlbums: (

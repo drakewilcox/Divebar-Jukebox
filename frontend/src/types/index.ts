@@ -22,6 +22,7 @@ export interface Collection {
   default_jump_button_type?: 'letter-ranges' | 'number-ranges' | 'sections' | null;
   default_show_color_coding?: boolean | null;
   default_edit_mode?: boolean | null;
+  default_crossfade_seconds?: number | null;
 }
 
 export interface Album {
