@@ -1292,8 +1292,8 @@ function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, qu
         <div className="album-info-text">
           <div className="album-row-artist">{album.artist.toUpperCase()}</div>
           <div className="album-row-title">
-            {/* {album.title} {album.year && `(${album.year})`} */}
             {album.title}
+            {album.year != null && ` (${album.year})`}
           </div>
         </div>
         

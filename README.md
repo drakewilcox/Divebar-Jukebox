@@ -112,6 +112,7 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [ ] Add authorization to admin features
 - [x] Add track duration to Edit Modal
 - [ ] Add an archive track button in addition to Hide. Hide means it is hidden from display, but will still play during Full Album Play. Archive means it will not play or display.
+- [ ] Add a apply leveling feature to settings modal. 
 
 ### Database Updates
 - [x] Add Architecture for Collection Sections
@@ -120,7 +121,7 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [x] Create solution for custom sorting of albums within collections
 - [x] Create Settings Modal
 - [x] Move collection selector, Admin settings button and edit mode selector to settings modal
-- [ ] Add sort options (A-Z, Genre, Custom) to settings modal
+- [x] Add sort options (A-Z, Custom) to settings modal
 - [x] Add Jump-To Functionality to Jukebox View
 
 ### Track Features
@@ -131,11 +132,12 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [x] Make sure playblack and Queue use Database track data, not metadata 
 
 ### Playback Features
-- [ ] Implement random play feature that are triggered by "H" button on keypad. 
+- [x] Implement random play feature that are triggered by "H" button on keypad. 
 - [ ] Add 'play random after queue ends' feature to be toggled in settings. 
 - [ ] Add a "Fade" Amount Feature for how much transition is between tracks
 - [ ] Add feature for creating custom queue lists (basically a playlist) per collection. 
-- [ ] in addition to this, maybe create the ability to record the Queue History, and then save that history as queue collection.  d
+- [ ] in addition to this, maybe create the ability to record the Queue History, and then save that history as queue collection.
+- [x] import replay-gain from track meta data and implement in playback. 
 
 
 ### Visual Enhancements
