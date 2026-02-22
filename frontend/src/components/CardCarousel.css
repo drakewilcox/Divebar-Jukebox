@@ -721,7 +721,7 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.15rem;
   background-color: var(--background-dark);
   border: 2px solid var(--background-dark);
 }
@@ -734,7 +734,7 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.15rem;
   background-color: var(--background-dark);
   border: 2px solid var(--background-dark);
   z-index: 100;
@@ -832,10 +832,10 @@
 .album-row {
   display: flex;
   background-color: var(--background-card);
-  border: 1px solid var(--border-color);
+  border: 0px solid black;
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  overflow: visible; /* let card-number-box top 25% show over the row above */
   position: relative;
 }
 
@@ -871,7 +871,7 @@
     1px 6px, 4px 1px, 8px 9px, 6px 3px;
   opacity: 0.6;
   pointer-events: none;
-  z-index: 100;
+  z-index: 0;
 }
 
 .album-row-empty {
@@ -880,12 +880,42 @@
   visibility: hidden;
 }
 
+/* Vintage jukebox plastic slider tabs: small black quarter-circles in each corner */
+.album-row-corner-tab {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background-color: #000;
+  z-index: 3;
+  pointer-events: none;
+}
+.album-row-corner-tab-tl {
+  top: 0;
+  left: 0;
+  border-radius: 0 0 100% 0;
+}
+.album-row-corner-tab-tr {
+  top: 0;
+  right: 0;
+  border-radius: 0 0 0 100%;
+}
+.album-row-corner-tab-bl {
+  bottom: 0;
+  left: 0;
+  border-radius: 0 100% 0 0;
+}
+.album-row-corner-tab-br {
+  bottom: 0;
+  right: 0;
+  border-radius: 100% 0 0 0;
+}
+
 .album-row-cover {
   height: 100%;
   width: auto;
   aspect-ratio: 1 / 1;
   flex-shrink: 0;
-  overflow: hidden;
+  overflow: visible; /* allow half-circle tabs to show at top/bottom */
   background-color: var(--background-dark);
   display: flex;
   align-items: center;
@@ -893,6 +923,92 @@
   position: relative;
   cursor: pointer;
   z-index: 1;
+}
+
+/* Wrapper so img/placeholder sit in a layer below the cover tabs */
+.album-row-cover-image-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.album-row-cover-image-wrap img {
+  position: static;
+  z-index: auto;
+}
+
+/* Half-circle tabs: larger for rounder curves; direct children of .album-row so not clipped */
+.album-row-cover-tab {
+  position: absolute;
+  background-color: #000;
+  z-index: 10;
+  pointer-events: none;
+}
+/* True semicircles: radius = half of diameter so arc is a perfect half-circle (no flat sides) */
+.album-row-cover-tab-top {
+  left: calc(var(--cover-width, 0px) / 2 - 10px);
+  top: -10px;
+  width: 20px;
+  height: 10px;
+  border-radius: 10px 10px 0 0;
+}
+.album-row-cover-tab-bottom {
+  left: calc(var(--cover-width, 0px) / 2 - 10px);
+  bottom: -10px;
+  width: 20px;
+  height: 10px;
+  border-radius: 0 0 10px 10px;
+}
+
+/* Left tab: flat edge on left edge of cover, curve points inward (into cover); inside row to avoid clipping */
+.album-row-cover-tab-left {
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 10px;
+  height: 20px;
+  border-radius: 0 10px 10px 0;
+}
+/* Right tab: on right edge of album-row (tracks/info area), flat edge on right, curve points inward (left) */
+.album-row-cover-tab-right {
+  left: calc(100% - 10px);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 10px;
+  height: 20px;
+  border-radius: 10px 0 0 10px;
+}
+
+/* Bottom-center tab: on bottom edge, aligned with card-number-box at boundary between cover and info */
+.album-row-cover-tab-bottom-center {
+  left: calc(var(--cover-width, 0px) - 10px);
+  bottom: -10px;
+  width: 20px;
+  height: 10px;
+  border-radius: 0 0 10px 10px;
+}
+
+/* First row top tab: flat edge on top of cover, curve points down into row */
+.slider-card .album-row:first-child .album-row-cover-tab-top,
+.slider-card-animated .album-row:first-child .album-row-cover-tab-top {
+  top: 0;
+  border-radius: 0 0 10px 10px;
+}
+/* Last row bottom tab: flat edge on bottom of cover, curve points up into row */
+.slider-card .album-row:last-child .album-row-cover-tab-bottom,
+.slider-card-animated .album-row:last-child .album-row-cover-tab-bottom {
+  bottom: 0;
+  border-radius: 10px 10px 0 0;
+}
+/* Last row bottom-center tab: same */
+.slider-card .album-row:last-child .album-row-cover-tab-bottom-center,
+.slider-card-animated .album-row:last-child .album-row-cover-tab-bottom-center {
+  bottom: 0;
+  border-radius: 10px 10px 0 0;
 }
 
 .album-edit-overlay-button {
@@ -919,7 +1035,8 @@
   transform: translate(-50%, -50%) scale(1.05);
 }
 
-.album-row-cover img {
+.album-row-cover img,
+.album-row-cover-image-wrap img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -969,98 +1086,25 @@
 }
 
 
-/* Vintage Jukebox Card Header */
-.vintage-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.2rem 0.2rem;
-  /* background-color: #e8e0d5; */
-  /* border-bottom: 2px solid #000; */
-  position: relative;
-  z-index: 2;
-}
-
-.header-left {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  /* padding-right: 4px; */
-  padding-left: 5px;
-  gap: 0.3rem;
-  flex: 1;
-}
-
-
-.header-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start ;
-  justify-content: flex-start;
-  height: 100%;
-  gap: 0.3rem;
-  flex: 1;
-  padding-left: 8px;
-
-  .header-label {
-    text-align: right;
-  }
-
-  .header-subtext {
-    text-align: left;
-  }
-}
-
-.header-label {
-  font-size: 11px;
-  font-weight: 900;
-  padding: 2px;
-  color: white;
-  letter-spacing: 0.03rem;
-  text-align: left;
-  background-color: black;
-}
-
-.header-subtext {
-  font-size: 10px;
-  font-weight: 600;
-  color: #000;
-  opacity: 0.7;
-  /* text-align: left; */
-  line-height: 1;
-}
-
-.triangle-down,
-.triangle-left {
-  font-size: 1.5rem;
-  color: #000;
-  margin-top: 0.1rem;
-  line-height: .5;
-}
-
-.header-center {
-  flex-shrink: 0;
-  display: flex;
-  height: 100%;
-  align-items: flex-start;
-  justify-content: flex-start;
-}
-
+/* Card number box: direct child of .album-row, at boundary (--cover-width from JS); top 30% shows over row above */
 .card-number-box {
+  position: absolute;
+  top: -17px; /* 30% of 55px so top of circle extends over the row above */
+  left: calc(var(--cover-width, 0px) - 27.5px); /* 27.5px = half of 55px */
+  z-index: 10; /* above row-above's paper overlay when overlapping */
   background-color: black;
   border: 2px solid #000;
-  padding: 0rem 0rem;
-  font-size: 1.2rem;
+  padding: 5px 0 0 0; /* nudge number down slightly */
+  font-size: 1.25rem;
   font-weight: 900;
   color: white;
-  /* letter-spacing: 0.15rem; */
-  min-width: 45px;
-  min-height: 45px;
+  min-width: 55px;
+  min-height: 55px;
   text-align: center;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 30px;
+  border-radius: 50%;
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
@@ -1069,7 +1113,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
-  padding: 5px;
+  padding: 5px 15px 5px 15px;
   text-align: center;
   border-bottom: 1px solid #d0c8b8;
   position: relative;

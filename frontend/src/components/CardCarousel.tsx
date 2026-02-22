@@ -1095,7 +1095,24 @@ interface AlbumRowProps {
 function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, queueTrackIds, sectionBackgroundColor, cardDisplayNumber }: AlbumRowProps) {
   const [isHovered, setIsHovered] = useState(false);
   const tracksContainerRef = useRef<HTMLDivElement>(null);
-  
+  const albumRowRef = useRef<HTMLDivElement>(null);
+
+  // Measure cover width so card-number-box can be positioned at the boundary (above both cover and info).
+  useLayoutEffect(() => {
+    const row = albumRowRef.current;
+    if (!row) return;
+    const cover = row.querySelector('.album-row-cover');
+    if (!cover) return;
+    const setCoverWidth = () => {
+      const w = (cover as HTMLElement).offsetWidth;
+      (row as HTMLElement).style.setProperty('--cover-width', `${w}px`);
+    };
+    setCoverWidth();
+    const ro = new ResizeObserver(setCoverWidth);
+    ro.observe(cover);
+    return () => ro.disconnect();
+  }, []);
+
   // Fetch album details with tracks. staleTime so prefetched/cached data is used immediately without refetch.
   const { data: albumDetails } = useQuery({
     queryKey: ['album-details', album.id, collection.slug],
@@ -1184,26 +1201,31 @@ function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, qu
   const displayNumber = String(cardDisplayNumber || 0).padStart(3, '0');
 
   return (
-    <div className="album-row">
+    <div className="album-row" ref={albumRowRef}>
+      <div className="album-row-corner-tab album-row-corner-tab-tl" aria-hidden="true" />
+      <div className="album-row-corner-tab album-row-corner-tab-tr" aria-hidden="true" />
+      <div className="album-row-corner-tab album-row-corner-tab-bl" aria-hidden="true" />
+      <div className="album-row-corner-tab album-row-corner-tab-br" aria-hidden="true" />
       <div 
         className="album-row-cover"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        {album.cover_art_path ? (
-          <img
-            src={`/api/media/${album.cover_art_path}`}
-            alt={`${album.title} cover`}
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-              e.currentTarget.nextElementSibling?.classList.remove('hidden');
-            }}
-          />
-        ) : null}
-        <div className={`album-row-cover-placeholder ${album.cover_art_path ? 'hidden' : ''}`}>
-          🎵
+        <div className="album-row-cover-image-wrap">
+          {album.cover_art_path ? (
+            <img
+              src={`/api/media/${album.cover_art_path}`}
+              alt={`${album.title} cover`}
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+                e.currentTarget.nextElementSibling?.classList.remove('hidden');
+              }}
+            />
+          ) : null}
+          <div className={`album-row-cover-placeholder ${album.cover_art_path ? 'hidden' : ''}`}>
+            🎵
+          </div>
         </div>
-        
         {editMode && isHovered && (
           <button
             className="album-edit-overlay-button"
@@ -1223,24 +1245,6 @@ function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, qu
         className="album-row-info"
         style={sectionBackgroundColor ? { backgroundColor: sectionBackgroundColor } : undefined}
       >
-        <div className="vintage-card-header">
-          <div className="header-left">
-            <div className="header-label">TRACK</div>
-            {/* <div className="header-subtext">NEXT 2 #s</div> */}
-            <div className="triangle-down">▼</div>
-          </div>
-          
-          <div className="header-center">
-            <div className="card-number-box">{displayNumber}</div>
-          </div>
-          
-          <div className="header-right">
-            <div className="triangle-left">◀</div>
-            <div className="header-label">DISC</div>
-            {/* <div className="header-subtext">FIRST 3 DIG.</div> */}
-          </div>
-        </div>
-        
         <div className="album-info-text">
           <div className="album-row-artist">{album.artist.toUpperCase()}</div>
           <div className="album-row-title">
@@ -1276,6 +1280,12 @@ function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, qu
           </div>
         )}
       </div>
+      <div className="card-number-box">{displayNumber}</div>
+      <div className="album-row-cover-tab album-row-cover-tab-top" aria-hidden="true" />
+      <div className="album-row-cover-tab album-row-cover-tab-bottom" aria-hidden="true" />
+      <div className="album-row-cover-tab album-row-cover-tab-left" aria-hidden="true" />
+      <div className="album-row-cover-tab album-row-cover-tab-right" aria-hidden="true" />
+      <div className="album-row-cover-tab album-row-cover-tab-bottom-center" aria-hidden="true" />
     </div>
   );
 }
