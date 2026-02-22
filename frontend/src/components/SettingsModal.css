@@ -152,21 +152,22 @@
   flex-direction: row;
   flex-wrap: nowrap;
   align-items: center;
-  gap: 0.5rem;
   cursor: pointer;
   font-size: 0.95rem;
   font-weight: normal;
   color: var(--text-primary);
   margin-bottom: 0;
+  min-height: 1.25rem;
 }
 
 .radio-option input,
 .form-group label.radio-option input {
   flex-shrink: 0;
   order: 1;
-  width: 1.15rem;
-  height: 1.15rem;
+  width: 1.25rem;
+  height: 1.25rem;
   margin: 0;
+  margin-right: 0.875rem;
   accent-color: var(--lcd-green);
   cursor: pointer;
 }
