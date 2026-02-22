@@ -18,6 +18,11 @@ class CollectionResponse(BaseModel):
     is_active: bool
     sections_enabled: bool = False
     sections: List[Any] | None = None
+    default_sort_order: str | None = None
+    default_show_jump_to_bar: bool | None = None
+    default_jump_button_type: str | None = None
+    default_show_color_coding: bool | None = None
+    default_edit_mode: bool | None = None
 
     class Config:
         from_attributes = True

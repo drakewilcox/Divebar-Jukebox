@@ -81,6 +81,15 @@ class UpdateCollectionSectionsRequest(BaseModel):
     sections: List[SectionItem] | None = None
 
 
+class UpdateCollectionSettingsRequest(BaseModel):
+    """Default display settings for a collection when viewed in the jukebox."""
+    default_sort_order: str | None = None  # 'alphabetical' | 'curated'
+    default_show_jump_to_bar: bool | None = None
+    default_jump_button_type: str | None = None  # 'letter-ranges' | 'number-ranges' | 'sections'
+    default_show_color_coding: bool | None = None
+    default_edit_mode: bool | None = None
+
+
 def run_library_scan(db: Session):
     """Background task to scan library"""
     album_service = AlbumService(db)
@@ -294,6 +303,30 @@ def update_collection_sections(
     if not collection:
         raise HTTPException(status_code=404, detail=f"Collection '{collection_id}' not found")
     return {"message": "Sections updated"}
+
+
+@router.put("/collections/{collection_id}/settings")
+def update_collection_settings(
+    collection_id: str,
+    body: UpdateCollectionSettingsRequest,
+    db: Session = Depends(get_db),
+):
+    """Update default display settings for a collection (sort order, jump bar, color coding, edit mode)."""
+    collection_service = CollectionService(db)
+    try:
+        collection = collection_service.update_collection_settings(
+            collection_id,
+            default_sort_order=body.default_sort_order,
+            default_show_jump_to_bar=body.default_show_jump_to_bar,
+            default_jump_button_type=body.default_jump_button_type,
+            default_show_color_coding=body.default_show_color_coding,
+            default_edit_mode=body.default_edit_mode,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    if not collection:
+        raise HTTPException(status_code=404, detail=f"Collection '{collection_id}' not found")
+    return {"message": "Settings updated"}
 
 
 @router.put("/collections/{slug}/albums")

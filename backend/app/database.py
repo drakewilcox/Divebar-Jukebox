@@ -53,6 +53,18 @@ def _migrate_collections_sections_sqlite():
             conn.execute(text("ALTER TABLE collections ADD COLUMN sections JSON"))
             conn.commit()
             logger.info("Added collections.sections column")
+        # Add default_settings columns if missing
+        for col, sql in [
+            ("default_sort_order", "ALTER TABLE collections ADD COLUMN default_sort_order VARCHAR"),
+            ("default_show_jump_to_bar", "ALTER TABLE collections ADD COLUMN default_show_jump_to_bar BOOLEAN"),
+            ("default_jump_button_type", "ALTER TABLE collections ADD COLUMN default_jump_button_type VARCHAR"),
+            ("default_show_color_coding", "ALTER TABLE collections ADD COLUMN default_show_color_coding BOOLEAN"),
+            ("default_edit_mode", "ALTER TABLE collections ADD COLUMN default_edit_mode BOOLEAN"),
+        ]:
+            if col not in names:
+                conn.execute(text(sql))
+                conn.commit()
+                logger.info(f"Added collections.{col} column")
 
 
 def init_db():

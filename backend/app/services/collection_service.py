@@ -170,6 +170,37 @@ class CollectionService:
         logger.info(f"Updated sections for collection: {collection.name}")
         return collection
 
+    def update_collection_settings(
+        self,
+        collection_id: str,
+        default_sort_order: str = None,
+        default_show_jump_to_bar: bool = None,
+        default_jump_button_type: str = None,
+        default_show_color_coding: bool = None,
+        default_edit_mode: bool = None,
+    ) -> Optional[Collection]:
+        """Update default display settings for a collection."""
+        collection = self.db.query(Collection).filter(Collection.id == collection_id).first()
+        if not collection:
+            return None
+        if default_sort_order is not None:
+            if default_sort_order not in ('alphabetical', 'curated'):
+                raise ValueError("default_sort_order must be 'alphabetical' or 'curated'")
+            collection.default_sort_order = default_sort_order
+        if default_show_jump_to_bar is not None:
+            collection.default_show_jump_to_bar = default_show_jump_to_bar
+        if default_jump_button_type is not None:
+            if default_jump_button_type not in ('letter-ranges', 'number-ranges', 'sections'):
+                raise ValueError("default_jump_button_type must be 'letter-ranges', 'number-ranges', or 'sections'")
+            collection.default_jump_button_type = default_jump_button_type
+        if default_show_color_coding is not None:
+            collection.default_show_color_coding = default_show_color_coding
+        if default_edit_mode is not None:
+            collection.default_edit_mode = default_edit_mode
+        self.db.commit()
+        logger.info(f"Updated settings for collection: {collection.name}")
+        return collection
+
     def delete_collection(self, collection_id: str) -> bool:
         """
         Delete a collection

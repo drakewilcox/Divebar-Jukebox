@@ -22,6 +22,12 @@ class Collection(Base):
     is_active = Column(Boolean, default=True)
     sections_enabled = Column(Boolean, default=False, nullable=False, server_default="0")
     sections = Column(JSON, nullable=True)  # List of {"order": int, "name": str, "color": str}, 3-10 when enabled
+    # Collection default settings (used when viewing this collection in jukebox)
+    default_sort_order = Column(String, nullable=True)  # 'alphabetical' | 'curated'
+    default_show_jump_to_bar = Column(Boolean, nullable=True)
+    default_jump_button_type = Column(String, nullable=True)  # 'letter-ranges' | 'number-ranges' | 'sections'
+    default_show_color_coding = Column(Boolean, nullable=True)
+    default_edit_mode = Column(Boolean, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, server_default=func.now())
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, server_default=func.now())
     
