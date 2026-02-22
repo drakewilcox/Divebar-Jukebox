@@ -448,7 +448,13 @@
   pointer-events: none;
 }
 
-.album-item {
+.album-checkbox-wrap {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.collection-manager .album-item {
   display: flex;
   align-items: center;
   gap: 0.75rem;

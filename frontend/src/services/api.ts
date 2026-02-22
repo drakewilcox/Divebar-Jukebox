@@ -102,6 +102,16 @@ export const adminApi = {
       sections?: { order: number; name: string; color: string; start_slot?: number; end_slot?: number }[];
     }
   ) => api.put(`/admin/collections/${collectionId}/sections`, data),
+  updateCollectionSettings: (
+    collectionId: string,
+    data: {
+      default_sort_order?: 'alphabetical' | 'curated';
+      default_show_jump_to_bar?: boolean;
+      default_jump_button_type?: 'letter-ranges' | 'number-ranges' | 'sections';
+      default_show_color_coding?: boolean;
+      default_edit_mode?: boolean;
+    }
+  ) => api.put(`/admin/collections/${collectionId}/settings`, data),
   updateCollectionAlbums: (
     slug: string,
     album_id: string,

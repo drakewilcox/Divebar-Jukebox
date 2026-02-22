@@ -1,0 +1,119 @@
+.collection-settings {
+  padding: 0.5rem 0;
+}
+
+.collection-settings-hint {
+  margin: 0 0 1rem 0;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.collection-settings-section {
+  margin-bottom: 1.5rem;
+}
+
+.collection-settings-section h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+  color: var(--vintage-cream);
+}
+
+.collection-settings .form-group {
+  margin-bottom: 1rem;
+}
+
+.collection-settings .form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+/* Override .form-group label so radio option is a row: radio left, label right — match SettingsModal */
+.collection-settings .form-group label.radio-option {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  margin-bottom: 0;
+  font-weight: normal;
+  color: var(--text-primary);
+}
+
+.collection-settings .radio-group {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.collection-settings .radio-option {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  cursor: pointer;
+  color: var(--text-primary);
+  min-height: 1.25rem;
+}
+
+.collection-settings .radio-option input {
+  flex-shrink: 0;
+  order: 1;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
+  margin-right: 0.875rem;
+  accent-color: var(--lcd-green);
+  cursor: pointer;
+}
+
+.collection-settings .radio-option span {
+  order: 2;
+}
+
+.collection-settings .help-text {
+  margin: 0.25rem 0 0 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.collection-settings .toggle-label {
+  display: inline-block;
+  cursor: pointer;
+}
+
+.collection-settings .toggle-label-content {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.collection-settings .toggle-checkbox {
+  accent-color: var(--lcd-green);
+  cursor: pointer;
+}
+
+.collection-settings .toggle-text {
+  color: var(--text-primary);
+}
+
+.collection-settings .radio-group-label.jump-type h3 {
+  margin: 1rem 0 0.5rem 0;
+  font-size: 1rem;
+}
+
+.collection-settings-actions {
+  margin-top: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.collection-settings-error {
+  margin: 0;
+  color: #ff6b6b;
+  font-size: 0.9rem;
+}

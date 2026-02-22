@@ -16,6 +16,12 @@ export interface Collection {
   is_active: boolean;
   sections_enabled?: boolean;
   sections?: CollectionSection[] | null;
+  /** Default display settings when viewing this collection in the jukebox */
+  default_sort_order?: 'alphabetical' | 'curated' | null;
+  default_show_jump_to_bar?: boolean | null;
+  default_jump_button_type?: 'letter-ranges' | 'number-ranges' | 'sections' | null;
+  default_show_color_coding?: boolean | null;
+  default_edit_mode?: boolean | null;
 }
 
 export interface Album {
