@@ -351,14 +351,14 @@
   justify-content: flex-end;
 }
 
-/* Match height to LCD display: digits 42px + label + padding ≈ 79px */
+/* Match height to LCD display: digits 42px + label + padding ≈ 79px; extra for progress bar */
 .now-playing-mini {
   display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0 0.75rem;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0;
+  padding: 0 0.75rem 0.4rem;
   min-height: 81px;
-  height: 79px;
   width: 320px;
   flex-shrink: 0;
   box-sizing: border-box;
@@ -368,6 +368,35 @@
     inset 0 2px 8px rgba(0, 0, 0, 0.8),
     inset 0 0 30px rgba(0, 80, 20, 0.3);
   cursor: pointer;
+}
+
+.now-playing-mini-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 79px;
+}
+
+.now-playing-mini-progress {
+  height: 10px;
+  min-height: 10px;
+  margin-top: 2px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 4px;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.now-playing-mini-progress:hover {
+  background: rgba(0, 40, 10, 0.6);
+}
+
+.now-playing-mini-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--lcd-green-dim), var(--lcd-green));
+  border-radius: 4px;
+  transition: width 0.15s ease;
+  box-shadow: 0 0 6px rgba(100, 255, 100, 0.4);
 }
 
 .now-playing-cover-wrap {
