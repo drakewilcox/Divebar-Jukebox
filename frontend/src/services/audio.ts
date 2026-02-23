@@ -31,6 +31,9 @@ class AudioService {
   private isCrossfading = false;
   /** Duration (seconds) used for the current crossfade schedule; used to reschedule on seek */
   private scheduledDurationSec = 0;
+  /** Gapless: next track preloaded when apply_crossfade is false (same-album consecutive) */
+  private gaplessNextTrackId: string | null = null;
+  private gaplessNextReplaygainDb: number | null = null;
 
   constructor() {
     this.audioA = new Audio();
@@ -56,8 +59,13 @@ class AudioService {
   };
 
   private setupEventListeners() {
-    const onEnded = () => {
+    const onEnded = (e: Event) => {
       if (this.isCrossfading) return;
+      const el = e.target as HTMLAudioElement;
+      if (el === this.currentAudio && this.gaplessNextTrackId) {
+        this.finishGaplessSwitch();
+        return;
+      }
       window.dispatchEvent(new CustomEvent('track-ended'));
     };
     this.audioA.addEventListener('ended', onEnded);
@@ -69,6 +77,11 @@ class AudioService {
 
   getCrossfadeSeconds(): number {
     return this.crossfadeSeconds;
+  }
+
+  /** Current track id (for UI to avoid reloading after gapless/crossfade). */
+  getCurrentTrackId(): string | null {
+    return this.currentTrackId;
   }
 
   /**
@@ -85,6 +98,8 @@ class AudioService {
       return;
     }
     this.clearCrossfadeSchedule();
+    this.gaplessNextTrackId = null;
+    this.gaplessNextReplaygainDb = null;
     this.nextAudio.pause();
     this.nextAudio.removeAttribute('src');
     this.nextAudio.load();
@@ -105,12 +120,18 @@ class AudioService {
       const elDur = this.currentAudio.duration;
       const dur = Number.isFinite(elDur) && elDur > 0 ? elDur : fallbackDurationSec;
       if (dur > 0) this.scheduleCrossfade(dur);
+      if (this.crossfadeTimeoutId == null && this.collectionSlug) {
+        this.tryPreloadGapless();
+      }
     }, { once: true });
     if (fallbackDurationSec > 0) {
       this.scheduleFallbackId = setTimeout(() => {
         this.scheduleFallbackId = null;
         if (this.crossfadeTimeoutId == null && this.currentTrackId === trackId) {
           this.scheduleCrossfade(fallbackDurationSec);
+        }
+        if (this.crossfadeTimeoutId == null && this.currentTrackId === trackId && this.collectionSlug) {
+          this.tryPreloadGapless();
         }
       }, 600);
     }
@@ -127,6 +148,8 @@ class AudioService {
 
   stop() {
     this.clearCrossfadeSchedule();
+    this.gaplessNextTrackId = null;
+    this.gaplessNextReplaygainDb = null;
     this.currentAudio.pause();
     this.currentAudio.currentTime = 0;
     this.nextAudio.pause();
@@ -178,6 +201,54 @@ class AudioService {
       cancelAnimationFrame(this.crossfadeAnimationId);
       this.crossfadeAnimationId = null;
     }
+  }
+
+  /** Preload next track when backend says apply_crossfade is false (same-album consecutive). */
+  private async tryPreloadGapless() {
+    if (!this.collectionSlug || this.crossfadeTimeoutId != null) return;
+    try {
+      const res = await playbackApi.getNextTransition(this.collectionSlug);
+      const data = res.data;
+      if (data.apply_crossfade || !data.next_track_id) return;
+      if (DEBUG_CROSSFADE) {
+        console.log('[gapless] Preloading next track:', data.next_track_id);
+      }
+      const nextEl = this.nextAudio;
+      nextEl.src = playbackApi.getStreamUrl(data.next_track_id);
+      nextEl.load();
+      this.gaplessNextTrackId = data.next_track_id;
+      this.gaplessNextReplaygainDb = data.next_replaygain_db ?? null;
+      this.applyVolumeTo(nextEl, this.gaplessNextReplaygainDb);
+    } catch (err) {
+      console.error('Gapless preload failed:', err);
+    }
+  }
+
+  /** Switch to preloaded track immediately on ended (gapless). */
+  private async finishGaplessSwitch() {
+    if (!this.gaplessNextTrackId) return;
+    const nextTrackId = this.gaplessNextTrackId;
+    const nextReplaygainDb = this.gaplessNextReplaygainDb;
+    this.gaplessNextTrackId = null;
+    this.gaplessNextReplaygainDb = null;
+    this.currentAudio.pause();
+    this.currentAudio.currentTime = 0;
+    this.currentAudio.removeAttribute('src');
+    this.currentAudio.load();
+    this.currentIndex = this.currentIndex === 0 ? 1 : 0;
+    this.currentTrackId = nextTrackId;
+    this.currentReplaygainDb = nextReplaygainDb;
+    this.applyVolumeTo(this.currentAudio, nextReplaygainDb);
+    this.currentAudio.play().catch((e) => console.error('Gapless play failed:', e));
+    if (this.collectionSlug) {
+      try {
+        await playbackApi.skip(this.collectionSlug);
+      } catch (e) {
+        console.error('Skip after gapless failed:', e);
+      }
+    }
+    window.dispatchEvent(new CustomEvent('crossfade-complete', { detail: { collectionSlug: this.collectionSlug } }));
+    this.tryPreloadGapless();
   }
 
   private scheduleCrossfade(durationSeconds: number) {

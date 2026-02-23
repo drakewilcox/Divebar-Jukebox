@@ -102,7 +102,10 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [x] Star and recommended icons should append to a word so they dont break a line. 
 - [x] Star and Recommended should possibly still display on songs with long titles. 
 - [x] Double word issue on single word tracks because of appending favorite/recommended icon
-- [ ] Disable Save Button in Edit Modal until there are unsaved changes. 
+- [x] Remove save and close buttons from edit album modal and just make all fields save onBlur()
+- [ ] Selection Number for songs in Queue (example 042-01) represent their place when added to the Queue, causing the number to be different when sort order is changed. Could be fixed by removing Selection display, or updating fetch selection number logic. 
+- [ ] make Collection Settings form auto save
+- [ ] Remove double scrollbars on Selections Tab of Admin Collection Manager 
 
 ### Admin Features
 
@@ -136,10 +139,10 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [x] import replay-gain from track meta data and implement in playback. 
 = [x] Add Progress bar to Now playing mini component. 
 - [x] Add functionality to "Hit" button, so that in section view, favorites from selected Section are added first.
-- [ ] Add functionality in Edit Album Modal to be able to edit Start and End points for a track (only used on play single track mode)  
 - [ ] Add 'play random after queue ends' feature to be toggled in settings. 
+- [ ] Add functionality in Edit Album Modal to be able to edit Start and End points for a track (only used on play single track mode)  
 - [ ] Add feature for creating custom queue lists (basically a playlist) per collection. 
-- [ ] Add a "+" Icon to Edit Album Modal next to each song that allow the user to add to a song to a Custom Queue (Only Available when in a collection specific view).
+- [ ] Add a "+" Icon to Edit Album Modal next to each song that allows the user to add to a song to a Custom Queue (Only Available when in a collection specific view).
 - [ ] Add a Queue Log to backend, that can be viewed on Frontend (tied to user id).
 - [ ] From the Queue Log view, add ability to select songs from list and save selected as queue collection.
 - [ ] Add a song list view to search by song and add songs to Custom Queue. 

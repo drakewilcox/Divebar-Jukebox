@@ -50,19 +50,26 @@ export default function QueueDisplay({ collection, onQueueCleared }: Props) {
     return () => clearInterval(interval);
   }, []);
   
-  // Reset position when track changes
+  // Sync playback state to audio (skip loadTrack when already on this track, e.g. after gapless/crossfade)
   useEffect(() => {
-    if (playbackState?.current_track_id) {
-      setCurrentPositionMs(0);
-      const replaygain =
-        playbackState.current_track?.replaygain_track_gain ?? undefined;
-      const durationMs = playbackState.current_track?.duration_ms ?? undefined;
-      audioService.loadTrack(playbackState.current_track_id, replaygain, collection.slug, durationMs);
-      if (playbackState.is_playing) {
+    if (!playbackState?.current_track_id) return;
+    if (audioService.getCurrentTrackId() === playbackState.current_track_id) {
+      if (playbackState.is_playing && !audioService.isPlaying()) {
         audioService.play();
+      } else if (!playbackState.is_playing && audioService.isPlaying()) {
+        audioService.pause();
       }
+      return;
     }
-  }, [playbackState?.current_track_id, collection.slug]);
+    setCurrentPositionMs(0);
+    const replaygain =
+      playbackState.current_track?.replaygain_track_gain ?? undefined;
+    const durationMs = playbackState.current_track?.duration_ms ?? undefined;
+    audioService.loadTrack(playbackState.current_track_id, replaygain, collection.slug, durationMs);
+    if (playbackState.is_playing) {
+      audioService.play();
+    }
+  }, [playbackState?.current_track_id, playbackState?.is_playing, collection.slug]);
   
   // Sync play/pause state
   useEffect(() => {
