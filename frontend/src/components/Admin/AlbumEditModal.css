@@ -167,7 +167,7 @@
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--text-primary);
-  text-transform: uppercase;
+  /* text-transform: uppercase; */
   font-family: var(--font-mono);
 }
 

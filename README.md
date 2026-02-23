@@ -137,6 +137,7 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [ ] Add feature for creating custom queue lists (basically a playlist) per collection. 
 - [ ] in addition to this, maybe create the ability to record the Queue History, and then save that history as queue collection.
 - [x] import replay-gain from track meta data and implement in playback. 
+= [x] Add Progress bar to Now playing mini component. 
 
 
 ### Visual Enhancements
