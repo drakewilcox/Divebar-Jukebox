@@ -208,8 +208,7 @@ export default function SettingsModal({
         <div className="modal-body">
           <div className="settings-section">
             <h3>Collection</h3>
-            <div className="form-group">
-              <label>Current Collection</label>
+            <div className="form-group collection-row">
               <div className="form-select-wrap" ref={collectionSelectRef}>
                 <button
                   type="button"
@@ -219,7 +218,9 @@ export default function SettingsModal({
                   aria-haspopup="listbox"
                   aria-label="Current collection"
                 >
-                  {currentCollection.name}
+                  {currentCollection.slug === defaultCollectionSlug
+                    ? `${currentCollection.name} (Default)`
+                    : currentCollection.name}
                 </button>
                 {collectionSelectOpen && (
                   <ul
@@ -245,31 +246,22 @@ export default function SettingsModal({
                           setCollectionSelectOpen(false);
                         }}
                       >
-                        {collection.name}
+                        {collection.slug === defaultCollectionSlug
+                          ? `${collection.name} (Default)`
+                          : collection.name}
                       </li>
                     ))}
                   </ul>
                 )}
               </div>
-            </div>
-
-            <div className="form-group">
-              <label>Default Collection</label>
-              <div className="default-collection-row">
-                <span className="default-collection-name">
-                  {collections.find(c => c.slug === defaultCollectionSlug)?.name || 'All Albums'}
-                </span>
-                <button
-                  className="set-default-button"
-                  onClick={handleSetAsDefault}
-                  disabled={isCurrentDefault}
-                >
-                  {isCurrentDefault ? '✓ Default' : 'Set as Default'}
-                </button>
-              </div>
-              <p className="help-text">
-                The default collection will be loaded when you open the jukebox.
-              </p>
+              <button
+                type="button"
+                className="set-default-button"
+                onClick={handleSetAsDefault}
+                disabled={isCurrentDefault}
+              >
+                Set as Default
+              </button>
             </div>
           </div>
 
@@ -299,14 +291,14 @@ export default function SettingsModal({
                 </label>
               </div>
               <p className="help-text">
-                Curated uses the collection&apos;s custom order. Alphabetical sorts by artist name.
+                Curated uses the collection&apos;s custom order. Alphabetical sorts by artist name
               </p>
             </div>
           </div>
 
-          <div className="settings-section">
-            <h3>Jump-To Buttons</h3>
-            <div className="form-group">
+          <div className="settings-section settings-block">
+            <div className="settings-row settings-row-toggle">
+              <h3>Jump-To Buttons</h3>
               <label className="toggle-label">
                 <div className="toggle-label-content">
                   <input
@@ -318,121 +310,122 @@ export default function SettingsModal({
                   <span className="toggle-text">{showJumpToBar ? 'Show' : 'Hide'}</span>
                 </div>
               </label>
-              <p className="help-text">
-                When enabled, a bar above the carousel lets you jump to ranges or sections.
-              </p>
             </div>
+            <p className="help-text">
+              When enabled, buttons above the control bar can be used to jump to letter/number ranges or sections
+            </p>
+          </div>
 
-            {showJumpToBar && (
-              <div className="form-group">
-                <label className="radio-group-label jump-type"><h3>Jump button type</h3></label>
-                <div className="radio-group" role="radiogroup" aria-label="Jump button type">
-                  {sortOrder === 'alphabetical' && (
-                    <>
-                      <label className="radio-option">
-                        <input
-                          type="radio"
-                          name="jumpButtonType"
-                          value="letter-ranges"
-                          checked={jumpButtonType === 'letter-ranges'}
-                          onChange={() => setJumpButtonType('letter-ranges')}
-                        />
-                        <span>Letter ranges</span>
-                      </label>
-                      <label className="radio-option">
-                        <input
-                          type="radio"
-                          name="jumpButtonType"
-                          value="number-ranges"
-                          checked={jumpButtonType === 'number-ranges'}
-                          onChange={() => setJumpButtonType('number-ranges')}
-                        />
-                        <span>Number ranges</span>
-                      </label>
-                    </>
-                  )}
-                  {sortOrder === 'curated' && (
-                    <>
-                      <label className="radio-option">
-                        <input
-                          type="radio"
-                          name="jumpButtonType"
-                          value="number-ranges"
-                          checked={jumpButtonType === 'number-ranges'}
-                          onChange={() => setJumpButtonType('number-ranges')}
-                        />
-                        <span>Number ranges</span>
-                      </label>
-                      {sectionsEnabledForCollection && (
-                          <label className="radio-option">
-                            <input
-                              type="radio"
-                              name="jumpButtonType"
-                              value="sections"
-                              checked={jumpButtonType === 'sections'}
-                              onChange={() => setJumpButtonType('sections')}
-                            />
-                            <span>Sections</span>
-                          </label>
-                        )}
-                    </>
-                  )}
-                </div>
-                <p className="help-text">
-                  {sortOrder === 'curated' && sectionsEnabledForCollection
-                    ? 'Sections shows one button per collection section and jumps to the start of each section.'
-                    : 'Number ranges split the list into 8 ranges (e.g. 1–10, 11–20).'}
-                </p>
-              </div>
-            )}
-
-            {showJumpToBar &&
-              sortOrder === 'curated' &&
-              sectionsEnabledForCollection &&
-              jumpButtonType === 'sections' && (
+          <div className={`settings-section form-group ${!showJumpToBar ? 'settings-block-disabled' : ''}`}>
+            <label className="radio-group-label jump-type">Jump Button Type</label>
+            <div className="radio-group" role="radiogroup" aria-label="Jump button type" aria-disabled={!showJumpToBar}>
+              {sortOrder === 'alphabetical' && (
                 <>
-                  <h3>Color Coding</h3>
-                  <div className="form-group">
-                    <label className="toggle-label">
-                      <div className="toggle-label-content">
-                        <input
-                          type="checkbox"
-                          checked={showColorCoding}
-                          onChange={(e) => setShowColorCoding(e.target.checked)}
-                          className="toggle-checkbox"
-                        />
-                        <span className="toggle-text">{showColorCoding ? 'Show' : 'Hide'}</span>
-                      </div>
-                    </label>
-                    <p className="help-text">
-                      When enabled, section buttons and album cards use each section&apos;s color.
-                    </p>
-                  </div>
+                  <label className="radio-option">
+                    <input
+                      type="radio"
+                      name="jumpButtonType"
+                      value="letter-ranges"
+                      checked={jumpButtonType === 'letter-ranges'}
+                      onChange={() => setJumpButtonType('letter-ranges')}
+                      disabled={!showJumpToBar}
+                    />
+                    <span>Letter Ranges</span>
+                  </label>
+                  <label className="radio-option">
+                    <input
+                      type="radio"
+                      name="jumpButtonType"
+                      value="number-ranges"
+                      checked={jumpButtonType === 'number-ranges'}
+                      onChange={() => setJumpButtonType('number-ranges')}
+                      disabled={!showJumpToBar}
+                    />
+                    <span>Number Ranges</span>
+                  </label>
                 </>
               )}
+              {sortOrder === 'curated' && (
+                <>
+                  <label className="radio-option">
+                    <input
+                      type="radio"
+                      name="jumpButtonType"
+                      value="number-ranges"
+                      checked={jumpButtonType === 'number-ranges'}
+                      onChange={() => setJumpButtonType('number-ranges')}
+                      disabled={!showJumpToBar}
+                    />
+                    <span>Number Ranges</span>
+                  </label>
+                  {sectionsEnabledForCollection && (
+                    <label className="radio-option">
+                      <input
+                        type="radio"
+                        name="jumpButtonType"
+                        value="sections"
+                        checked={jumpButtonType === 'sections'}
+                        onChange={() => setJumpButtonType('sections')}
+                        disabled={!showJumpToBar}
+                      />
+                      <span>Sections</span>
+                    </label>
+                  )}
+                </>
+              )}
+            </div>
+            {/* <p className="help-text">
+              {sortOrder === 'curated' && sectionsEnabledForCollection
+                ? 'Sections shows one button per collection section and jumps to the start of each section.'
+                : 'Number ranges split the list into 8 ranges (e.g. 1–10, 11–20).'}
+            </p> */}
+          </div>
+
+          <div className={`settings-section settings-block ${!(showJumpToBar && sortOrder === 'curated' && sectionsEnabledForCollection && jumpButtonType === 'sections') ? 'settings-block-disabled' : ''}`}>
+            <div className="settings-row settings-row-toggle">
+              <h3>Color Coding</h3>
+              <label className="toggle-label">
+                <div className="toggle-label-content">
+                  <input
+                    type="checkbox"
+                    checked={showColorCoding}
+                    onChange={(e) => setShowColorCoding(e.target.checked)}
+                    className="toggle-checkbox"
+                    disabled={!(showJumpToBar && sortOrder === 'curated' && sectionsEnabledForCollection && jumpButtonType === 'sections')}
+                  />
+                  <span className="toggle-text">{showColorCoding ? 'Show' : 'Hide'}</span>
+                </div>
+              </label>
+            </div>
+            <p className="help-text">
+              When enabled, section buttons and album cards use each section&apos;s color
+            </p>
           </div>
 
           <div className="settings-section">
-            <h3>Fade between songs</h3>
+            <h3>Crossfade</h3>
             <div className="form-group">
-              <label htmlFor="settings-crossfade">
-                Crossfade: {crossfadeSeconds} second{crossfadeSeconds !== 1 ? 's' : ''}
-              </label>
-              <input
-                id="settings-crossfade"
-                type="range"
-                min={0}
-                max={12}
-                value={crossfadeSeconds}
-                onChange={(e) => setCrossfadeSeconds(Number(e.target.value))}
-                className="settings-crossfade-slider"
-                aria-valuemin={0}
-                aria-valuemax={12}
-                aria-valuenow={crossfadeSeconds}
-                aria-valuetext={`${crossfadeSeconds} seconds`}
-              />
+              <div className="settings-crossfade-row">
+                <input
+                  id="settings-crossfade"
+                  type="range"
+                  min={0}
+                  max={12}
+                  value={crossfadeSeconds}
+                  onChange={(e) => setCrossfadeSeconds(Number(e.target.value))}
+                  className="settings-crossfade-slider"
+                  style={{ ['--crossfade-pct' as string]: `${(crossfadeSeconds / 12) * 100}%` }}
+                  aria-valuemin={0}
+                  aria-valuemax={12}
+                  aria-valuenow={crossfadeSeconds}
+                  aria-valuetext={`${crossfadeSeconds} seconds`}
+                />
+                <label htmlFor="settings-crossfade" className="settings-crossfade-label">
+                  {crossfadeSeconds} sec
+                </label>
+              </div>
               <p className="help-text">
-                Blend the end of one song into the start of the next. No fade is used when the next track is the next track on the same album.
+                * No fade is used when the next track is the next track on the same album
               </p>
             </div>
           </div>

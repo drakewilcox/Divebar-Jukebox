@@ -79,7 +79,7 @@
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 0rem;
 }
 
 .settings-modal {
@@ -89,19 +89,72 @@
 }
 
 .settings-section {
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
+}
+
+.settings-section:last-child {
+  margin-bottom: 0;
 }
 
 .settings-section h3 {
   font-size: 1.1rem;
   color: var(--vintage-cream);
-  margin-bottom: 1rem;
+  margin: 0 0 0.75rem 0;
+  padding-bottom: 0.35rem;
+  /* border-bottom: 1px solid var(--vintage-cream); */
+}
+
+.settings-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.settings-block-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.settings-block-disabled input:disabled {
+  cursor: not-allowed;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.settings-row.settings-row-toggle {
   padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--vintage-cream);
+  /* border-bottom: 1px solid var(--vintage-cream); */
+}
+
+.settings-row.settings-row-toggle h3 {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.collection-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-bottom: 0rem;
+}
+
+.collection-row .form-select-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.collection-row .set-default-button {
+  flex-shrink: 0;
 }
 
 .form-group {
-  margin-bottom: 1.5rem;
+  margin-bottom: 0rem;
   min-width: 0;
   width: 100%;
 }
@@ -130,18 +183,23 @@
   border-bottom: 1px solid var(--vintage-cream);
 }
 
-.jump-type h3 {
-  font-family: var(--font-ui);
-  font-size: .75rem;
+/* Jump button type label styled like section h3 (Collection, Sort Order, etc.) */
+.settings-section .radio-group-label.jump-type {
+  font-family: inherit;
+  font-size: 1.1rem;
+  font-weight: 700;
   color: var(--vintage-cream);
-  margin: 2rem 0 8px 0;
-  border-bottom: none;
+  margin: 0 0 0.75rem 0;
+  padding-bottom: 0.35rem;
+  /* border-bottom: 1px solid var(--vintage-cream); */
+  display: block;
 }
 
 .radio-group {
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 1rem;
   margin-bottom: 0.5rem;
 }
 
@@ -268,23 +326,6 @@
   border-radius: 0 0 5px 5px;
 }
 
-.default-collection-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.75rem;
-  background-color: rgba(0, 0, 0, 0.3);
-  border-radius: 6px;
-  border: 1px solid color-mix(in srgb, var(--vintage-cream) 30%, transparent);
-}
-
-.default-collection-name {
-  font-size: 1rem;
-  color: var(--vintage-cream);
-  font-weight: 600;
-}
-
 .set-default-button {
   padding: 0.5rem 1rem;
   font-size: 0.9rem;
@@ -310,16 +351,11 @@
 }
 
 .toggle-label {
-  display: flex;
-  flex-direction: column;
+  display: inline-flex;
+  flex-direction: row;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
   cursor: pointer;
-  padding: 0.75rem;
-  background-color: rgba(0, 0, 0, 0.3);
-  border-radius: 6px;
-  border: 1px solid color-mix(in srgb, var(--vintage-cream) 30%, transparent);
-  transition: all 0.2s;
   -webkit-tap-highlight-color: transparent;
   tap-highlight-color: transparent;
 }
@@ -329,10 +365,6 @@
   flex-direction: row;
   align-items: center;
   gap: 0.5rem;
-}
-
-.toggle-label:hover {
-  border-color: var(--vintage-cream);
 }
 
 .toggle-checkbox {
@@ -448,6 +480,97 @@
   color: var(--text-secondary);
   margin-top: 0.5rem;
   line-height: 1.4;
+  font-style: italic;
+}
+
+.settings-crossfade-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0;
+}
+
+.settings-crossfade-row .settings-crossfade-slider {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+
+
+.settings-crossfade-row .settings-crossfade-label,
+.form-group .settings-crossfade-row .settings-crossfade-label {
+  flex-shrink: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 0 !important;
+  padding: 0;
+  display: inline;
+  cursor: pointer;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+/* Crossfade range slider: thin line (white filled / gray unfilled) + circular drag. Override .form-group input border. */
+.settings-modal .form-group input.settings-crossfade-slider,
+.settings-crossfade-slider {
+  --crossfade-track: #4a4a4a;
+  --crossfade-fill: #fff;
+  display: block;
+  width: 100%;
+  height: 14px;
+  padding: 0;
+  margin: 0;
+  border: none !important;
+  box-shadow: none !important;
+  -webkit-appearance: none;
+  appearance: none;
+  outline: none;
+  cursor: pointer;
+  background: transparent;
+}
+
+.settings-crossfade-slider::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(to right, var(--crossfade-fill) 0, var(--crossfade-fill) var(--crossfade-pct, 0%), var(--crossfade-track) var(--crossfade-pct, 0%), var(--crossfade-track) 100%);
+}
+
+.settings-crossfade-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--crossfade-fill);
+  cursor: pointer;
+  margin-top: -5px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.settings-crossfade-slider::-moz-range-track {
+  width: 100%;
+  height: 4px;
+  background: var(--crossfade-track);
+  border-radius: 2px;
+  border: none;
+}
+
+.settings-crossfade-slider::-moz-range-progress {
+  height: 4px;
+  background: var(--crossfade-fill);
+  border-radius: 2px 0 0 2px;
+}
+
+.settings-crossfade-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--crossfade-fill);
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .modal-footer {
