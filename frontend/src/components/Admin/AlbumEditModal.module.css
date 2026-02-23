@@ -133,7 +133,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 1.23rem;
 }
 
 .album-edit-modal .form-group {
@@ -169,6 +169,7 @@
   color: var(--text-primary);
   /* text-transform: uppercase; */
   font-family: var(--font-mono);
+  padding-bottom: 0.5rem;
 }
 
 .album-edit-modal .form-input {

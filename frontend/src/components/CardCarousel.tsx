@@ -1332,8 +1332,9 @@ function TrackTitle({
 
   // Full title — last word and icons in a nowrap span to prevent orphaned icon
   const words = title.split(' ');
-  const lastWord = words.length > 1 ? words.pop()! : title;
-  const restOfTitle = words.length > 0 ? words.join(' ') + ' ' : '';
+  const hadMultipleWords = words.length > 1;
+  const lastWord = hadMultipleWords ? words.pop()! : title;
+  const restOfTitle = hadMultipleWords && words.length > 0 ? words.join(' ') + ' ' : '';
 
   return (
     <span ref={containerRef} className={styles['track-title']}>

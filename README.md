@@ -101,11 +101,11 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [x] Fix Edit Album Modal form state issue (Album Name not holding state)
 - [x] Star and recommended icons should append to a word so they dont break a line. 
 - [x] Star and Recommended should possibly still display on songs with long titles. 
-- [ ] Double word issue on single word tracks because of appending favorite/recommended icon
+- [x] Double word issue on single word tracks because of appending favorite/recommended icon
 - [ ] Disable Save Button in Edit Modal until there are unsaved changes. 
 
 ### Admin Features
-- [ ] Add ability to add and save custom artwork to an album in edit modal (Local Only)
+
 - [x] Add ability to filter by active in collection list
 - [x] Add functionality for searching collection and library to Admin View
 - [x] Add ability to preview individual tracks in edit modal. 

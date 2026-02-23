@@ -117,50 +117,17 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
     },
   });
 
-  const updateCollectionsMutation = useMutation({
-    mutationFn: async () => {
-      // Get current collections
-      const currentCollections = new Set(albumData.collection_ids);
-      
-      // Find added and removed collections
-      const added = Array.from(selectedCollections).filter(id => !currentCollections.has(id as string));
-      const removed = Array.from(currentCollections).filter(id => !selectedCollections.has(id as string));
-      
-      // Update collection memberships
-      const promises = [];
-      for (const collectionId of added) {
-        const collection = collections?.find(c => c.id === collectionId);
-        if (collection) {
-          promises.push(
-            adminApi.updateCollectionAlbums(collection.slug, albumId, 'add')
-          );
-        }
-      }
-      for (const collectionId of removed) {
-        const collection = collections?.find(c => c.id === collectionId);
-        if (collection) {
-          promises.push(
-            adminApi.updateCollectionAlbums(collection.slug, albumId, 'remove')
-          );
-        }
-      }
-      
-      await Promise.all(promises);
-    },
+  const addOrRemoveCollectionMutation = useMutation({
+    mutationFn: ({ slug, action }: { slug: string; action: 'add' | 'remove' }) =>
+      adminApi.updateCollectionAlbums(slug, albumId, action),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['collection-albums'] });
+      queryClient.invalidateQueries({
+        predicate: (query) =>
+          query.queryKey[0] === 'album-details' && query.queryKey[1] === albumId,
+      });
     },
   });
-
-  const handleSave = async () => {
-    try {
-      await updateAlbumMutation.mutateAsync();
-      await updateCollectionsMutation.mutateAsync();
-      onClose();
-    } catch (error) {
-      console.error('Failed to save album:', error);
-    }
-  };
 
   const handleTrackTitleChange = (trackId: string, newTitle: string) => {
     setTracks(tracks.map(t => t.id === trackId ? { ...t, title: newTitle } : t));
@@ -184,14 +151,19 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
     updateTrackMutation.mutate({ trackId, data: { is_recommended } });
   };
 
-  const toggleCollection = (collectionId: string) => {
+  const toggleCollection = (collection: { id: string; slug: string }) => {
     const newSet = new Set(selectedCollections);
-    if (newSet.has(collectionId)) {
-      newSet.delete(collectionId);
+    const isAdding = !newSet.has(collection.id);
+    if (newSet.has(collection.id)) {
+      newSet.delete(collection.id);
     } else {
-      newSet.add(collectionId);
+      newSet.add(collection.id);
     }
     setSelectedCollections(newSet);
+    addOrRemoveCollectionMutation.mutate({
+      slug: collection.slug,
+      action: isAdding ? 'add' : 'remove',
+    });
   };
 
   const handlePreviewPlay = async (trackId: string) => {
@@ -289,6 +261,20 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
   // Filter out "All Albums" collection from the list
   const editableCollections = collections?.filter(c => c.slug !== 'all') || [];
 
+  const hasAlbumInfoChanges =
+    albumData &&
+    (title !== (albumData.title ?? '') ||
+      artist !== (albumData.artist ?? '') ||
+      (year ?? '') !== (albumData.year ?? ''));
+
+  const handleAlbumInfoBlur = () => {
+    if (hasAlbumInfoChanges && !updateAlbumMutation.isPending) {
+      updateAlbumMutation.mutate(undefined, {
+        onError: (error) => console.error('Failed to save album:', error),
+      });
+    }
+  };
+
   return (
     <div className={styles['modal-overlay']} onClick={onClose}>
       <div className={clsx(styles['modal-content'], styles['album-edit-modal'])} onClick={(e) => e.stopPropagation()}>
@@ -319,6 +305,7 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
+                onBlur={handleAlbumInfoBlur}
                 className={styles['form-input']}
               />
             </div>
@@ -329,6 +316,7 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
                   type="text"
                   value={artist}
                   onChange={(e) => setArtist(e.target.value)}
+                  onBlur={handleAlbumInfoBlur}
                   className={styles['form-input']}
                 />
               </div>
@@ -340,6 +328,7 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
                   pattern="[0-9]*"
                   value={year}
                   onChange={(e) => setYear(e.target.value ? parseInt(e.target.value) : '')}
+                  onBlur={handleAlbumInfoBlur}
                   className={styles['form-input']}
                 />
               </div>
@@ -356,7 +345,8 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
                   <input
                     type="checkbox"
                     checked={selectedCollections.has(collection.id)}
-                    onChange={() => toggleCollection(collection.id)}
+                    onChange={() => toggleCollection(collection)}
+                    disabled={addOrRemoveCollectionMutation.isPending}
                   />
                   {collection.name}
                 </label>
@@ -434,18 +424,6 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
           </div>
         </div>
 
-        <div className={styles['modal-footer']}>
-          <button className={styles['cancel-button']} onClick={onClose}>
-            Cancel
-          </button>
-          <button
-            className={styles['save-button']}
-            onClick={handleSave}
-            disabled={updateAlbumMutation.isPending || updateCollectionsMutation.isPending}
-          >
-            {updateAlbumMutation.isPending || updateCollectionsMutation.isPending ? 'Saving...' : 'Save'}
-          </button>
-        </div>
       </div>
     </div>
   );
