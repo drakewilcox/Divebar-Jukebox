@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { MdAdminPanelSettings } from 'react-icons/md';
 import { Collection } from '../types';
+import type { HitButtonMode } from '../types';
 import { settingsApi, queueApi, playbackApi } from '../services/api';
 import { audioService } from '../services/audio';
 import { useJukeboxStore } from '../stores/jukeboxStore';
@@ -31,6 +32,7 @@ export default function SettingsModal({
   const [jumpButtonType, setJumpButtonType] = useState<'letter-ranges' | 'number-ranges' | 'sections'>('number-ranges');
   const [showColorCoding, setShowColorCoding] = useState<boolean>(true);
   const [crossfadeSeconds, setCrossfadeSeconds] = useState<number>(0);
+  const [hitButtonMode, setHitButtonMode] = useState<HitButtonMode>('favorites');
   const [collectionSelectOpen, setCollectionSelectOpen] = useState(false);
   const collectionSelectRef = useRef<HTMLDivElement>(null);
 
@@ -102,12 +104,23 @@ export default function SettingsModal({
             const n = x != null ? parseInt(x, 10) : NaN;
             return Number.isNaN(n) || n < 0 || n > 12 ? 0 : n;
           })();
+    const hbm = c.default_hit_button_mode;
+    const hitButtonMode: HitButtonMode =
+      hbm === 'prioritize-section' || hbm === 'favorites' || hbm === 'favorites-and-recommended' || hbm === 'any'
+        ? hbm
+        : (() => {
+            const s = localStorage.getItem('hitButtonMode');
+            return s === 'prioritize-section' || s === 'favorites-and-recommended' || s === 'any'
+              ? (s as HitButtonMode)
+              : 'favorites';
+          })();
     setSortOrder(sortOrder);
     setShowJumpToBar(showJumpToBar);
     setJumpButtonType(jumpButtonType);
     setShowColorCoding(showColorCoding);
     setCrossfadeSeconds(crossfade);
-  }, [currentCollection.id, currentCollection.default_sort_order, currentCollection.default_show_jump_to_bar, currentCollection.default_jump_button_type, currentCollection.default_show_color_coding, currentCollection.default_crossfade_seconds]);
+    setHitButtonMode(hitButtonMode);
+  }, [currentCollection.id, currentCollection.default_sort_order, currentCollection.default_show_jump_to_bar, currentCollection.default_jump_button_type, currentCollection.default_show_color_coding, currentCollection.default_crossfade_seconds, currentCollection.default_hit_button_mode]);
 
   useEffect(() => {
     const slug = settings?.default_collection_slug ?? localStorage.getItem('defaultCollection') ?? 'all';
@@ -136,19 +149,30 @@ export default function SettingsModal({
     }
   }, [sortOrder, sectionsEnabledForCollection, jumpButtonType]);
 
+  // Reset "Prioritize Current Section" when sections mode is no longer active
+  useEffect(() => {
+    if (
+      hitButtonMode === 'prioritize-section' &&
+      !(jumpButtonType === 'sections' && sectionsEnabledForCollection)
+    ) {
+      setHitButtonMode('favorites');
+    }
+  }, [jumpButtonType, sectionsEnabledForCollection, hitButtonMode]);
+
   useEffect(() => {
     localStorage.setItem('sortOrder', sortOrder);
     localStorage.setItem('showJumpToBar', String(showJumpToBar));
     localStorage.setItem('jumpButtonType', jumpButtonType);
     localStorage.setItem('showColorCoding', String(showColorCoding));
     localStorage.setItem('crossfadeSeconds', String(crossfadeSeconds));
+    localStorage.setItem('hitButtonMode', hitButtonMode);
     window.dispatchEvent(
       new CustomEvent('navigation-settings-changed', {
-        detail: { sortOrder, showJumpToBar, jumpButtonType, showColorCoding },
+        detail: { sortOrder, showJumpToBar, jumpButtonType, showColorCoding, hitButtonMode },
       })
     );
     window.dispatchEvent(new CustomEvent('crossfade-changed', { detail: crossfadeSeconds }));
-  }, [sortOrder, showJumpToBar, jumpButtonType, showColorCoding, crossfadeSeconds]);
+  }, [sortOrder, showJumpToBar, jumpButtonType, showColorCoding, crossfadeSeconds, hitButtonMode]);
 
   const handleSetAsDefault = async () => {
     try {
@@ -278,6 +302,8 @@ export default function SettingsModal({
             onShowColorCodingChange={setShowColorCoding}
             crossfadeSeconds={crossfadeSeconds}
             onCrossfadeSecondsChange={setCrossfadeSeconds}
+            hitButtonMode={hitButtonMode}
+            onHitButtonModeChange={setHitButtonMode}
             sectionsEnabledForCollection={sectionsEnabledForCollection}
             namePrefix="settings-"
           />

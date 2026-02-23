@@ -29,6 +29,7 @@ class Collection(Base):
     default_show_color_coding = Column(Boolean, nullable=True)
     default_edit_mode = Column(Boolean, nullable=True)
     default_crossfade_seconds = Column(Integer, nullable=True)  # 0-12, null = use 0
+    default_hit_button_mode = Column(String, nullable=True)  # 'favorites' | 'favorites-and-recommended' | 'any' | 'prioritize-section'
     created_at = Column(DateTime, default=datetime.utcnow, server_default=func.now())
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, server_default=func.now())
     

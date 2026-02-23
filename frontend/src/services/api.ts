@@ -54,10 +54,21 @@ export const queueApi = {
     api.delete('/queue', { params: { collection } }),
   reorder: (collection: string, queue_ids: string[]) =>
     api.put('/queue/order', { queue_ids }, { params: { collection } }),
-  addFavoritesRandom: (collection: string, count: number = 10) =>
+  addFavoritesRandom: (
+    collection: string,
+    count: number = 10,
+    mode: string = 'favorites',
+    sectionName?: string,
+    sectionStartSlot?: number,
+    sectionEndSlot?: number,
+  ) =>
     api.post<{ message: string; added: number }>('/queue/add-favorites-random', {
       collection,
       count,
+      mode,
+      ...(sectionName !== undefined ? { section_name: sectionName } : {}),
+      ...(sectionStartSlot !== undefined ? { section_start_slot: sectionStartSlot } : {}),
+      ...(sectionEndSlot !== undefined ? { section_end_slot: sectionEndSlot } : {}),
     }),
 };
 
@@ -116,6 +127,7 @@ export const adminApi = {
       default_show_color_coding?: boolean;
       default_edit_mode?: boolean;
       default_crossfade_seconds?: number;
+      default_hit_button_mode?: string;
     }
   ) => api.put(`/admin/collections/${collectionId}/settings`, data),
   updateCollectionAlbums: (

@@ -1,10 +1,6 @@
 /* ── Sections ─────────────────────────────────────────────────────────────── */
 
 .settings-section {
-  margin-bottom: 1rem;
-}
-
-.settings-section:last-child {
   margin-bottom: 0;
 }
 
@@ -207,6 +203,60 @@
   margin-top: 0.5rem;
   line-height: 1.4;
   font-style: italic;
+}
+
+/* ── Hit Button select ────────────────────────────────────────────────────── */
+
+.select-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.select-wrap::after {
+  content: '▼';
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.6rem;
+  color: var(--vintage-cream);
+  pointer-events: none;
+}
+
+.settings-select {
+  width: 100%;
+  padding: 0.75rem 2.25rem 0.75rem 0.75rem;
+  font-size: 1rem;
+  font-family: inherit;
+  color: var(--vintage-cream);
+  background-color: rgba(0, 0, 0, 0.3);
+  border: 1px solid color-mix(in srgb, var(--vintage-cream) 30%, transparent);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  box-sizing: border-box;
+}
+
+.settings-select:hover {
+  border-color: var(--vintage-cream);
+}
+
+.settings-select:focus {
+  outline: none;
+  border-color: var(--vintage-cream);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--vintage-cream) 25%, transparent);
+}
+
+.settings-select option {
+  background-color: var(--background-card);
+  color: var(--vintage-cream);
+}
+
+.settings-select option:disabled {
+  color: color-mix(in srgb, var(--vintage-cream) 35%, transparent);
 }
 
 /* ── Crossfade slider ─────────────────────────────────────────────────────── */

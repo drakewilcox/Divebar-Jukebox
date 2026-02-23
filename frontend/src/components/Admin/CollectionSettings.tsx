@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '../../services/api';
-import type { Collection } from '../../types';
+import type { Collection, HitButtonMode } from '../../types';
 import styles from './CollectionSettings.module.css';
 import clsx from 'clsx';
 import JukeboxSettingsPanel from '../JukeboxSettingsPanel';
@@ -18,6 +18,7 @@ export default function CollectionSettings({ collection }: Props) {
   const [showColorCoding, setShowColorCoding] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [crossfadeSeconds, setCrossfadeSeconds] = useState(0);
+  const [hitButtonMode, setHitButtonMode] = useState<HitButtonMode>('favorites');
 
   const sectionsEnabledForCollection =
     !!collection?.sections_enabled &&
@@ -45,7 +46,13 @@ export default function CollectionSettings({ collection }: Props) {
     setCrossfadeSeconds(
       cf != null && cf >= 0 && cf <= 12 ? cf : 0
     );
-  }, [collection?.id, collection?.default_sort_order, collection?.default_show_jump_to_bar, collection?.default_jump_button_type, collection?.default_show_color_coding, collection?.default_edit_mode, collection?.default_crossfade_seconds]);
+    const hbm = collection.default_hit_button_mode;
+    setHitButtonMode(
+      hbm === 'prioritize-section' || hbm === 'favorites-and-recommended' || hbm === 'any'
+        ? hbm
+        : 'favorites'
+    );
+  }, [collection?.id, collection?.default_sort_order, collection?.default_show_jump_to_bar, collection?.default_jump_button_type, collection?.default_show_color_coding, collection?.default_edit_mode, collection?.default_crossfade_seconds, collection?.default_hit_button_mode]);
 
   useEffect(() => {
     if (sortOrder === 'alphabetical' && jumpButtonType === 'sections') {
@@ -59,6 +66,15 @@ export default function CollectionSettings({ collection }: Props) {
     }
   }, [sortOrder, sectionsEnabledForCollection, jumpButtonType]);
 
+  useEffect(() => {
+    if (
+      hitButtonMode === 'prioritize-section' &&
+      !(jumpButtonType === 'sections' && sectionsEnabledForCollection)
+    ) {
+      setHitButtonMode('favorites');
+    }
+  }, [jumpButtonType, sectionsEnabledForCollection, hitButtonMode]);
+
   const updateMutation = useMutation({
     mutationFn: () => {
       if (!collection) return Promise.reject(new Error('No collection'));
@@ -69,6 +85,7 @@ export default function CollectionSettings({ collection }: Props) {
         default_show_color_coding: showColorCoding,
         default_edit_mode: editMode,
         default_crossfade_seconds: crossfadeSeconds,
+        default_hit_button_mode: hitButtonMode,
       });
     },
     onSuccess: () => {
@@ -83,7 +100,8 @@ export default function CollectionSettings({ collection }: Props) {
       jumpButtonType !== (collection.default_jump_button_type ?? 'number-ranges') ||
       showColorCoding !== (collection.default_show_color_coding ?? true) ||
       editMode !== (collection.default_edit_mode ?? false) ||
-      crossfadeSeconds !== (collection.default_crossfade_seconds ?? 0));
+      crossfadeSeconds !== (collection.default_crossfade_seconds ?? 0) ||
+      hitButtonMode !== (collection.default_hit_button_mode ?? 'favorites'));
 
   const handleSave = () => {
     if (!hasChanges) return;
@@ -109,6 +127,8 @@ export default function CollectionSettings({ collection }: Props) {
         onShowColorCodingChange={setShowColorCoding}
         crossfadeSeconds={crossfadeSeconds}
         onCrossfadeSecondsChange={setCrossfadeSeconds}
+        hitButtonMode={hitButtonMode}
+        onHitButtonModeChange={setHitButtonMode}
         sectionsEnabledForCollection={sectionsEnabledForCollection}
         namePrefix="collection-"
       />

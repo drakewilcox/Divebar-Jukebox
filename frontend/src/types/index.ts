@@ -1,5 +1,11 @@
 // Type definitions for the jukebox application
 
+export type HitButtonMode =
+  | 'prioritize-section'
+  | 'favorites'
+  | 'favorites-and-recommended'
+  | 'any';
+
 export interface CollectionSection {
   order: number;
   name: string;
@@ -23,6 +29,7 @@ export interface Collection {
   default_show_color_coding?: boolean | null;
   default_edit_mode?: boolean | null;
   default_crossfade_seconds?: number | null;
+  default_hit_button_mode?: HitButtonMode | null;
 }
 
 export interface Album {

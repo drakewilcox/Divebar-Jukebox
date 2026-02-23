@@ -97,20 +97,21 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [x] Fix issue when only one album or no albums are in a collection. 
 - [x] Fix Queue issue: adding a track to the queue does not always put it last (seen when an album was in the queue)
 - [x] Examine Library Scan process and possible issues. 
-- [ ] Add Support for mp3 file playback
 - [x] Clear Queue when user switches collections 
 - [x] Fix Edit Album Modal form state issue (Album Name not holding state)
-- [ ] Star and recommended icons should append to a word so they dont break a line. 
-- [ ] Star and Recommended should possibly still display on songs with long titles. 
+- [x] Star and recommended icons should append to a word so they dont break a line. 
+- [x] Star and Recommended should possibly still display on songs with long titles. 
+- [ ] Double word issue on single word tracks because of appending favorite/recommended icon
+- [ ] Disable Save Button in Edit Modal until there are unsaved changes. 
 
 ### Admin Features
-- [ ] Add ability to add and save custom artwork to an album in edit modal
+- [ ] Add ability to add and save custom artwork to an album in edit modal (Local Only)
 - [x] Add ability to filter by active in collection list
 - [x] Add functionality for searching collection and library to Admin View
 - [x] Add ability to preview individual tracks in edit modal. 
 - [x] Add track duration to Edit Modal
 - [ ] Add an archive track button in addition to Hide. Hide means it is hidden from display, but will still play during Full Album Play. Archive means it will not play or display.
-- [ ] Add a apply leveling feature to settings modal. 
+- [ ] Add an apply leveling toggle to settings modal. 
 
 ### Database Updates
 - [x] Add Architecture for Collection Sections
@@ -134,13 +135,16 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [x] Add a "Fade" Amount Feature for how much transition is between tracks.
 - [x] import replay-gain from track meta data and implement in playback. 
 = [x] Add Progress bar to Now playing mini component. 
+- [x] Add functionality to "Hit" button, so that in section view, favorites from selected Section are added first.
+- [ ] Add functionality in Edit Album Modal to be able to edit Start and End points for a track (only used on play single track mode)  
 - [ ] Add 'play random after queue ends' feature to be toggled in settings. 
 - [ ] Add feature for creating custom queue lists (basically a playlist) per collection. 
 - [ ] Add a "+" Icon to Edit Album Modal next to each song that allow the user to add to a song to a Custom Queue (Only Available when in a collection specific view).
 - [ ] Add a Queue Log to backend, that can be viewed on Frontend (tied to user id).
 - [ ] From the Queue Log view, add ability to select songs from list and save selected as queue collection.
 - [ ] Add a song list view to search by song and add songs to Custom Queue. 
-- [ ] Add functionality to "Hit" button, so that in section view, favorites from selected Section are added first.
+- [ ] Add Support for mp3 file playback
+
 
 ### Visual Enhancements
 - [x] Add paper textures to album info cards for vintage jukebox aesthetic
@@ -164,6 +168,7 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [ ] Create custom confirmation modals for removing albums from collection and archiving albums. 
 - [ ] Move Collection Mananger Settings and Edit Album modal to shared component. 
 - [ ] Add Overlay toggle to settings (glass and lights overlay). 
+- [ ] Add option for having Section Color Coding either as background or just indicator on top of card. 
 
 ### Routing
 - [ ] Add specific "Collection" routing so user can share a specific Collection (route would contain user slug and collection slug)

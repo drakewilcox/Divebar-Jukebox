@@ -2,7 +2,7 @@
 import random
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel
 
 from app.database import get_db
@@ -45,7 +45,13 @@ class ReorderQueueRequest(BaseModel):
 
 class AddFavoritesRandomRequest(BaseModel):
     collection: str
-    count: int = 10  # Number of random favorite tracks to add
+    count: int = 10
+    # 'favorites' | 'favorites-and-recommended' | 'any'
+    mode: str = 'favorites'
+    # When provided, prioritize tracks from this slot range (section-aware mode)
+    section_name: Optional[str] = None
+    section_start_slot: Optional[int] = None
+    section_end_slot: Optional[int] = None  # None means "to end of collection"
 
 
 @router.get("", response_model=List[QueueItemResponse])
@@ -195,49 +201,155 @@ def add_to_queue(request: AddToQueueRequest, db: Session = Depends(get_db)):
 
 @router.post("/add-favorites-random")
 def add_favorites_random(request: AddFavoritesRandomRequest, db: Session = Depends(get_db)):
-    """Add up to `count` random favorite tracks from the collection to the queue, avoiding duplicates."""
+    """Add up to count random tracks from the collection to the queue based on mode.
+
+    Modes:
+      - 'favorites'                 – only tracks marked is_favorite (original behaviour)
+      - 'favorites-and-recommended' – tracks that are is_favorite OR is_recommended
+      - 'any'                       – any enabled track regardless of flags
+
+    When section_start_slot is provided (section-aware mode):
+      - Tracks within the slot range are added first.
+      - If fewer than count are available without duplicates, the remainder is
+        filled from the rest of the collection using the same mode filter.
+      - The response message names the section when every added track came from it.
+    """
     collection_service = CollectionService(db)
     queue_service = QueueService(db)
     album_service = AlbumService(db)
     track_service = TrackService(db)
     count = max(1, min(request.count, 100))
+    mode = request.mode  # 'favorites' | 'favorites-and-recommended' | 'any'
 
     all_collection_id = "00000000-0000-0000-0000-000000000000"
 
+    # ── helpers ────────────────────────────────────────────────────────────────
+
+    def track_matches_dict(t: dict) -> bool:
+        if mode == 'any':
+            return True
+        if mode == 'favorites-and-recommended':
+            return bool(t.get('is_favorite')) or bool(t.get('is_recommended'))
+        return bool(t.get('is_favorite'))
+
+    def track_matches_obj(t) -> bool:
+        if mode == 'any':
+            return True
+        if mode == 'favorites-and-recommended':
+            return bool(t.is_favorite) or bool(t.is_recommended)
+        return bool(t.is_favorite)
+
+    # ── collect eligible track IDs ─────────────────────────────────────────────
+
+    section_track_ids: list = []
+    other_track_ids: list = []
+
     if request.collection == "all":
+        # "all" virtual collection has no section concept – gather from every album
         all_albums = album_service.get_all_albums(limit=10000)
-        favorite_track_ids = []
         for album in all_albums:
             tracks = track_service.get_tracks_by_album(album.id)
-            favorite_track_ids.extend(t.id for t in tracks if t.is_favorite)
+            for t in tracks:
+                if track_matches_obj(t):
+                    other_track_ids.append(t.id)
         collection_id_for_queue = all_collection_id
     else:
         collection_obj = collection_service.get_collection_by_slug(request.collection)
         if not collection_obj:
             raise HTTPException(status_code=404, detail=f"Collection '{request.collection}' not found")
         albums = collection_service.get_collection_albums(collection_obj.id, include_tracks=True)
-        favorite_track_ids = []
+        collection_id_for_queue = collection_obj.id
+
+        use_section = request.section_start_slot is not None
+        end_slot = request.section_end_slot  # None → to end of collection
+
         for album in albums:
             for t in album.get("tracks", []):
-                if t.get("is_favorite"):
-                    favorite_track_ids.append(t["id"])
-        collection_id_for_queue = collection_obj.id
+                if not track_matches_dict(t):
+                    continue
+                if use_section:
+                    slot = album.get("display_number")
+                    in_section = (
+                        slot is not None
+                        and slot >= request.section_start_slot
+                        and (end_slot is None or slot <= end_slot)
+                    )
+                    if in_section:
+                        section_track_ids.append(t["id"])
+                    else:
+                        other_track_ids.append(t["id"])
+                else:
+                    other_track_ids.append(t["id"])
+
+    # ── remove already-queued tracks ──────────────────────────────────────────
 
     queue_items = queue_service.get_queue(collection_id_for_queue, include_played=False)
     queued_track_ids = {item.track_id for item in queue_items}
-    available = [tid for tid in favorite_track_ids if tid not in queued_track_ids]
-    random.shuffle(available)
-    to_add = available[:count]
+
+    avail_section = [tid for tid in section_track_ids if tid not in queued_track_ids]
+    avail_other = [tid for tid in other_track_ids if tid not in queued_track_ids]
+    random.shuffle(avail_section)
+    random.shuffle(avail_other)
+
+    # Prioritise section tracks, fill remainder from the rest of the collection
+    to_add = avail_section[:count]
+    section_ids_set = set(section_track_ids)
+    if len(to_add) < count:
+        to_add += avail_other[:count - len(to_add)]
+
+    # ── add to queue ──────────────────────────────────────────────────────────
+
     added = 0
+    added_from_section = 0
     for track_id in to_add:
         if queue_service.add_to_queue(collection_id_for_queue, track_id):
             added += 1
+            if track_id in section_ids_set:
+                added_from_section += 1
 
-    message = f"Added {added} favorite track{'s' if added != 1 else ''} to the queue."
-    if added < count and len(available) < count and len(favorite_track_ids) < count:
-        message = f"Only {len(favorite_track_ids)} favorite(s) in collection; added {added}."
-    elif added < count and len(available) < count:
-        message = f"No more favorites available (already in queue). Added {added}."
+    # ── build response message ────────────────────────────────────────────────
+
+    all_from_section = (
+        added > 0
+        and added_from_section == added
+        and bool(section_track_ids)
+        and request.section_name
+    )
+    some_from_section = (
+        added > 0
+        and added_from_section > 0
+        and added_from_section < added
+        and bool(section_track_ids)
+        and request.section_name
+    )
+
+    total_eligible = len(section_track_ids) + len(other_track_ids)
+    total_available = len(avail_section) + len(avail_other)
+
+    if added > 0:
+        if mode == "any":
+            label = "Tracks" if added != 1 else "Track"
+            message = f"Added {added} {label} from Collection to Queue."
+        elif mode == "favorites-and-recommended":
+            label = "Hits" if added != 1 else "Hit"
+            message = f"Added {added} Favorited or Recommended {label} to Queue."
+        elif all_from_section:
+            message = f'Added {added} Hits from "{request.section_name}" to Queue.'
+        elif some_from_section:
+            message = f'Added {added} Hits from "{request.section_name}" and Favorites to Queue.'
+        else:
+            # favorites (or prioritize-section with none from section)
+            message = f"Added {added} Hits from Favorites to Queue."
+    elif total_eligible == 0:
+        message = "No matching tracks found in collection."
+    elif total_available == 0:
+        if mode == "any":
+            message = "No more tracks available (already in queue). Added 0."
+        else:
+            message = "No more hits available (already in queue). Added 0."
+    else:
+        message = "Added 0 to the queue."
+
     return {"message": message, "added": added}
 
 

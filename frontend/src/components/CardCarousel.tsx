@@ -2,6 +2,7 @@ import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MdStar, MdFiberManualRecord, MdSettings, MdEdit, MdVolumeUp, MdOutlineQueueMusic } from 'react-icons/md';
 import { Album, Collection } from '../types';
+import type { HitButtonMode } from '../types';
 import { albumsApi, queueApi, playbackApi } from '../services/api';
 import audioService from '../services/audio';
 import SettingsModal from './SettingsModal';
@@ -75,6 +76,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     showJumpToBar: boolean;
     jumpButtonType: 'letter-ranges' | 'number-ranges' | 'sections';
     showColorCoding: boolean;
+    hitButtonMode: HitButtonMode;
   };
   const [navSettings, setNavSettings] = useState<NavSettings>(() => {
     const sortOrder = localStorage.getItem('sortOrder');
@@ -82,6 +84,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     const jumpButtonType = localStorage.getItem('jumpButtonType');
     const showColorCoding = localStorage.getItem('showColorCoding');
     const legacy = localStorage.getItem('navBarMode');
+    const hitButtonMode = localStorage.getItem('hitButtonMode');
     return {
       sortOrder: sortOrder === 'alphabetical' || sortOrder === 'curated' ? sortOrder : 'curated',
       showJumpToBar: showJumpToBar !== null ? showJumpToBar === 'true' : true,
@@ -92,6 +95,12 @@ export default function CardCarousel({ albums, collection, collections, onCollec
             ? 'sections'
             : 'number-ranges',
       showColorCoding: showColorCoding !== null ? showColorCoding === 'true' : true,
+      hitButtonMode:
+        hitButtonMode === 'prioritize-section' ||
+        hitButtonMode === 'favorites-and-recommended' ||
+        hitButtonMode === 'any'
+          ? (hitButtonMode as HitButtonMode)
+          : 'favorites',
     };
   });
   const queryClient = useQueryClient();
@@ -205,12 +214,21 @@ export default function CardCarousel({ albums, collection, collections, onCollec
         : lc != null
           ? lc === 'true'
           : true;
-    const next: NavSettings = { sortOrder, showJumpToBar, jumpButtonType, showColorCoding };
+    const lhb = localStorage.getItem('hitButtonMode');
+    const dhb = collection.default_hit_button_mode;
+    const hitButtonMode: HitButtonMode =
+      dhb === 'prioritize-section' || dhb === 'favorites-and-recommended' || dhb === 'any'
+        ? dhb
+        : lhb === 'prioritize-section' || lhb === 'favorites-and-recommended' || lhb === 'any'
+          ? (lhb as HitButtonMode)
+          : 'favorites';
+    const next: NavSettings = { sortOrder, showJumpToBar, jumpButtonType, showColorCoding, hitButtonMode };
     setNavSettings(next);
     localStorage.setItem('sortOrder', next.sortOrder);
     localStorage.setItem('showJumpToBar', String(next.showJumpToBar));
     localStorage.setItem('jumpButtonType', next.jumpButtonType);
     localStorage.setItem('showColorCoding', String(next.showColorCoding));
+    localStorage.setItem('hitButtonMode', next.hitButtonMode);
     window.dispatchEvent(new CustomEvent('navigation-settings-changed', { detail: next }));
     const cf =
       collection.default_crossfade_seconds != null &&
@@ -231,6 +249,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     collection.default_jump_button_type,
     collection.default_show_color_coding,
     collection.default_crossfade_seconds,
+    collection.default_hit_button_mode,
   ]);
 
   // Listen for navigation settings changes from Settings modal
@@ -349,7 +368,31 @@ export default function CardCarousel({ albums, collection, collections, onCollec
 
   const addFavoritesRandomMutation = useMutation({
     mutationFn: async () => {
-      const response = await queueApi.addFavoritesRandom(collection.slug, 10);
+      const mode = navSettings.hitButtonMode ?? 'favorites';
+      // 'prioritize-section' is a frontend concept — map to 'favorites' for the API
+      const apiMode = mode === 'prioritize-section' ? 'favorites' : mode;
+
+      let sectionName: string | undefined;
+      let sectionStartSlot: number | undefined;
+      let sectionEndSlot: number | undefined;
+
+      if (mode === 'prioritize-section' && showSectionsBar) {
+        const activeSection = sortedSections[activeSectionIndex];
+        if (activeSection) {
+          sectionName = activeSection.name;
+          sectionStartSlot = activeSection.start_slot;
+          sectionEndSlot = activeSection.end_slot;
+        }
+      }
+
+      const response = await queueApi.addFavoritesRandom(
+        collection.slug,
+        10,
+        apiMode,
+        sectionName,
+        sectionStartSlot,
+        sectionEndSlot,
+      );
       return response.data;
     },
     onSuccess: (data) => {

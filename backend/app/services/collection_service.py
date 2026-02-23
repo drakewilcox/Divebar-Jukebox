@@ -179,6 +179,7 @@ class CollectionService:
         default_show_color_coding: bool = None,
         default_edit_mode: bool = None,
         default_crossfade_seconds: int = None,
+        default_hit_button_mode: str = None,
     ) -> Optional[Collection]:
         """Update default display settings for a collection."""
         collection = self.db.query(Collection).filter(Collection.id == collection_id).first()
@@ -202,6 +203,11 @@ class CollectionService:
             if not (0 <= default_crossfade_seconds <= 12):
                 raise ValueError("default_crossfade_seconds must be between 0 and 12")
             collection.default_crossfade_seconds = default_crossfade_seconds
+        if default_hit_button_mode is not None:
+            valid_modes = ('favorites', 'favorites-and-recommended', 'any', 'prioritize-section')
+            if default_hit_button_mode not in valid_modes:
+                raise ValueError(f"default_hit_button_mode must be one of {valid_modes}")
+            collection.default_hit_button_mode = default_hit_button_mode
         self.db.commit()
         logger.info(f"Updated settings for collection: {collection.name}")
         return collection

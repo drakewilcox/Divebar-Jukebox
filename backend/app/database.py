@@ -61,6 +61,7 @@ def _migrate_collections_sections_sqlite():
             ("default_show_color_coding", "ALTER TABLE collections ADD COLUMN default_show_color_coding BOOLEAN"),
             ("default_edit_mode", "ALTER TABLE collections ADD COLUMN default_edit_mode BOOLEAN"),
             ("default_crossfade_seconds", "ALTER TABLE collections ADD COLUMN default_crossfade_seconds INTEGER"),
+            ("default_hit_button_mode", "ALTER TABLE collections ADD COLUMN default_hit_button_mode VARCHAR"),
         ]:
             if col not in names:
                 conn.execute(text(sql))
