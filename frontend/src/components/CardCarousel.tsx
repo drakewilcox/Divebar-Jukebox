@@ -1161,6 +1161,148 @@ interface AlbumRowProps {
   cardDisplayNumber: number;
 }
 
+// ── TrackTitle ──────────────────────────────────────────────────────────────
+// Renders a track title with optional favorite/recommended icons.
+//
+// • Titles without icons use pure CSS 2-line clamp (unchanged).
+// • Titles with icons keep the last word and icons in a nowrap span so the
+//   icons are never stranded alone on a new line.
+// • If the title is long enough that CSS would truncate it (overflow > 2 lines),
+//   it measures the text off-screen and binary-searches for the exact word
+//   boundary that leaves room for the icons after the ellipsis.
+function TrackTitle({
+  title,
+  isFavorite,
+  isRecommended,
+}: {
+  title: string;
+  isFavorite: boolean;
+  isRecommended: boolean;
+}) {
+  const hasIcons = isFavorite || isRecommended;
+  const containerRef = useRef<HTMLSpanElement>(null);
+  const [truncatedWordCount, setTruncatedWordCount] = useState<number | null>(null);
+  const prevInput = useRef({ title, isFavorite, isRecommended });
+
+  useLayoutEffect(() => {
+    const prev = prevInput.current;
+    const inputChanged =
+      prev.title !== title ||
+      prev.isFavorite !== isFavorite ||
+      prev.isRecommended !== isRecommended;
+
+    if (inputChanged) {
+      prevInput.current = { title, isFavorite, isRecommended };
+      setTruncatedWordCount(null);
+      return;
+    }
+
+    if (!hasIcons) return;
+    if (truncatedWordCount !== null) return;
+
+    const el = containerRef.current;
+    if (!el || el.clientHeight === 0) return;
+
+    // No overflow — full title fits within 2 lines, no action needed
+    if (el.scrollHeight <= el.clientHeight + 2) return;
+
+    // Overflow detected — measure off-screen to find the right word boundary
+    const computed = window.getComputedStyle(el);
+    const lineHeightParsed = parseFloat(computed.lineHeight);
+    const fontSizeParsed = parseFloat(computed.fontSize);
+    const effectiveLineHeight = isNaN(lineHeightParsed)
+      ? fontSizeParsed * 1.4
+      : lineHeightParsed;
+    const maxHeight = effectiveLineHeight * 2;
+
+    const probe = document.createElement('span');
+    probe.setAttribute('aria-hidden', 'true');
+    Object.assign(probe.style, {
+      position: 'absolute',
+      top: '-9999px',
+      left: '0',
+      visibility: 'hidden',
+      width: `${el.offsetWidth}px`,
+      font: computed.font,
+      fontWeight: computed.fontWeight,
+      fontSize: computed.fontSize,
+      lineHeight: computed.lineHeight,
+      wordBreak: computed.wordBreak,
+      overflowWrap: computed.overflowWrap,
+      whiteSpace: 'normal',
+      display: 'block',
+    });
+    document.body.appendChild(probe);
+
+    // Include icon placeholders so measurement accounts for their width
+    const iconPlaceholder = (isFavorite ? ' ★' : '') + (isRecommended ? ' •' : '');
+    const words = title.split(' ');
+    let lo = 0;
+    let hi = words.length - 1;
+    let best = 1;
+    while (lo <= hi) {
+      const mid = Math.floor((lo + hi) / 2);
+      probe.textContent = words.slice(0, mid + 1).join(' ') + '\u2026' + iconPlaceholder;
+      if (probe.offsetHeight <= maxHeight) {
+        best = mid + 1;
+        lo = mid + 1;
+      } else {
+        hi = mid - 1;
+      }
+    }
+
+    document.body.removeChild(probe);
+    setTruncatedWordCount(best);
+  });
+
+  const iconNodes = (
+    <>
+      {isFavorite && (
+        <span className={clsx(styles['track-icon'], styles['track-favorite'])}>
+          <MdStar size={10} />
+        </span>
+      )}
+      {isRecommended && (
+        <span className={clsx(styles['track-icon'], styles['track-recommended'])}>
+          <MdFiberManualRecord size={8} />
+        </span>
+      )}
+    </>
+  );
+
+  // No icons — pure CSS 2-line clamp, no changes needed
+  if (!hasIcons) {
+    return <span className={styles['track-title']}>{title}</span>;
+  }
+
+  // Manually truncated — shortened text + ellipsis character + icons
+  if (truncatedWordCount !== null) {
+    const truncated = title.split(' ').slice(0, truncatedWordCount).join(' ');
+    return (
+      <span ref={containerRef} className={styles['track-title-truncated']}>
+        {truncated}
+        <span className={styles['track-title-ellipsis']}>&hellip;</span>
+        {iconNodes}
+      </span>
+    );
+  }
+
+  // Full title — last word and icons in a nowrap span to prevent orphaned icon
+  const words = title.split(' ');
+  const lastWord = words.length > 1 ? words.pop()! : title;
+  const restOfTitle = words.length > 0 ? words.join(' ') + ' ' : '';
+
+  return (
+    <span ref={containerRef} className={styles['track-title']}>
+      {restOfTitle}
+      <span className={styles['track-title-last']}>
+        {lastWord}
+        {iconNodes}
+      </span>
+    </span>
+  );
+}
+
 function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, queueTrackIds, sectionBackgroundColor, cardDisplayNumber }: AlbumRowProps) {
   const [isHovered, setIsHovered] = useState(false);
   const tracksContainerRef = useRef<HTMLDivElement>(null);
@@ -1338,11 +1480,11 @@ function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, qu
                       String(index + 1).padStart(2, '0')
                     )}
                   </span>
-                  <span className={styles['track-title']}>
-                    {track.title}
-                    {track.is_favorite && <span className={clsx(styles['track-icon'], styles['track-favorite'])}><MdStar size={10} /></span>}
-                    {track.is_recommended && <span className={clsx(styles['track-icon'], styles['track-recommended'])}><MdFiberManualRecord size={8} /></span>}
-                  </span>
+                  <TrackTitle
+                    title={track.title}
+                    isFavorite={!!track.is_favorite}
+                    isRecommended={!!track.is_recommended}
+                  />
                 </div>
               );
             })}

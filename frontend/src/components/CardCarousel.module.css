@@ -1239,6 +1239,24 @@
   word-break: break-word;
 }
 
+/* Last word + icons kept together — prevents an icon orphaned alone on a new line */
+.track-title-last {
+  display: inline;
+  white-space: nowrap;
+}
+
+/* Manual-truncation state: JS has already shortened the text, so no CSS clamp needed */
+.track-title-truncated {
+  color: #000000;
+  font-weight: 600;
+  word-break: break-word;
+  overflow: hidden;
+}
+
+.track-title-ellipsis {
+  margin-right: 0.1em;
+}
+
 .track-icon {
   margin-left: 0.25rem;
   font-size: 0.7em;
