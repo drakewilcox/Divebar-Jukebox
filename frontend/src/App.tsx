@@ -4,7 +4,7 @@ import { collectionsApi, settingsApi } from './services/api';
 import { useJukeboxStore } from './stores/jukeboxStore';
 import JukeboxDisplay from './components/JukeboxDisplay';
 import AdminPanel from './components/Admin/AdminPanel';
-import './App.css';
+import styles from './App.module.css';
 
 function App() {
   const { currentCollection, setCurrentCollection, isAdminMode } = useJukeboxStore();
@@ -39,8 +39,8 @@ function App() {
   }, [collections, currentCollection, setCurrentCollection, settingsFetched, settings?.default_collection_slug]);
   
   return (
-    <div className="app">
-      <main className="app-main">
+    <div className={styles['app']}>
+      <main className={styles['app-main']}>
         {isAdminMode ? (
           <AdminPanel />
         ) : currentCollection ? (
@@ -50,7 +50,7 @@ function App() {
             onCollectionChange={setCurrentCollection}
           />
         ) : (
-          <div className="loading">Loading collections...</div>
+          <div className={styles['loading']}>Loading collections...</div>
         )}
       </main>
     </div>

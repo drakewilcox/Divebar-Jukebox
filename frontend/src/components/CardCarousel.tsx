@@ -9,23 +9,9 @@ import AlbumEditModal from './Admin/AlbumEditModal';
 import LCDDisplay from './LCDDisplay';
 import LCDKeypad from './LCDKeypad';
 import QueueDisplay from './QueueDisplay';
-import './CardCarousel.css';
+import styles from './CardCarousel.module.css'
+import clsx from 'clsx';
 
-function hexToRgba(hex: string, alpha: number): string {
-  const m = hex.match(/^#?([0-9a-f]{3}|[0-9a-f]{6})$/i);
-  if (!m) return hex;
-  let r: number, g: number, b: number;
-  if (m[1].length === 3) {
-    r = parseInt(m[1][0] + m[1][0], 16);
-    g = parseInt(m[1][1] + m[1][1], 16);
-    b = parseInt(m[1][2] + m[1][2], 16);
-  } else {
-    r = parseInt(m[1].slice(0, 2), 16);
-    g = parseInt(m[1].slice(2, 4), 16);
-    b = parseInt(m[1].slice(4, 6), 16);
-  }
-  return `rgba(${r},${g},${b},${alpha})`;
-}
 
 const SECTION_BUTTON_CREAM = '#f5f0e8';
 
@@ -138,8 +124,6 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     refetchInterval: 1000,
   });
   
-  const hasQueueContent = queue && queue.length > 0;
-
   // Live position for now-playing (updates from audio service so progress bar and seek stay in sync)
   useEffect(() => {
     const interval = setInterval(() => {
@@ -693,11 +677,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     : showLetterRangesBar
       ? activeLetterIndex
       : activeLineRangeIndex;
-  const navBarButtonSelector = showSectionsBar
-    ? '.section-button'
-    : showLetterRangesBar
-      ? '.letter-jump-button'
-      : '.jump-to-button';
+  const navBarButtonSelector = '[data-jump-btn]';
 
   useLayoutEffect(() => {
     const bar = jumpToBarRef.current;
@@ -775,8 +755,6 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     setIsSliding(true);
   };
 
-  const isJumping = jumpTargetIndex != null;
-
   const handleFullSlideEnd = () => {
     if (jumpTargetIndex != null) {
       setCurrentIndex(jumpTargetIndex);
@@ -808,42 +786,42 @@ export default function CardCarousel({ albums, collection, collections, onCollec
         cardDisplayNumber={cardDisplayNumber}
       />
     ) : (
-      <div key={`${keyPrefix}-${idx}`} className="album-row album-row-empty"></div>
+      <div key={`${keyPrefix}-${idx}`} className={clsx(styles['album-row'], styles['album-row-empty'])}></div>
     );
   };
 
   return (
-    <div className="card-carousel">
-      <div className="carousel-container">
+    <div className={styles['card-carousel']}>
+      <div className={styles['carousel-container']}>
         {jumpTargetIndex != null ? (
           <>
-            <div className="carousel-full-slide-wrap">
+            <div className={styles['carousel-full-slide-wrap']}>
               <div
-                className={`carousel-full-slide-strip ${jumpSlideLeft ? 'animate-full-slide-left' : 'animate-full-slide-right'}`}
+                className={clsx(styles['carousel-full-slide-strip'], jumpSlideLeft ? styles['animate-full-slide-left'] : styles['animate-full-slide-right'])}
                 onAnimationEnd={handleFullSlideEnd}
               >
                 {jumpSlideLeft ? (
                   <>
-                    <div className="carousel-full-slide-page">
-                      <div className="card-slot card-slot-left">
-                        <div className="slider-card">
+                    <div className={styles['carousel-full-slide-page']}>
+                      <div className={clsx(styles['card-slot'], styles['card-slot-left'])}>
+                        <div className={styles['slider-card']}>
                           {leftCard.map((album, idx) => renderAlbumRow(album, 'jump-left', idx, currentIndex + idx))}
                         </div>
                       </div>
-                      <div className="card-slot card-slot-right">
-                        <div className="slider-card">
+                      <div className={clsx(styles['card-slot'], styles['card-slot-right'])}>
+                        <div className={styles['slider-card']}>
                           {rightCard.map((album, idx) => renderAlbumRow(album, 'jump-right', idx, currentIndex + 2 + idx))}
                         </div>
                       </div>
                     </div>
-                    <div className="carousel-full-slide-page">
-                      <div className="card-slot card-slot-left">
-                        <div className="slider-card">
+                    <div className={styles['carousel-full-slide-page']}>
+                      <div className={clsx(styles['card-slot'], styles['card-slot-left'])}>
+                        <div className={styles['slider-card']}>
                           {targetLeftCard.map((album, idx) => renderAlbumRow(album, 'target-left', idx, jumpTargetIndex! + idx))}
                         </div>
                       </div>
-                      <div className="card-slot card-slot-right">
-                        <div className="slider-card">
+                      <div className={clsx(styles['card-slot'], styles['card-slot-right'])}>
+                        <div className={styles['slider-card']}>
                           {targetRightCard.map((album, idx) => renderAlbumRow(album, 'target-right', idx, jumpTargetIndex! + 2 + idx))}
                         </div>
                       </div>
@@ -851,26 +829,26 @@ export default function CardCarousel({ albums, collection, collections, onCollec
                   </>
                 ) : (
                   <>
-                    <div className="carousel-full-slide-page">
-                      <div className="card-slot card-slot-left">
-                        <div className="slider-card">
+                    <div className={styles['carousel-full-slide-page']}>
+                      <div className={clsx(styles['card-slot'], styles['card-slot-left'])}>
+                        <div className={styles['slider-card']}>
                           {targetLeftCard.map((album, idx) => renderAlbumRow(album, 'target-left', idx, jumpTargetIndex! + idx))}
                         </div>
                       </div>
-                      <div className="card-slot card-slot-right">
-                        <div className="slider-card">
+                      <div className={clsx(styles['card-slot'], styles['card-slot-right'])}>
+                        <div className={styles['slider-card']}>
                           {targetRightCard.map((album, idx) => renderAlbumRow(album, 'target-right', idx, jumpTargetIndex! + 2 + idx))}
                         </div>
                       </div>
                     </div>
-                    <div className="carousel-full-slide-page">
-                      <div className="card-slot card-slot-left">
-                        <div className="slider-card">
+                    <div className={styles['carousel-full-slide-page']}>
+                      <div className={clsx(styles['card-slot'], styles['card-slot-left'])}>
+                        <div className={styles['slider-card']}>
                           {leftCard.map((album, idx) => renderAlbumRow(album, 'jump-left', idx, currentIndex + idx))}
                         </div>
                       </div>
-                      <div className="card-slot card-slot-right">
-                        <div className="slider-card">
+                      <div className={clsx(styles['card-slot'], styles['card-slot-right'])}>
+                        <div className={styles['slider-card']}>
                           {rightCard.map((album, idx) => renderAlbumRow(album, 'jump-right', idx, currentIndex + 2 + idx))}
                         </div>
                       </div>
@@ -879,35 +857,35 @@ export default function CardCarousel({ albums, collection, collections, onCollec
                 )}
               </div>
             </div>
-            <div className="glass-overlay"></div>
+            <div className={styles['glass-overlay']}></div>
           </>
         ) : (
           <>
-            <div className="card-slot card-slot-left">
-              <div className="slider-card">
+            <div className={clsx(styles['card-slot'], styles['card-slot-left'])}>
+              <div className={styles['slider-card']}>
                 {slideDirection === 'right' && prevLeftCard.length === 2
                   ? prevLeftCard.map((album, idx) => renderAlbumRow(album, 'prev-left', idx, currentIndex - 2 + idx))
                   : leftCard.map((album, idx) => renderAlbumRow(album, 'left', idx, currentIndex + idx))}
               </div>
             </div>
-            <div className="card-slot card-slot-right">
-              <div className="slider-card">
+            <div className={clsx(styles['card-slot'], styles['card-slot-right'])}>
+              <div className={styles['slider-card']}>
                 {slideDirection === 'left' && nextRightCard.length === 2
                   ? nextRightCard.map((album, idx) => renderAlbumRow(album, 'next-right', idx, currentIndex + 4 + idx))
                   : rightCard.map((album, idx) => renderAlbumRow(album, 'right', idx, currentIndex + 2 + idx))}
               </div>
             </div>
             {slideDirection === 'left' && (
-              <div className="slider-card-animated animate-slide-right-to-left">
+              <div className={clsx(styles['slider-card-animated'], styles['animate-slide-right-to-left'])}>
                 {rightCard.map((album, idx) => renderAlbumRow(album, 'slide', idx, currentIndex + 2 + idx))}
               </div>
             )}
             {slideDirection === 'right' && (
-              <div className="slider-card-animated animate-slide-left-to-right">
+              <div className={clsx(styles['slider-card-animated'], styles['animate-slide-left-to-right'])}>
                 {leftCard.map((album, idx) => renderAlbumRow(album, 'slide-left', idx, currentIndex + idx))}
               </div>
             )}
-            <div className="glass-overlay"></div>
+            <div className={styles['glass-overlay']}></div>
           </>
         )}
       </div>
@@ -916,7 +894,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
       {showBar && (
         <div
           ref={jumpToBarRef}
-          className={`jump-to-bar ${showLetterRangesBar ? 'jump-to-bar-letters' : ''}`}
+          className={clsx(styles['jump-to-bar'], showLetterRangesBar && styles['jump-to-bar-letters'])}
         >
           {showSectionsBar ? (
             sortedSections.map((section, i) => {
@@ -930,7 +908,8 @@ export default function CardCarousel({ albums, collection, collections, onCollec
                 <button
                   key={i}
                   type="button"
-                  className={`section-button jump-to-button ${textSizeClass}`}
+                  data-jump-btn
+                  className={clsx(styles['section-button'], styles['jump-to-button'], styles[textSizeClass])}
                   style={{
                     ['--section-bg' as string]: bgColor,
                     background: bgColor,
@@ -939,18 +918,19 @@ export default function CardCarousel({ albums, collection, collections, onCollec
                   onClick={() => handleJumpToSection(i)}
                   aria-label={`Jump to ${section.name}`}
                 >
-                  <span className="section-button-label">{section.name}</span>
+                  <span className={styles['section-button-label']}>{section.name}</span>
                 </button>
               );
             })
           ) : showLetterRangesBar ? (
             <>
-              <div className="jump-to-bar-letters-left">
+              <div className={styles['jump-to-bar-letters-left']}>
                 {LETTERS_LEFT.map((letter) => (
                   <button
                     key={letter}
                     type="button"
-                    className="jump-to-button letter-jump-button"
+                    data-jump-btn
+                    className={clsx(styles['jump-to-button'], styles['letter-jump-button'])}
                     onClick={() => handleJumpToLetter(letter)}
                     disabled={displayAlbums.length === 0}
                     aria-label={`Jump to artists starting with ${letter}`}
@@ -959,12 +939,13 @@ export default function CardCarousel({ albums, collection, collections, onCollec
                   </button>
                 ))}
               </div>
-              <div className="jump-to-bar-letters-right">
+              <div className={styles['jump-to-bar-letters-right']}>
                 {LETTERS_RIGHT.map((letter) => (
                   <button
                     key={letter}
                     type="button"
-                    className="jump-to-button letter-jump-button"
+                    data-jump-btn
+                    className={clsx(styles['jump-to-button'], styles['letter-jump-button'])}
                     onClick={() => handleJumpToLetter(letter)}
                     disabled={displayAlbums.length === 0}
                     aria-label={`Jump to artists starting with ${letter}`}
@@ -979,7 +960,8 @@ export default function CardCarousel({ albums, collection, collections, onCollec
               <button
                 key={i}
                 type="button"
-                className="jump-to-button"
+                data-jump-btn
+                className={styles['jump-to-button']}
                 onClick={() => handleJumpTo(i)}
                 disabled={range.start > totalAlbums || totalAlbums === 0}
                 aria-label={`Jump to albums ${range.label}`}
@@ -992,7 +974,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
             (showLetterRangesBar && displayAlbums.length > 0) ||
             (showJumpToRangesBar && totalAlbums > 0)) && (
             <div
-              className="jump-to-bar-line"
+              className={styles['jump-to-bar-line']}
               style={{
                 left: jumpLineStyle.left,
                 width: jumpLineStyle.width,
@@ -1003,13 +985,13 @@ export default function CardCarousel({ albums, collection, collections, onCollec
         </div>
       )}
       
-      <div className="carousel-controls-wrapper">
+      <div className={styles['carousel-controls-wrapper']}>
         {/* Upward-expanding queue panel */}
         <div
           ref={queuePanelRef}
-          className={`queue-panel ${isQueueOpen ? 'open' : ''}`}
+          className={clsx(styles['queue-panel'], isQueueOpen && styles['open'])}
         >
-          <div className="queue-panel-content">
+          <div className={styles['queue-panel-content']}>
             <QueueDisplay
               collection={collection}
               onQueueCleared={() => setIsQueueOpen(false)}
@@ -1017,18 +999,18 @@ export default function CardCarousel({ albums, collection, collections, onCollec
           </div>
         </div>
         
-        <div className="carousel-controls">
-        <div className="controls-left">
+        <div className={styles['carousel-controls']}>
+        <div className={styles['controls-left']}>
           <button
-            className="settings-button"
+            className={styles['settings-button']}
             onClick={() => setIsSettingsOpen(true)}
             title="Settings"
           >
             <MdSettings size={28} />
           </button>
 
-          <div className="input-section" ref={inputSectionRef}>
-            <div className={`lcd-keypad-wrapper ${displayFlash != null ? 'lcd-flash' : ''}`}>
+          <div className={styles['input-section']} ref={inputSectionRef}>
+            <div className={clsx(styles['lcd-keypad-wrapper'], displayFlash != null && styles['lcd-flash'])}>
               <div
                 onClick={() => setKeypadOpen((open) => !open)}
                 role="button"
@@ -1060,17 +1042,17 @@ export default function CardCarousel({ albums, collection, collections, onCollec
               type="text"
               inputMode="numeric"
               autoComplete="off"
-              className="hidden-input"
+              className={styles['hidden-input']}
               onKeyDown={handleKeyDown}
               aria-label="Album and track number input"
             />
-            {feedback && <span className="input-feedback">{feedback}</span>}
+            {feedback && <span className={styles['input-feedback']}>{feedback}</span>}
           </div>
         </div>
         
-        <div className="queue-controls-center" ref={queueToggleRef}>
+        <div className={styles['queue-controls-center']} ref={queueToggleRef}>
           <div
-            className="now-playing-mini"
+            className={styles['now-playing-mini']}
             role="button"
             tabIndex={0}
             onClick={() => setIsQueueOpen(!isQueueOpen)}
@@ -1080,34 +1062,34 @@ export default function CardCarousel({ albums, collection, collections, onCollec
             {/* Track title, album title, and artist come from playback state API (database-saved values, not file metadata) */}
             {playbackState?.current_track ? (
               <>
-                <div className="now-playing-mini-row">
+                <div className={styles['now-playing-mini-row']}>
                   {playbackState.current_track.cover_art_path && (
-                    <div className="now-playing-cover-wrap">
+                    <div className={styles['now-playing-cover-wrap']}>
                       <img 
                         src={`/api/media/${playbackState.current_track.cover_art_path}`}
                         alt={playbackState.current_track.album_title}
-                        className="now-playing-cover"
+                        className={styles['now-playing-cover']}
                       />
                     </div>
                   )}
-                  <div className="now-playing-info">
-                    <div className="now-playing-title">{playbackState.current_track.title}</div>
-                    <div className="now-playing-artist">{playbackState.current_track.artist}</div>
-                    <div className="now-playing-album">
+                  <div className={styles['now-playing-info']}>
+                    <div className={styles['now-playing-title']}>{playbackState.current_track.title}</div>
+                    <div className={styles['now-playing-artist']}>{playbackState.current_track.artist}</div>
+                    <div className={styles['now-playing-album']}>
                       {playbackState.current_track.album_title}
                       {playbackState.current_track.album_year != null && ` (${playbackState.current_track.album_year})`}
                     </div>
                     {playbackState.current_track.selection_display && (
-                      <div className="now-playing-selection">{playbackState.current_track.selection_display}</div>
+                      <div className={styles['now-playing-selection']}>{playbackState.current_track.selection_display}</div>
                     )}
                   </div>
-                  <div className="now-playing-time">
+                  <div className={styles['now-playing-time']}>
                     {formatTimeRemaining(playbackState.current_track.duration_ms, nowPlayingPositionMs)}
                   </div>
                 </div>
                 <div
                   ref={nowPlayingProgressBarRef}
-                  className="now-playing-mini-progress"
+                  className={styles['now-playing-mini-progress']}
                   onClick={handleNowPlayingProgressClick}
                   role="slider"
                   aria-label="Track position"
@@ -1116,7 +1098,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
                   aria-valuenow={nowPlayingPositionMs}
                 >
                   <div
-                    className="now-playing-mini-progress-fill"
+                    className={styles['now-playing-mini-progress-fill']}
                     style={{
                       width: `${Math.min(100, (nowPlayingPositionMs / playbackState.current_track.duration_ms) * 100) || 0}%`,
                     }}
@@ -1127,9 +1109,9 @@ export default function CardCarousel({ albums, collection, collections, onCollec
           </div>
         </div>
         
-        <div className="nav-buttons">
+        <div className={styles['nav-buttons']}>
           <button
-            className={`nav-button nav-button-prev ${pressedButton === 'prev' ? 'pressed' : ''}`}
+            className={clsx(styles['nav-button'], styles['nav-button-prev'], pressedButton === 'prev' && styles['pressed'])}
             onClick={handlePrevious}
             disabled={!canGoPrevious}
             aria-label="Previous albums"
@@ -1138,7 +1120,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
           </button>
           
           <button
-            className={`nav-button nav-button-next ${pressedButton === 'next' ? 'pressed' : ''}`}
+            className={clsx(styles['nav-button'], styles['nav-button-next'], pressedButton === 'next' && styles['pressed'])}
             onClick={handleNext}
             disabled={!canGoNext}
             aria-label="Next albums"
@@ -1183,16 +1165,15 @@ function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, qu
   const [isHovered, setIsHovered] = useState(false);
   const tracksContainerRef = useRef<HTMLDivElement>(null);
   const albumRowRef = useRef<HTMLDivElement>(null);
+  const coverRef = useRef<HTMLDivElement>(null);
 
   // Measure cover width so card-number-box can be positioned at the boundary (above both cover and info).
   useLayoutEffect(() => {
     const row = albumRowRef.current;
-    if (!row) return;
-    const cover = row.querySelector('.album-row-cover');
-    if (!cover) return;
+    const cover = coverRef.current;
+    if (!row || !cover) return;
     const setCoverWidth = () => {
-      const w = (cover as HTMLElement).offsetWidth;
-      (row as HTMLElement).style.setProperty('--cover-width', `${w}px`);
+      row.style.setProperty('--cover-width', `${cover.offsetWidth}px`);
     };
     setCoverWidth();
     const ro = new ResizeObserver(setCoverWidth);
@@ -1288,17 +1269,18 @@ function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, qu
   const displayNumber = String(cardDisplayNumber || 0).padStart(3, '0');
 
   return (
-    <div className="album-row" ref={albumRowRef}>
-      <div className="album-row-corner-tab album-row-corner-tab-tl" aria-hidden="true" />
-      <div className="album-row-corner-tab album-row-corner-tab-tr" aria-hidden="true" />
-      <div className="album-row-corner-tab album-row-corner-tab-bl" aria-hidden="true" />
-      <div className="album-row-corner-tab album-row-corner-tab-br" aria-hidden="true" />
-      <div 
-        className="album-row-cover"
+    <div className={styles['album-row']} ref={albumRowRef}>
+      <div className={clsx(styles['album-row-corner-tab'], styles['album-row-corner-tab-tl'])} aria-hidden="true" />
+      <div className={clsx(styles['album-row-corner-tab'], styles['album-row-corner-tab-tr'])} aria-hidden="true" />
+      <div className={clsx(styles['album-row-corner-tab'], styles['album-row-corner-tab-bl'])} aria-hidden="true" />
+      <div className={clsx(styles['album-row-corner-tab'], styles['album-row-corner-tab-br'])} aria-hidden="true" />
+      <div
+        ref={coverRef}
+        className={styles['album-row-cover']}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        <div className="album-row-cover-image-wrap">
+        <div className={styles['album-row-cover-image-wrap']}>
           {album.cover_art_path ? (
             <img
               src={`/api/media/${album.cover_art_path}`}
@@ -1309,13 +1291,13 @@ function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, qu
               }}
             />
           ) : null}
-          <div className={`album-row-cover-placeholder ${album.cover_art_path ? 'hidden' : ''}`}>
+          <div className={clsx(styles['album-row-cover-placeholder'], album.cover_art_path && styles['hidden'])}>
             🎵
           </div>
         </div>
         {editMode && isHovered && (
           <button
-            className="album-edit-overlay-button"
+            className={styles['album-edit-overlay-button']}
             onClick={(e) => {
               e.stopPropagation();
               onEditClick(album.id);
@@ -1329,37 +1311,37 @@ function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, qu
       </div>
       
       <div
-        className="album-row-info"
+        className={styles['album-row-info']}
         style={sectionBackgroundColor ? { backgroundColor: sectionBackgroundColor } : undefined}
       >
-        <div className="album-info-text">
-          <div className="album-row-artist">{album.artist.toUpperCase()}</div>
-          <div className="album-row-title">
+        <div className={styles['album-info-text']}>
+          <div className={styles['album-row-artist']}>{album.artist.toUpperCase()}</div>
+          <div className={styles['album-row-title']}>
             {album.title}
             {album.year != null && ` (${album.year})`}
           </div>
         </div>
         
         {albumDetails && albumDetails.tracks && (
-          <div className="album-row-tracks" ref={tracksContainerRef}>
+          <div className={styles['album-row-tracks']} ref={tracksContainerRef}>
             {albumDetails.tracks.map((track, index) => {
               const isNowPlaying = currentTrackId === track.id;
               const isInQueue = queueTrackIds.includes(track.id);
               return (
-                <div key={track.id} className="track-line">
-                  <span className="track-number" aria-hidden="true">
+                <div key={track.id} className={styles['track-line']}>
+                  <span className={styles['track-number']} aria-hidden="true">
                     {isNowPlaying ? (
-                      <MdVolumeUp className="track-status-icon track-status-now-playing" aria-label="Now playing" />
+                      <MdVolumeUp className={clsx(styles['track-status-icon'], styles['track-status-now-playing'])} aria-label="Now playing" />
                     ) : isInQueue ? (
-                      <MdOutlineQueueMusic className="track-status-icon track-status-in-queue" aria-label="In queue" />
+                      <MdOutlineQueueMusic className={clsx(styles['track-status-icon'], styles['track-status-in-queue'])} aria-label="In queue" />
                     ) : (
                       String(index + 1).padStart(2, '0')
                     )}
                   </span>
-                  <span className="track-title">
+                  <span className={styles['track-title']}>
                     {track.title}
-                    {track.is_favorite && <span className="track-icon track-favorite"><MdStar size={10} /></span>}
-                    {track.is_recommended && <span className="track-icon track-recommended"><MdFiberManualRecord size={8} /></span>}
+                    {track.is_favorite && <span className={clsx(styles['track-icon'], styles['track-favorite'])}><MdStar size={10} /></span>}
+                    {track.is_recommended && <span className={clsx(styles['track-icon'], styles['track-recommended'])}><MdFiberManualRecord size={8} /></span>}
                   </span>
                 </div>
               );
@@ -1367,12 +1349,12 @@ function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, qu
           </div>
         )}
       </div>
-      <div className="card-number-box">{displayNumber}</div>
-      <div className="album-row-cover-tab album-row-cover-tab-top" aria-hidden="true" />
-      <div className="album-row-cover-tab album-row-cover-tab-bottom" aria-hidden="true" />
-      <div className="album-row-cover-tab album-row-cover-tab-left" aria-hidden="true" />
-      <div className="album-row-cover-tab album-row-cover-tab-right" aria-hidden="true" />
-      <div className="album-row-cover-tab album-row-cover-tab-bottom-center" aria-hidden="true" />
+      <div className={styles['card-number-box']}>{displayNumber}</div>
+      <div className={clsx(styles['album-row-cover-tab'], styles['album-row-cover-tab-top'])} aria-hidden="true" />
+      <div className={clsx(styles['album-row-cover-tab'], styles['album-row-cover-tab-bottom'])} aria-hidden="true" />
+      <div className={clsx(styles['album-row-cover-tab'], styles['album-row-cover-tab-left'])} aria-hidden="true" />
+      <div className={clsx(styles['album-row-cover-tab'], styles['album-row-cover-tab-right'])} aria-hidden="true" />
+      <div className={clsx(styles['album-row-cover-tab'], styles['album-row-cover-tab-bottom-center'])} aria-hidden="true" />
     </div>
   );
 }

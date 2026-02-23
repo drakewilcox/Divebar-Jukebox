@@ -3,7 +3,8 @@ import { useState, useEffect, useRef } from 'react';
 import { MdPlayArrow, MdStop, MdVisibility, MdVisibilityOff, MdStar, MdStarBorder, MdCircle } from 'react-icons/md';
 import { adminApi, collectionsApi } from '../../services/api';
 import { audioService } from '../../services/audio';
-import './AlbumEditModal.css';
+import styles from './AlbumEditModal.module.css'
+import clsx from 'clsx';
 
 interface Props {
   albumId: string;
@@ -90,7 +91,7 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
       adminApi.updateAlbum(albumId, {
         title,
         artist,
-        year: year || null,
+        year: year || undefined,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-albums'] });
@@ -122,8 +123,8 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
       const currentCollections = new Set(albumData.collection_ids);
       
       // Find added and removed collections
-      const added = Array.from(selectedCollections).filter(id => !currentCollections.has(id));
-      const removed = Array.from(currentCollections).filter(id => !selectedCollections.has(id));
+      const added = Array.from(selectedCollections).filter(id => !currentCollections.has(id as string));
+      const removed = Array.from(currentCollections).filter(id => !selectedCollections.has(id as string));
       
       // Update collection memberships
       const promises = [];
@@ -277,8 +278,8 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
 
   if (isLoading) {
     return (
-      <div className="modal-overlay">
-        <div className="modal-content">
+      <div className={styles['modal-overlay']}>
+        <div className={styles['modal-content']}>
           <p>Loading...</p>
         </div>
       </div>
@@ -289,49 +290,49 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
   const editableCollections = collections?.filter(c => c.slug !== 'all') || [];
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content album-edit-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
+    <div className={styles['modal-overlay']} onClick={onClose}>
+      <div className={clsx(styles['modal-content'], styles['album-edit-modal'])} onClick={(e) => e.stopPropagation()}>
+        <div className={styles['modal-header']}>
           <h2>Edit Album</h2>
-          <button className="close-button" onClick={onClose}>✕</button>
+          <button className={styles['close-button']} onClick={onClose}>✕</button>
         </div>
 
-        <div className="modal-body">
-          <div className="edit-section">
+        <div className={styles['modal-body']}>
+          <div className={styles['edit-section']}>
             <h3>Album Information</h3>
-            <div className="album-edit-cover-row">
-              <div className="album-edit-cover-wrap">
+            <div className={styles['album-edit-cover-row']}>
+              <div className={styles['album-edit-cover-wrap']}>
                 {(() => {
                   const coverPath = (albumData as { cover_art_path?: string | null; custom_cover_art_path?: string | null })?.custom_cover_art_path ||
                     (albumData as { cover_art_path?: string | null })?.cover_art_path;
                   return coverPath ? (
-                    <img src={`/api/media/${coverPath}`} alt={`${title} cover`} className="album-edit-cover-img" />
+                    <img src={`/api/media/${coverPath}`} alt={`${title} cover`} className={styles['album-edit-cover-img']} />
                   ) : (
-                    <div className="album-edit-cover-placeholder">🎵</div>
+                    <div className={styles['album-edit-cover-placeholder']}>🎵</div>
                   );
                 })()}
               </div>
-              <div className="album-edit-form-fields">
-            <div className="form-group">
+              <div className={styles['album-edit-form-fields']}>
+            <div className={styles['form-group']}>
               <label>Title</label>
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="form-input"
+                className={styles['form-input']}
               />
             </div>
-            <div className="form-row">
-              <div className="form-group">
+            <div className={styles['form-row']}>
+              <div className={styles['form-group']}>
                 <label>Artist</label>
                 <input
                   type="text"
                   value={artist}
                   onChange={(e) => setArtist(e.target.value)}
-                  className="form-input"
+                  className={styles['form-input']}
                 />
               </div>
-              <div className="form-group">
+              <div className={styles['form-group']}>
                 <label>Year</label>
                 <input
                   type="number"
@@ -339,7 +340,7 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
                   pattern="[0-9]*"
                   value={year}
                   onChange={(e) => setYear(e.target.value ? parseInt(e.target.value) : '')}
-                  className="form-input"
+                  className={styles['form-input']}
                 />
               </div>
             </div>
@@ -347,11 +348,11 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
             </div>
           </div>
 
-          <div className="edit-section">
+          <div className={styles['edit-section']}>
             <h3>Collections</h3>
-            <div className="collections-checkboxes">
+            <div className={styles['collections-checkboxes']}>
               {editableCollections.map((collection) => (
-                <label key={collection.id} className="checkbox-label">
+                <label key={collection.id} className={styles['checkbox-label']}>
                   <input
                     type="checkbox"
                     checked={selectedCollections.has(collection.id)}
@@ -363,15 +364,15 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
             </div>
           </div>
 
-          <div className="edit-section">
+          <div className={styles['edit-section']}>
             <h3>Tracks</h3>
-            <div className="tracks-list">
+            <div className={styles['tracks-list']}>
               {tracks.map((track) => (
                 <div key={track.id}>
-                  <div className={`track-edit-item ${!track.enabled ? 'disabled' : ''}`}>
-                    <div className="track-edit-number">{track.disc_number > 1 ? `${track.disc_number}-` : ''}{track.track_number}</div>
+                  <div className={clsx(styles['track-edit-item'], !track.enabled && styles['disabled'])}>  
+                    <div className={styles['track-edit-number']}>{track.disc_number > 1 ? `${track.disc_number}-` : ''}{track.track_number}</div>
                     <button
-                      className="track-preview-button"
+                      className={styles['track-preview-button']}
                       onClick={() => handlePreviewPlay(track.id)}
                       title={previewTrackId === track.id ? 'Stop preview' : 'Play preview'}
                     >
@@ -382,27 +383,27 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
                       value={track.title}
                       onChange={(e) => handleTrackTitleChange(track.id, e.target.value)}
                       onBlur={() => updateTrackMutation.mutate({ trackId: track.id, data: { title: track.title } })}
-                      className="track-title-input"
+                      className={styles['track-title-input']}
                     />
-                    <span className="track-edit-duration" title="Track duration">
+                    <span className={styles['track-edit-duration']} title="Track duration">
                       {formatDuration(track.duration_ms ?? 0)}
                     </span>
                     <button
-                      className={`track-icon-button ${track.enabled ? 'enabled' : 'disabled'}`}
+                      className={clsx(styles['track-icon-button'], track.enabled ? styles['enabled'] : styles['disabled'])}
                       onClick={() => handleTrackEnabledToggle(track.id, !track.enabled)}
                       title={track.enabled ? 'Hide track' : 'Show track'}
                     >
                       {track.enabled ? <MdVisibility size={18} /> : <MdVisibilityOff size={18} />}
                     </button>
                     <button
-                      className={`track-icon-button ${track.is_favorite ? 'active' : ''}`}
+                      className={clsx(styles['track-icon-button'], track.is_favorite && styles['active'])}
                       onClick={() => handleTrackFavoriteToggle(track.id, !track.is_favorite)}
                       title="Favorite"
                     >
                       {track.is_favorite ? <MdStar size={18} /> : <MdStarBorder size={18} />}
                     </button>
                     <button
-                      className={`track-icon-button ${track.is_recommended ? 'active' : ''}`}
+                      className={clsx(styles['track-icon-button'], track.is_recommended && styles['active'])}
                       onClick={() => handleTrackRecommendedToggle(track.id, !track.is_recommended)}
                       title="Recommended"
                     >
@@ -410,19 +411,19 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
                     </button>
                   </div>
                   {previewTrackId === track.id && (
-                    <div className="track-preview-progress">
+                    <div className={styles['track-preview-progress']}>
                       <input
                         type="range"
                         min="0"
                         max="100"
                         value={previewProgress}
                         onChange={(e) => handleProgressSeek(track.id, parseFloat(e.target.value))}
-                        className="progress-slider"
+                        className={styles['progress-slider']}
                         style={{
                           background: `linear-gradient(to right, var(--primary-color) 0%, var(--primary-color) ${previewProgress}%, #000000 ${previewProgress}%, #000000 100%)`
                         }}
                       />
-                      <div className="track-preview-time">
+                      <div className={styles['track-preview-time']}>
                         {formatPreviewTime((previewProgress / 100) * previewDuration)} / {formatPreviewTime(previewDuration)}
                       </div>
                     </div>
@@ -433,12 +434,12 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
           </div>
         </div>
 
-        <div className="modal-footer">
-          <button className="cancel-button" onClick={onClose}>
+        <div className={styles['modal-footer']}>
+          <button className={styles['cancel-button']} onClick={onClose}>
             Cancel
           </button>
           <button
-            className="save-button"
+            className={styles['save-button']}
             onClick={handleSave}
             disabled={updateAlbumMutation.isPending || updateCollectionsMutation.isPending}
           >

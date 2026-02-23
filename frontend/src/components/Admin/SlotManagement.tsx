@@ -19,20 +19,13 @@ import { MdDragIndicator, MdEdit, MdDelete } from 'react-icons/md';
 import { collectionsApi, adminApi } from '../../services/api';
 import type { Album } from '../../types';
 import AlbumEditModal from './AlbumEditModal';
-import './SlotManagement.css';
+import styles from './SlotManagement.module.css'
+import clsx from 'clsx';
 
 const SLOTS_PER_SECTION = 4;
 const COLS = 2;
 const ROWS = 2;
 
-/** Index in ordered list → (section, row, col) for 2x2 grid. Slot order: #1 top-left, #2 bottom-left, #3 top-right, #4 bottom-right. */
-function indexToGrid(index: number): { section: number; row: number; col: number } {
-  const section = Math.floor(index / SLOTS_PER_SECTION);
-  const pos = index % SLOTS_PER_SECTION;
-  const row = pos % ROWS;
-  const col = Math.floor(pos / ROWS);
-  return { section, row, col };
-}
 
 /** (section, row, col) → index. */
 function gridToIndex(section: number, row: number, col: number): number {
@@ -51,22 +44,22 @@ function parseSlotId(id: string): number | null {
 
 function SlotCard({ album, slotNumber, isDragging }: { album: Album; slotNumber: number; isDragging?: boolean }) {
   return (
-    <div className={`slot-card ${isDragging ? 'slot-card-dragging' : ''}`}>
-      <div className="slot-card-number">{slotNumber}</div>
-          <div className="slot-card-drag-handle" aria-hidden>
+    <div className={clsx(styles['slot-card'], isDragging && styles['slot-card-dragging'])}>
+      <div className={styles['slot-card-number']}>{slotNumber}</div>
+          <div className={styles['slot-card-drag-handle']} aria-hidden>
             <MdDragIndicator size={18} />
           </div>
-          <div className="slot-card-cover">
+          <div className={styles['slot-card-cover']}>
             {album.cover_art_path ? (
               <img src={`/api/media/${album.cover_art_path}`} alt="" />
             ) : (
-              <div className="slot-card-cover-placeholder">No art</div>
+              <div className={styles['slot-card-cover-placeholder']}>No art</div>
             )}
           </div>
-          <div className="slot-card-info">
-            <div className="slot-card-title">{album.title}</div>
-            <div className="slot-card-artist">{album.artist}</div>
-            <div className="slot-card-year">{album.year ?? '—'}</div>
+          <div className={styles['slot-card-info']}>
+            <div className={styles['slot-card-title']}>{album.title}</div>
+            <div className={styles['slot-card-artist']}>{album.artist}</div>
+            <div className={styles['slot-card-year']}>{album.year ?? '—'}</div>
           </div>
     </div>
   );
@@ -91,36 +84,36 @@ function DraggableSlotCard({
   });
 
   return (
-    <div ref={setNodeRef} className="slot-cell-inner" {...attributes}>
-      <div className="slot-cell-droppable" data-slot-index={slotIndex}>
+    <div ref={setNodeRef} className={styles['slot-cell-inner']} {...attributes}>
+      <div className={styles['slot-cell-droppable']} data-slot-index={slotIndex}>
         <div
-          className={`slot-card slot-card-in-slot ${isDragging ? 'slot-card-dragging' : ''}`}
+          className={clsx(styles['slot-card'], styles['slot-card-in-slot'], isDragging && styles['slot-card-dragging'])}
           {...listeners}
         >
-          <div className="slot-card-number">{slotNumber}</div>
-          <div className="slot-card-drag-handle" aria-hidden>
+          <div className={styles['slot-card-number']}>{slotNumber}</div>
+          <div className={styles['slot-card-drag-handle']} aria-hidden>
             <MdDragIndicator size={18} />
           </div>
-          <div className="slot-card-cover">
+          <div className={styles['slot-card-cover']}>
             {album.cover_art_path ? (
               <img src={`/api/media/${album.cover_art_path}`} alt="" />
             ) : (
-              <div className="slot-card-cover-placeholder">No art</div>
+              <div className={styles['slot-card-cover-placeholder']}>No art</div>
             )}
           </div>
-          <div className="slot-card-info">
-            <div className="slot-card-title">{album.title}</div>
-            <div className="slot-card-artist">{album.artist}</div>
-            <div className="slot-card-year">{album.year ?? '—'}</div>
+          <div className={styles['slot-card-info']}>
+            <div className={styles['slot-card-title']}>{album.title}</div>
+            <div className={styles['slot-card-artist']}>{album.artist}</div>
+            <div className={styles['slot-card-year']}>{album.year ?? '—'}</div>
           </div>
           <div
-            className="slot-card-actions"
+            className={styles['slot-card-actions']}
             onClick={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
           >
             <button
               type="button"
-              className="slot-card-action-btn"
+              className={styles['slot-card-action-btn']}
               onClick={() => onEdit(album.id)}
               aria-label="Edit album"
               title="Edit album"
@@ -129,7 +122,7 @@ function DraggableSlotCard({
             </button>
             <button
               type="button"
-              className="slot-card-action-btn slot-card-action-remove"
+              className={clsx(styles['slot-card-action-btn'], styles['slot-card-action-remove'])}
               onClick={() => onRemove(album.id)}
               aria-label="Remove from collection"
               title="Remove from collection"
@@ -161,7 +154,7 @@ function DroppableSlot({
   return (
     <div
       ref={setNodeRef}
-      className={`slot-cell ${isOver ? 'slot-cell-over' : ''}`}
+      className={clsx(styles['slot-cell'], isOver && styles['slot-cell-over'])}
       data-slot-number={slotNumber}
     >
       {children}
@@ -302,15 +295,15 @@ export default function SlotManagement({ collectionSlug }: SlotManagementProps) 
   const activeSlotNum = activeId ? orderedAlbums.findIndex((a) => a.id === activeId) + 1 : 0;
 
   return (
-    <div className={`slot-management ${collectionSlug != null ? 'slot-management-embedded' : ''}`}>
+    <div className={clsx(styles['slot-management'], collectionSlug != null && styles['slot-management-embedded'])}>
       {collectionSlug == null && (
-        <div className="slot-management-controls">
+        <div className={styles['slot-management-controls']}>
           <label htmlFor="slot-collection-select">Collection</label>
           <select
             id="slot-collection-select"
             value={selectedSlug}
             onChange={(e) => setSelectedSlug(e.target.value)}
-            className="slot-collection-select"
+            className={styles['slot-collection-select']}
           >
             <option value="">Select a collection…</option>
             {collections?.map((c: { id: string; name: string; slug: string }) => (
@@ -323,12 +316,12 @@ export default function SlotManagement({ collectionSlug }: SlotManagementProps) 
       )}
 
       {effectiveSlug && (
-        <div className="slot-list-scroll">
-          <div className="slot-list-wrap">
+        <div className={styles['slot-list-scroll']}>
+          <div className={styles['slot-list-wrap']}>
           {orderedAlbums.length === 0 && !albumsLoaded ? (
-            <p className="slot-loading">Loading albums…</p>
+            <p className={styles['slot-loading']}>Loading albums…</p>
           ) : orderedAlbums.length === 0 ? (
-            <p className="slot-empty">This collection has no albums. Add albums in Collection Manager first.</p>
+            <p className={styles['slot-empty']}>This collection has no albums. Add albums in Collection Manager first.</p>
           ) : (
             <DndContext
               sensors={sensors}
@@ -336,22 +329,21 @@ export default function SlotManagement({ collectionSlug }: SlotManagementProps) 
               onDragStart={handleDragStart}
               onDragEnd={handleDragEnd}
             >
-              <div className="slot-grid-container">
+              <div className={styles['slot-grid-container']}>
                 {sectionGrids.map(({ section, grid }) => (
-                  <div key={section} className="slot-section">
-                    <div className="slot-section-grid">
+                  <div key={section} className={styles['slot-section']}>
+                    <div className={styles['slot-section-grid']}>
                       {[0, 1].map((row) =>
                         [0, 1].map((col) => {
                           const cell = grid[row][col];
                           const index = gridToIndex(section, row, col);
                           const slotNumber = index + 1;
-                          const isDroppable = index < orderedAlbums.length;
                           if (!cell) {
                             return (
-                              <div key={`${section}-${row}-${col}`} className="slot-cell slot-cell-empty-wrap" data-slot-number={slotNumber}>
-                                <div className="slot-cell-empty">
-                                  <span className="slot-cell-empty-num">{slotNumber}</span>
-                                  <span className="slot-cell-empty-hint">Empty</span>
+                              <div key={`${section}-${row}-${col}`} className={clsx(styles['slot-cell'], styles['slot-cell-empty-wrap'])} data-slot-number={slotNumber}>
+                                <div className={styles['slot-cell-empty']}>
+                                  <span className={styles['slot-cell-empty-num']}>{slotNumber}</span>
+                                  <span className={styles['slot-cell-empty-hint']}>Empty</span>
                                 </div>
                               </div>
                             );
@@ -381,7 +373,7 @@ export default function SlotManagement({ collectionSlug }: SlotManagementProps) 
 
               <DragOverlay dropAnimation={null}>
                 {activeAlbum ? (
-                  <div className="slot-card-overlay">
+                  <div className={styles['slot-card-overlay']}>
                     <SlotCard album={activeAlbum} slotNumber={activeSlotNum} isDragging />
                   </div>
                 ) : null}

@@ -9,7 +9,8 @@ import CollectionSettings from './CollectionSettings';
 import SlotManagement from './SlotManagement';
 import CollectionEditModal, { type CollectionToEdit } from './CollectionEditModal';
 import AlbumEditModal from './AlbumEditModal';
-import './CollectionManager.css';
+import styles from './CollectionManager.module.css'
+import clsx from 'clsx';
 
 type CollectionManagerSubTab = 'selections' | 'slots' | 'sections' | 'settings';
 
@@ -97,19 +98,19 @@ export default function CollectionManager() {
   if (!collections) return <p>Loading collections…</p>;
 
   return (
-    <div className="collection-manager">
-      <div className="manager-section">
+    <div className={styles['collection-manager']}>
+      <div className={styles['manager-section']}>
         <h2>Collections</h2>
         <p>Select a collection to manage its albums, sections, and display settings.</p>
 
-        <div className="collections-list">
+        <div className={styles['collections-list']}>
           {editableCollections.length === 0 ? (
-            <p className="no-collections">No editable collections. The &quot;All Albums&quot; collection cannot be edited.</p>
+            <p className={styles['no-collections']}>No editable collections. The &quot;All Albums&quot; collection cannot be edited.</p>
           ) : (
             editableCollections.map((c: Collection) => (
               <div
                 key={c.id}
-                className={`collection-card ${selectedCollection?.id === c.id ? 'selected' : ''}`}
+                className={clsx(styles['collection-card'], selectedCollection?.id === c.id && styles['selected'])}
                 onClick={() => setSelectedCollection(c)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
@@ -120,12 +121,12 @@ export default function CollectionManager() {
                 role="button"
                 tabIndex={0}
               >
-                <div className="collection-header">
+                <div className={styles['collection-header']}>
                   <h3>{c.name}</h3>
-                  <div className="collection-actions">
+                  <div className={styles['collection-actions']}>
                     <button
                       type="button"
-                      className="collection-edit-icon"
+                      className={styles['collection-edit-icon']}
                       onClick={(e) => {
                         e.stopPropagation();
                         setEditingCollection({ id: c.id, name: c.name, slug: c.slug, description: c.description });
@@ -136,8 +137,8 @@ export default function CollectionManager() {
                     </button>
                   </div>
                 </div>
-                <div className="collection-slug">{c.slug}</div>
-                {c.description && <div className="collection-description">{c.description}</div>}
+                <div className={styles['collection-slug']}>{c.slug}</div>
+                {c.description && <div className={styles['collection-description']}>{c.description}</div>}
               </div>
             ))
           )}
@@ -145,57 +146,57 @@ export default function CollectionManager() {
       </div>
 
       {selectedCollection && (
-        <div className="manager-section manager-section-tabs">
-          <div className="collection-manager-sub-tabs">
+        <div className={clsx(styles['manager-section'], styles['manager-section-tabs'])}>
+          <div className={styles['collection-manager-sub-tabs']}>
             <button
               type="button"
-              className={`collection-manager-sub-tab ${subTab === 'selections' ? 'collection-manager-sub-tab-active' : ''}`}
+              className={clsx(styles['collection-manager-sub-tab'], subTab === 'selections' && styles['collection-manager-sub-tab-active'])}
               onClick={() => setSubTab('selections')}
             >
               Selections
             </button>
             <button
               type="button"
-              className={`collection-manager-sub-tab ${subTab === 'slots' ? 'collection-manager-sub-tab-active' : ''}`}
+              className={clsx(styles['collection-manager-sub-tab'], subTab === 'slots' && styles['collection-manager-sub-tab-active'])}
               onClick={() => setSubTab('slots')}
             >
               Slots
             </button>
             <button
               type="button"
-              className={`collection-manager-sub-tab ${subTab === 'sections' ? 'collection-manager-sub-tab-active' : ''}`}
+              className={clsx(styles['collection-manager-sub-tab'], subTab === 'sections' && styles['collection-manager-sub-tab-active'])}
               onClick={() => setSubTab('sections')}
             >
               Sections
             </button>
             <button
               type="button"
-              className={`collection-manager-sub-tab ${subTab === 'settings' ? 'collection-manager-sub-tab-active' : ''}`}
+              className={clsx(styles['collection-manager-sub-tab'], subTab === 'settings' && styles['collection-manager-sub-tab-active'])}
               onClick={() => setSubTab('settings')}
             >
               Settings
             </button>
           </div>
 
-          <div className={`collection-manager-tab-content ${selectedCollection ? 'collection-manager-tab-content-has-selection' : ''}`}>
+          <div className={clsx(styles['collection-manager-tab-content'], selectedCollection && styles['collection-manager-tab-content-has-selection'])}>
             {subTab === 'selections' && (
-              <div className="collection-manager-tab-pane">
-                <p className="collection-manager-select-hint">
+              <div className={styles['collection-manager-tab-pane']}>
+                <p className={styles['collection-manager-select-hint']}>
                   Add or remove albums from <strong>{selectedCollection.name}</strong>. Check an album to include it.
                 </p>
-                <div className="albums-list-toolbar">
+                <div className={styles['albums-list-toolbar']}>
                   <input
                     type="search"
                     placeholder="Search by album or artist…"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="albums-list-search"
+                    className={styles['albums-list-search']}
                     aria-label="Search albums"
                   />
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value as AlbumSortOption)}
-                    className="albums-list-sort"
+                    className={styles['albums-list-sort']}
                     aria-label="Sort albums"
                   >
                     <option value="artist_asc">Artist A–Z</option>
@@ -207,7 +208,7 @@ export default function CollectionManager() {
                     <option value="year_asc">Year (ascending)</option>
                     <option value="year_desc">Year (descending)</option>
                   </select>
-                  <label className="albums-list-only-active">
+                  <label className={styles['albums-list-only-active']}>
                     <input
                       type="checkbox"
                       checked={showOnlyInCollection}
@@ -216,42 +217,42 @@ export default function CollectionManager() {
                     <span>Only show albums in collection</span>
                   </label>
                 </div>
-                <div ref={listRef} className="albums-list">
+                <div ref={listRef} className={styles['albums-list']}>
                   {filteredForDisplay.length === 0 ? (
-                    <p className="albums-list-empty">No albums match.</p>
+                    <p className={styles['albums-list-empty']}>No albums match.</p>
                   ) : (
                     filteredForDisplay.map((album: { id: string; title: string; artist: string; cover_art_path?: string | null; file_path?: string; total_tracks?: number; year?: number }) => (
                       <div
                         key={album.id}
-                        className={`album-item ${collectionAlbumIds.has(album.id) ? '' : 'not-in-collection'}`}
+                        className={clsx(styles['album-item'], !collectionAlbumIds.has(album.id) && styles['not-in-collection'])}
                       >
-                        <label className="album-checkbox-wrap">
+                        <label className={styles['album-checkbox-wrap']}>
                           <input
                             type="checkbox"
-                            className="album-checkbox"
+                            className={styles['album-checkbox']}
                             checked={collectionAlbumIds.has(album.id)}
                             onChange={() => handleToggleCollectionMembership(album.id)}
                             disabled={addRemoveMutation.isPending}
                           />
                         </label>
                         {album.cover_art_path && (
-                          <div className="album-item-cover">
+                          <div className={styles['album-item-cover']}>
                             <img src={`/api/media/${album.cover_art_path}`} alt="" />
                           </div>
                         )}
-                        <div className="album-item-info">
-                          <div className="album-item-title">{album.title}</div>
-                          <div className="album-item-artist">{album.artist}</div>
-                          {album.file_path && <div className="album-item-path">{album.file_path}</div>}
+                        <div className={styles['album-item-info']}>
+                          <div className={styles['album-item-title']}>{album.title}</div>
+                          <div className={styles['album-item-artist']}>{album.artist}</div>
+                          {album.file_path && <div className={styles['album-item-path']}>{album.file_path}</div>}
                         </div>
-                        <div className="album-item-stats">
+                        <div className={styles['album-item-stats']}>
                           {album.total_tracks != null && <span>{album.total_tracks} tracks</span>}
                           {album.year != null && <span>{album.year}</span>}
                         </div>
-                        <div className="album-item-actions">
+                        <div className={styles['album-item-actions']}>
                           <button
                             type="button"
-                            className="edit-button"
+                            className={styles['edit-button']}
                             onClick={() => setEditingAlbumId(album.id)}
                             aria-label="Edit album"
                           >
@@ -266,19 +267,19 @@ export default function CollectionManager() {
             )}
 
             {subTab === 'slots' && (
-              <div className="collection-manager-tab-pane">
+              <div className={styles['collection-manager-tab-pane']}>
                 <SlotManagement collectionSlug={selectedCollection.slug} />
               </div>
             )}
 
             {subTab === 'sections' && (
-              <div className="collection-manager-tab-pane">
+              <div className={styles['collection-manager-tab-pane']}>
                 <CollectionSections collection={selectedCollection} albums={collectionAlbums ?? []} />
               </div>
             )}
 
             {subTab === 'settings' && (
-              <div className="collection-manager-tab-pane">
+              <div className={styles['collection-manager-tab-pane']}>
                 <CollectionSettings
                   collection={
                     collections?.find((c: Collection) => c.id === selectedCollection?.id) ??

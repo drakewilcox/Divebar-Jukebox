@@ -108,7 +108,6 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [x] Add ability to filter by active in collection list
 - [x] Add functionality for searching collection and library to Admin View
 - [x] Add ability to preview individual tracks in edit modal. 
-- [ ] Add authorization to admin features
 - [x] Add track duration to Edit Modal
 - [ ] Add an archive track button in addition to Hide. Hide means it is hidden from display, but will still play during Full Album Play. Archive means it will not play or display.
 - [ ] Add a apply leveling feature to settings modal. 
@@ -132,13 +131,16 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 
 ### Playback Features
 - [x] Implement random play feature that are triggered by "H" button on keypad. 
-- [ ] Add 'play random after queue ends' feature to be toggled in settings. 
 - [x] Add a "Fade" Amount Feature for how much transition is between tracks.
-- [ ] Add feature for creating custom queue lists (basically a playlist) per collection. 
-- [ ] in addition to this, maybe create the ability to record the Queue History, and then save that history as queue collection.
 - [x] import replay-gain from track meta data and implement in playback. 
 = [x] Add Progress bar to Now playing mini component. 
-
+- [ ] Add 'play random after queue ends' feature to be toggled in settings. 
+- [ ] Add feature for creating custom queue lists (basically a playlist) per collection. 
+- [ ] Add a "+" Icon to Edit Album Modal next to each song that allow the user to add to a song to a Custom Queue (Only Available when in a collection specific view).
+- [ ] Add a Queue Log to backend, that can be viewed on Frontend (tied to user id).
+- [ ] From the Queue Log view, add ability to select songs from list and save selected as queue collection.
+- [ ] Add a song list view to search by song and add songs to Custom Queue. 
+- [ ] Add functionality to "Hit" button, so that in section view, favorites from selected Section are added first.
 
 ### Visual Enhancements
 - [x] Add paper textures to album info cards for vintage jukebox aesthetic
@@ -148,22 +150,38 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [x] Add Year to Album info card
 - [x] Add Selection Number (ie. "002-03") to Jukebox playblack display
 - [x] Add descriptions underneath number input for what each number means 
-- [ ] Enhance carousel slider animations for smoother transitions
 - [x] add a speaker icon for currently playing track in track info card
 - [x] add an icon to represent that a song is already in the queue (maybe prevent duplicates)
 - [x] Update Card Sliders to make them look like "Card Holders" seen on NSM Jukeboxes
+- [ ] Enhance carousel slider animations for smoother transitions
+- [ ] Add a "scotch-tape" overlay to random cards. 
 
 ### UI Features
 - [x] Setup edit mode in the carousel for quick album management
 - [x] Add now playing to carousel controls
 - [x] Clicking outside of Queue sidebar should close sidebar
 - [ ] Add option to have 4 arrow controls. Two single arrow buttons, and two double arrow buttons. The double arrow buttons would slide two cards at once. 
+- [ ] Create custom confirmation modals for removing albums from collection and archiving albums. 
+- [ ] Move Collection Mananger Settings and Edit Album modal to shared component. 
+- [ ] Add Overlay toggle to settings (glass and lights overlay). 
+
+### Routing
+- [ ] Add specific "Collection" routing so user can share a specific Collection (route would contain user slug and collection slug)
+- [ ] put Admin content behind protected routes. 
 
 ### Integration & Infrastructure
-- [ ] Add ability to add playlists as albums
-- [ ] Implement Spotify integration for playback and metadata
-- [ ] Implement Spotify sync to add spotify URLs to albums, and fetching all Spotify IDs for all tracks in database. 
+- [ ] Add ability to add playlist folders as albums
 - [ ] Move music library to network harddrive and ensure compatibility.
+
+## Spotify Integration
+- [ ] Implement Spotify integration for playback, syncing database and cover art metadata. 
+- [ ] Write Python script for matching spotify URLS or ids with Albums in Database
+- [ ] Add feature in Admin UI for adding albums and Playlists to Database. 
+- [ ] Add basic Spotify Authorization for Jukebox playblack. 
+- [ ] And then add Spotify Authorization for Admin account creation, for accessing
+
+### Tidal-dl-ng Helpers
+- [ ] Add ability write to cfg of tidal-ng-dl to make sure that file configs and download settings get set properly. 
 
 ### Testing & Deployment
 - [x] Test application on physical iPad (1024x768)
@@ -194,7 +212,8 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 ### Phase 4: Hosted Demo
 - [ ] Multi-user support
 - [ ] Cloud deployment
-- [ ] Spotify/Tidal integration
+- [ ] Spotify/Tidal/Apple-Music integration
+- [ ] Admin user signup for creating a custom Jukebox
 
 ## Disclaimer
 

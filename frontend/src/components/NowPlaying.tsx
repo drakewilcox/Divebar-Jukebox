@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Collection } from '../types';
 import { playbackApi } from '../services/api';
 import audioService from '../services/audio';
-import './NowPlaying.css';
+import styles from './NowPlaying.module.css'
+import clsx from 'clsx';
 
 interface Props {
   collection: Collection;
@@ -130,8 +131,8 @@ export default function NowPlaying({ collection }: Props) {
 
   if (!playbackState?.current_track) {
     return (
-      <div className="now-playing">
-        <div className="now-playing-empty">
+      <div className={styles['now-playing']}>
+        <div className={styles['now-playing-empty']}>
           <p>No track playing</p>
           <p>Add songs to the queue to start</p>
         </div>
@@ -143,10 +144,10 @@ export default function NowPlaying({ collection }: Props) {
   const progress = Math.min(100, (currentPositionMs / current_track.duration_ms) * 100) || 0;
   
   return (
-    <div className="now-playing">
-      <div className="now-playing-info">
+    <div className={styles['now-playing']}>
+      <div className={styles['now-playing-info']}>
         {current_track.cover_art_path && (
-          <div className="now-playing-cover">
+          <div className={styles['now-playing-cover']}>
             <img
               src={`/api/media/${current_track.cover_art_path}`}
               alt={`${current_track.album_title} cover`}
@@ -154,17 +155,17 @@ export default function NowPlaying({ collection }: Props) {
           </div>
         )}
         
-        <div className="now-playing-details">
-          <div className="now-playing-title">{current_track.title}</div>
-          <div className="now-playing-artist">{current_track.artist}</div>
-          <div className="now-playing-album">{current_track.album_title}</div>
+        <div className={styles['now-playing-details']}>
+          <div className={styles['now-playing-title']}>{current_track.title}</div>
+          <div className={styles['now-playing-artist']}>{current_track.artist}</div>
+          <div className={styles['now-playing-album']}>{current_track.album_title}</div>
         </div>
       </div>
       
-      <div className="now-playing-progress">
+      <div className={styles['now-playing-progress']}>
         <div
           ref={progressBarRef}
-          className="progress-bar progress-bar-seekable"
+          className={clsx(styles['progress-bar'], styles['progress-bar-seekable'])}
           onClick={handleProgressClick}
           role="slider"
           aria-label="Track position"
@@ -172,17 +173,17 @@ export default function NowPlaying({ collection }: Props) {
           aria-valuemax={current_track.duration_ms}
           aria-valuenow={currentPositionMs}
         >
-          <div className="progress-fill" style={{ width: `${progress}%` }} />
+          <div className={styles['progress-fill']} style={{ width: `${progress}%` }} />
         </div>
-        <div className="progress-time">
+        <div className={styles['progress-time']}>
           <span>{formatDuration(currentPositionMs)}</span>
           <span>{formatDuration(current_track.duration_ms)}</span>
         </div>
       </div>
       
-      <div className="now-playing-controls">
+      <div className={styles['now-playing-controls']}>
         <button
-          className="control-button"
+          className={styles['control-button']}
           onClick={handlePlayPause}
           disabled={playMutation.isPending || pauseMutation.isPending}
         >
@@ -190,7 +191,7 @@ export default function NowPlaying({ collection }: Props) {
         </button>
         
         <button
-          className="control-button"
+          className={styles['control-button']}
           onClick={() => skipMutation.mutate()}
           disabled={skipMutation.isPending}
         >

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { MdClose } from 'react-icons/md';
 import { adminApi } from '../../services/api';
-import './CollectionEditModal.css';
+import styles from './CollectionEditModal.module.css';
 
 export type CollectionToEdit = {
   id: string;
@@ -67,26 +67,26 @@ export default function CollectionEditModal({ collection, onClose }: Props) {
     : null;
 
   return (
-    <div className="collection-edit-modal-overlay" onClick={onClose} role="presentation">
+    <div className={styles['collection-edit-modal-overlay']} onClick={onClose} role="presentation">
       <div
-        className="collection-edit-modal-content"
+        className={styles['collection-edit-modal-content']}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-labelledby="collection-edit-modal-title"
       >
-        <div className="collection-edit-modal-header">
+        <div className={styles['collection-edit-modal-header']}>
           <h2 id="collection-edit-modal-title">Edit Collection</h2>
           <button
             type="button"
-            className="collection-edit-modal-close"
+            className={styles['collection-edit-modal-close']}
             onClick={onClose}
             aria-label="Close"
           >
             <MdClose size={24} />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="collection-edit-modal-body">
-          <div className="collection-edit-form-group">
+        <form onSubmit={handleSubmit} className={styles['collection-edit-modal-body']}>
+          <div className={styles['collection-edit-form-group']}>
             <label htmlFor="collection-edit-name">Name</label>
             <input
               id="collection-edit-name"
@@ -100,7 +100,7 @@ export default function CollectionEditModal({ collection, onClose }: Props) {
               autoFocus
             />
           </div>
-          <div className="collection-edit-form-group">
+          <div className={styles['collection-edit-form-group']}>
             <label htmlFor="collection-edit-slug">Slug</label>
             <input
               id="collection-edit-slug"
@@ -110,7 +110,7 @@ export default function CollectionEditModal({ collection, onClose }: Props) {
               placeholder="e.g., dad-rock"
             />
           </div>
-          <div className="collection-edit-form-group">
+          <div className={styles['collection-edit-form-group']}>
             <label htmlFor="collection-edit-description">Description (optional)</label>
             <input
               id="collection-edit-description"
@@ -121,15 +121,15 @@ export default function CollectionEditModal({ collection, onClose }: Props) {
             />
           </div>
           {errorMessage && (
-            <p className="collection-edit-error">{errorMessage}</p>
+            <p className={styles['collection-edit-error']}>{errorMessage}</p>
           )}
-          <div className="collection-edit-modal-actions">
-            <button type="button" className="collection-edit-cancel" onClick={onClose}>
+          <div className={styles['collection-edit-modal-actions']}>
+            <button type="button" className={styles['collection-edit-cancel']} onClick={onClose}>
               Cancel
             </button>
             <button
               type="submit"
-              className="collection-edit-submit"
+              className={styles['collection-edit-submit']}
               disabled={!name.trim() || !slug.trim() || updateMutation.isPending}
             >
               {updateMutation.isPending ? 'Saving…' : 'Save'}

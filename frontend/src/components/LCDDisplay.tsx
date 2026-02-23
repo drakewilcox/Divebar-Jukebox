@@ -1,5 +1,5 @@
-import React from 'react';
-import './LCDDisplay.css';
+import styles from './LCDDisplay.module.css'
+import clsx from 'clsx';
 
 interface Props {
   value: string; // Format: "XXX-YY" where X and Y can be digits or _
@@ -35,22 +35,22 @@ export default function LCDDisplay({ value, discLabel = 'Disc Number', trackLabe
   const isDashActive = raw.length >= 4;
 
   return (
-    <div className="lcd-display">
-      <div className="lcd-group-with-label">
-        <div className="lcd-group">
+    <div className={styles['lcd-display']}>
+      <div className={styles['lcd-group-with-label']}>
+        <div className={styles['lcd-group']}>
           <LCDDigit value={digits[0]} />
           <LCDDigit value={digits[1]} />
           <LCDDigit value={digits[2]} />
         </div>
-        <span className="lcd-group-label">{discLabel}</span>
+        <span className={styles['lcd-group-label']}>{discLabel}</span>
       </div>
-      <div className={`lcd-dash ${isDashActive ? 'active' : 'inactive'}`}>-</div>
-      <div className="lcd-group-with-label">
-        <div className="lcd-group">
+      <div className={clsx(styles['lcd-dash'], isDashActive ? styles['active'] : styles['inactive'])}>-</div>
+      <div className={styles['lcd-group-with-label']}>
+        <div className={styles['lcd-group']}>
           <LCDDigit value={digits[3]} />
           <LCDDigit value={digits[4]} />
         </div>
-        <span className="lcd-group-label">{trackLabel}</span>
+        <span className={styles['lcd-group-label']}>{trackLabel}</span>
       </div>
     </div>
   );
@@ -64,8 +64,8 @@ function LCDDigit({ value }: LCDDigitProps) {
   const isActive = value !== '_' && /[0-9]/.test(value);
   
   return (
-    <div className={`lcd-digit ${isActive ? 'active' : 'inactive'}`}>
-      <div className="lcd-content">
+    <div className={clsx(styles['lcd-digit'], isActive ? styles['active'] : styles['inactive'])}>
+      <div className={styles['lcd-content']}>
         {isActive ? value : '8'}
       </div>
     </div>

@@ -1,7 +1,6 @@
 // Audio playback service using HTML5 Audio API (two elements for crossfade)
 import { playbackApi } from './api';
 
-const CROSSFADE_TICK_MS = 50;
 /** Start crossfade this many seconds before (duration - crossfade) so we beat the 'ended' event */
 const CROSSFADE_SAFETY_MARGIN_SEC = 1.5;
 const DEBUG_CROSSFADE = true;
@@ -264,7 +263,7 @@ class AudioService {
           this.crossfadeAnimationId = requestAnimationFrame(tick);
         } else {
           this.crossfadeAnimationId = null;
-          this.finishCrossfade(data.next_track_id, nextGain);
+          this.finishCrossfade(data.next_track_id ?? '', nextGain);
         }
       };
       this.crossfadeAnimationId = requestAnimationFrame(tick);

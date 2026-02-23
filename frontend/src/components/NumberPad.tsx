@@ -3,14 +3,15 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Collection } from '../types';
 import { queueApi } from '../services/api';
 import { useJukeboxStore } from '../stores/jukeboxStore';
-import './NumberPad.css';
+import styles from './NumberPad.module.css'
+import clsx from 'clsx';
 
 interface Props {
   collection: Collection;
 }
 
 export default function NumberPad({ collection }: Props) {
-  const { numberInput, setNumberInput, clearNumberInput, appendToNumberInput, backspaceNumberInput } = useJukeboxStore();
+  const { numberInput, clearNumberInput, appendToNumberInput, backspaceNumberInput } = useJukeboxStore();
   const queryClient = useQueryClient();
   const [feedback, setFeedback] = useState<string>('');
   
@@ -78,38 +79,38 @@ export default function NumberPad({ collection }: Props) {
   };
   
   return (
-    <div className="number-pad">
-      <div className="number-pad-display">
-        <div className="input-display">{formatDisplay()}</div>
-        {feedback && <div className="feedback-message">{feedback}</div>}
+    <div className={styles['number-pad']}>
+      <div className={styles['number-pad-display']}>
+        <div className={styles['input-display']}>{formatDisplay()}</div>
+        {feedback && <div className={styles['feedback-message']}>{feedback}</div>}
       </div>
       
-      <div className="number-pad-grid">
+      <div className={styles['number-pad-grid']}>
         {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
           <button
             key={num}
-            className="number-button"
+            className={styles['number-button']}
             onClick={() => handleNumberClick(String(num))}
           >
             {num}
           </button>
         ))}
         
-        <button className="number-button action-button" onClick={handleClear}>
+        <button className={clsx(styles['number-button'], styles['action-button'])} onClick={handleClear}>
           CLR
         </button>
         
-        <button className="number-button" onClick={() => handleNumberClick('0')}>
+        <button className={styles['number-button']} onClick={() => handleNumberClick('0')}>
           0
         </button>
         
-        <button className="number-button action-button" onClick={handleBackspace}>
+        <button className={clsx(styles['number-button'], styles['action-button'])} onClick={handleBackspace}>
           ←
         </button>
       </div>
       
       <button
-        className="submit-button"
+        className={styles['submit-button']}
         onClick={handleSubmit}
         disabled={numberInput.length < 3 || addToQueueMutation.isPending}
       >

@@ -5,7 +5,9 @@ import { Collection } from '../types';
 import { settingsApi, queueApi, playbackApi } from '../services/api';
 import { audioService } from '../services/audio';
 import { useJukeboxStore } from '../stores/jukeboxStore';
-import './SettingsModal.css';
+import styles from './SettingsModal.module.css';
+import clsx from 'clsx';
+import JukeboxSettingsPanel from './JukeboxSettingsPanel';
 
 interface Props {
   isOpen: boolean;
@@ -118,7 +120,7 @@ export default function SettingsModal({
   }, [defaultCollectionSlug]);
 
   const sectionsEnabledForCollection =
-    currentCollection.sections_enabled &&
+    !!currentCollection.sections_enabled &&
     Array.isArray(currentCollection.sections) &&
     currentCollection.sections.length > 0;
 
@@ -187,32 +189,32 @@ export default function SettingsModal({
   const isCurrentDefault = currentCollection.slug === defaultCollectionSlug;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content settings-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
+    <div className={styles['modal-overlay']} onClick={onClose}>
+      <div className={clsx(styles['modal-content'], styles['settings-modal'])} onClick={(e) => e.stopPropagation()}>
+        <div className={styles['modal-header']}>
           <h2>Settings</h2>
-          <div className="modal-header-actions">
+          <div className={styles['modal-header-actions']}>
             <button
               type="button"
-              className="modal-header-admin-button"
+              className={styles['modal-header-admin-button']}
               onClick={handleGoToAdmin}
               aria-label="Go to Admin panel"
               title="Admin"
             >
               <MdAdminPanelSettings size={24} />
             </button>
-            <button className="close-button" onClick={onClose}>✕</button>
+            <button className={styles['close-button']} onClick={onClose}>✕</button>
           </div>
         </div>
 
-        <div className="modal-body">
-          <div className="settings-section">
+        <div className={styles['modal-body']}>
+          <div className={styles['settings-section']}>
             <h3>Collection</h3>
-            <div className="form-group collection-row">
-              <div className="form-select-wrap" ref={collectionSelectRef}>
+            <div className={clsx(styles['form-group'], styles['collection-row'])}>
+              <div className={styles['form-select-wrap']} ref={collectionSelectRef}>
                 <button
                   type="button"
-                  className="form-select form-select-trigger"
+                  className={clsx(styles['form-select'], styles['form-select-trigger'])}
                   onClick={() => setCollectionSelectOpen((open) => !open)}
                   aria-expanded={collectionSelectOpen}
                   aria-haspopup="listbox"
@@ -224,7 +226,7 @@ export default function SettingsModal({
                 </button>
                 {collectionSelectOpen && (
                   <ul
-                    className="form-select-dropdown"
+                    className={styles['form-select-dropdown']}
                     role="listbox"
                     aria-label="Current collection"
                     onMouseDown={(e) => e.stopPropagation()}
@@ -234,7 +236,7 @@ export default function SettingsModal({
                         key={collection.id}
                         role="option"
                         aria-selected={currentCollection.slug === collection.slug}
-                        className="form-select-option"
+                        className={styles['form-select-option']}
                         onMouseDown={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
@@ -256,7 +258,7 @@ export default function SettingsModal({
               </div>
               <button
                 type="button"
-                className="set-default-button"
+                className={styles['set-default-button']}
                 onClick={handleSetAsDefault}
                 disabled={isCurrentDefault}
               >
@@ -265,174 +267,24 @@ export default function SettingsModal({
             </div>
           </div>
 
-          <div className="settings-section">
-            <h3>Sort Order</h3>
-            <div className="form-group">
-              <div className="radio-group" role="radiogroup" aria-label="Sort order">
-                <label className="radio-option">
-                  <input
-                    type="radio"
-                    name="sortOrder"
-                    value="alphabetical"
-                    checked={sortOrder === 'alphabetical'}
-                    onChange={() => setSortOrder('alphabetical')}
-                  />
-                  <span>Alphabetical</span>
-                </label>
-                <label className="radio-option">
-                  <input
-                    type="radio"
-                    name="sortOrder"
-                    value="curated"
-                    checked={sortOrder === 'curated'}
-                    onChange={() => setSortOrder('curated')}
-                  />
-                  <span>Curated</span>
-                </label>
-              </div>
-              <p className="help-text">
-                Curated uses the collection&apos;s custom order. Alphabetical sorts by artist name
-              </p>
-            </div>
-          </div>
-
-          <div className="settings-section settings-block">
-            <div className="settings-row settings-row-toggle">
-              <h3>Jump-To Buttons</h3>
-              <label className="toggle-label">
-                <div className="toggle-label-content">
-                  <input
-                    type="checkbox"
-                    checked={showJumpToBar}
-                    onChange={(e) => setShowJumpToBar(e.target.checked)}
-                    className="toggle-checkbox"
-                  />
-                  <span className="toggle-text">{showJumpToBar ? 'Show' : 'Hide'}</span>
-                </div>
-              </label>
-            </div>
-            <p className="help-text">
-              When enabled, buttons above the control bar can be used to jump to letter/number ranges or sections
-            </p>
-          </div>
-
-          <div className={`settings-section form-group ${!showJumpToBar ? 'settings-block-disabled' : ''}`}>
-            <label className="radio-group-label jump-type">Jump Button Type</label>
-            <div className="radio-group" role="radiogroup" aria-label="Jump button type" aria-disabled={!showJumpToBar}>
-              {sortOrder === 'alphabetical' && (
-                <>
-                  <label className="radio-option">
-                    <input
-                      type="radio"
-                      name="jumpButtonType"
-                      value="letter-ranges"
-                      checked={jumpButtonType === 'letter-ranges'}
-                      onChange={() => setJumpButtonType('letter-ranges')}
-                      disabled={!showJumpToBar}
-                    />
-                    <span>Letter Ranges</span>
-                  </label>
-                  <label className="radio-option">
-                    <input
-                      type="radio"
-                      name="jumpButtonType"
-                      value="number-ranges"
-                      checked={jumpButtonType === 'number-ranges'}
-                      onChange={() => setJumpButtonType('number-ranges')}
-                      disabled={!showJumpToBar}
-                    />
-                    <span>Number Ranges</span>
-                  </label>
-                </>
-              )}
-              {sortOrder === 'curated' && (
-                <>
-                  <label className="radio-option">
-                    <input
-                      type="radio"
-                      name="jumpButtonType"
-                      value="number-ranges"
-                      checked={jumpButtonType === 'number-ranges'}
-                      onChange={() => setJumpButtonType('number-ranges')}
-                      disabled={!showJumpToBar}
-                    />
-                    <span>Number Ranges</span>
-                  </label>
-                  {sectionsEnabledForCollection && (
-                    <label className="radio-option">
-                      <input
-                        type="radio"
-                        name="jumpButtonType"
-                        value="sections"
-                        checked={jumpButtonType === 'sections'}
-                        onChange={() => setJumpButtonType('sections')}
-                        disabled={!showJumpToBar}
-                      />
-                      <span>Sections</span>
-                    </label>
-                  )}
-                </>
-              )}
-            </div>
-            {/* <p className="help-text">
-              {sortOrder === 'curated' && sectionsEnabledForCollection
-                ? 'Sections shows one button per collection section and jumps to the start of each section.'
-                : 'Number ranges split the list into 8 ranges (e.g. 1–10, 11–20).'}
-            </p> */}
-          </div>
-
-          <div className={`settings-section settings-block ${!(showJumpToBar && sortOrder === 'curated' && sectionsEnabledForCollection && jumpButtonType === 'sections') ? 'settings-block-disabled' : ''}`}>
-            <div className="settings-row settings-row-toggle">
-              <h3>Color Coding</h3>
-              <label className="toggle-label">
-                <div className="toggle-label-content">
-                  <input
-                    type="checkbox"
-                    checked={showColorCoding}
-                    onChange={(e) => setShowColorCoding(e.target.checked)}
-                    className="toggle-checkbox"
-                    disabled={!(showJumpToBar && sortOrder === 'curated' && sectionsEnabledForCollection && jumpButtonType === 'sections')}
-                  />
-                  <span className="toggle-text">{showColorCoding ? 'Show' : 'Hide'}</span>
-                </div>
-              </label>
-            </div>
-            <p className="help-text">
-              When enabled, section buttons and album cards use each section&apos;s color
-            </p>
-          </div>
-
-          <div className="settings-section">
-            <h3>Crossfade</h3>
-            <div className="form-group">
-              <div className="settings-crossfade-row">
-                <input
-                  id="settings-crossfade"
-                  type="range"
-                  min={0}
-                  max={12}
-                  value={crossfadeSeconds}
-                  onChange={(e) => setCrossfadeSeconds(Number(e.target.value))}
-                  className="settings-crossfade-slider"
-                  style={{ ['--crossfade-pct' as string]: `${(crossfadeSeconds / 12) * 100}%` }}
-                  aria-valuemin={0}
-                  aria-valuemax={12}
-                  aria-valuenow={crossfadeSeconds}
-                  aria-valuetext={`${crossfadeSeconds} seconds`}
-                />
-                <label htmlFor="settings-crossfade" className="settings-crossfade-label">
-                  {crossfadeSeconds} sec
-                </label>
-              </div>
-              <p className="help-text">
-                * No fade is used when the next track is the next track on the same album
-              </p>
-            </div>
-          </div>
+          <JukeboxSettingsPanel
+            sortOrder={sortOrder}
+            onSortOrderChange={setSortOrder}
+            showJumpToBar={showJumpToBar}
+            onShowJumpToBarChange={setShowJumpToBar}
+            jumpButtonType={jumpButtonType}
+            onJumpButtonTypeChange={setJumpButtonType}
+            showColorCoding={showColorCoding}
+            onShowColorCodingChange={setShowColorCoding}
+            crossfadeSeconds={crossfadeSeconds}
+            onCrossfadeSecondsChange={setCrossfadeSeconds}
+            sectionsEnabledForCollection={sectionsEnabledForCollection}
+            namePrefix="settings-"
+          />
         </div>
 
-        <div className="modal-footer">
-          <button className="close-modal-button" onClick={onClose}>
+        <div className={styles['modal-footer']}>
+          <button className={styles['close-modal-button']} onClick={onClose}>
             Close
           </button>
         </div>

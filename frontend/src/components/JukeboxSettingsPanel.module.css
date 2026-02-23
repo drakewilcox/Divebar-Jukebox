@@ -1,0 +1,307 @@
+/* ── Sections ─────────────────────────────────────────────────────────────── */
+
+.settings-section {
+  margin-bottom: 1rem;
+}
+
+.settings-section:last-child {
+  margin-bottom: 0;
+}
+
+.settings-section h3 {
+  font-size: 1.1rem;
+  color: var(--vintage-cream);
+  margin: 0 0 0.75rem 0;
+  padding-bottom: 0.35rem;
+}
+
+/* Jump-To / Color Coding block: flex column keeps heading + help-text tight */
+.settings-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.settings-block-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.settings-block-disabled input:disabled {
+  cursor: not-allowed;
+}
+
+/* Row that places a heading and a toggle on the same line */
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.settings-row.settings-row-toggle {
+  padding-bottom: 0.5rem;
+}
+
+.settings-row.settings-row-toggle h3 {
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+/* ── Form group ───────────────────────────────────────────────────────────── */
+
+.form-group {
+  margin-bottom: 0;
+  min-width: 0;
+  width: 100%;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+/* ── Radio groups ─────────────────────────────────────────────────────────── */
+
+.radio-group-label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+/* Jump Button Type label — same font as the h3 section headings */
+.settings-section .radio-group-label.jump-type {
+  font-family: inherit;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--vintage-cream);
+  margin: 0 0 0.75rem 0;
+  padding-bottom: 0.35rem;
+  display: block;
+}
+
+.radio-group {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Override display:block from .form-group label so radio option is a flex row */
+.radio-option,
+.form-group label.radio-option {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: normal;
+  color: var(--text-primary);
+  margin-bottom: 0;
+  min-height: 1.25rem;
+}
+
+.radio-option input,
+.form-group label.radio-option input {
+  flex-shrink: 0;
+  order: 1;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
+  margin-right: 0.875rem;
+  accent-color: var(--lcd-green);
+  cursor: pointer;
+}
+
+.radio-option span,
+.form-group label.radio-option span {
+  order: 2;
+}
+
+/* ── Toggle ───────────────────────────────────────────────────────────────── */
+
+.toggle-label {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.toggle-label-content {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.toggle-checkbox {
+  width: 50px;
+  max-width: 50px;
+  height: 28px;
+  flex-shrink: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  accent-color: var(--vintage-cream);
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.3s;
+  border: 1px solid color-mix(in srgb, var(--vintage-cream) 30%, transparent);
+}
+
+.toggle-checkbox::before {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 22px;
+  border-radius: 50%;
+  background-color: var(--text-secondary);
+  top: 2px;
+  left: 2px;
+  transition: all 0.3s;
+}
+
+.toggle-checkbox:checked {
+  background-color: var(--vintage-cream);
+  border-color: var(--vintage-cream);
+}
+
+.toggle-checkbox:checked::before {
+  background-color: #1a1a1a;
+  transform: translateX(22px);
+}
+
+.toggle-checkbox:focus,
+.toggle-checkbox:focus-visible {
+  outline: none;
+  border-color: color-mix(in srgb, var(--vintage-cream) 30%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--vintage-cream) 50%, transparent);
+}
+
+.toggle-checkbox:focus:checked,
+.toggle-checkbox:focus-visible:checked {
+  border-color: var(--vintage-cream);
+}
+
+.toggle-text {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* ── Help text ────────────────────────────────────────────────────────────── */
+
+.help-text {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-top: 0.5rem;
+  line-height: 1.4;
+  font-style: italic;
+}
+
+/* ── Crossfade slider ─────────────────────────────────────────────────────── */
+
+.settings-crossfade-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0;
+}
+
+.settings-crossfade-row .settings-crossfade-slider {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  margin-bottom: .5rem;
+}
+
+.settings-crossfade-label {
+  flex-shrink: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 0 !important;
+  padding: 0;
+  display: inline;
+  cursor: pointer;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.settings-crossfade-slider {
+  --crossfade-track: #4a4a4a;
+  --crossfade-fill: #fff;
+  display: block;
+  width: 100%;
+  height: 14px;
+  padding: 0;
+  margin: 0;
+
+  border: none !important;
+  box-shadow: none !important;
+  -webkit-appearance: none;
+  appearance: none;
+  outline: none;
+  cursor: pointer;
+  background: transparent;
+
+}
+
+.settings-crossfade-slider::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    var(--crossfade-fill) 0,
+    var(--crossfade-fill) var(--crossfade-pct, 0%),
+    var(--crossfade-track) var(--crossfade-pct, 0%),
+    var(--crossfade-track) 100%
+  );
+}
+
+.settings-crossfade-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--crossfade-fill);
+  cursor: pointer;
+  margin-top: -5px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.settings-crossfade-slider::-moz-range-track {
+  width: 100%;
+  height: 4px;
+  background: var(--crossfade-track);
+  border-radius: 2px;
+  border: none;
+}
+
+.settings-crossfade-slider::-moz-range-progress {
+  height: 4px;
+  background: var(--crossfade-fill);
+  border-radius: 2px 0 0 2px;
+}
+
+.settings-crossfade-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--crossfade-fill);
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}

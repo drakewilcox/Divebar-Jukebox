@@ -1,6 +1,6 @@
 import { Collection } from '../types';
 import { useJukeboxStore } from '../stores/jukeboxStore';
-import './CollectionSelector.css';
+import styles from './CollectionSelector.module.css';
 
 interface Props {
   collections: Collection[];
@@ -17,7 +17,7 @@ export default function CollectionSelector({ collections }: Props) {
   };
   
   return (
-    <div className="collection-selector">
+    <div className={styles['collection-selector']}>
       <label htmlFor="collection-select">Collection:</label>
       <select
         id="collection-select"

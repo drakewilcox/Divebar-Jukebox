@@ -4,7 +4,8 @@ import { MdPlayArrow, MdPause, MdSkipNext, MdStop } from 'react-icons/md';
 import { Collection } from '../types';
 import { queueApi, playbackApi } from '../services/api';
 import audioService from '../services/audio';
-import './QueueDisplay.css';
+import styles from './QueueDisplay.module.css'
+import clsx from 'clsx';
 
 interface Props {
   collection: Collection;
@@ -131,13 +132,6 @@ export default function QueueDisplay({ collection, onQueueCleared }: Props) {
     },
   });
 
-  const clearQueueMutation = useMutation({
-    mutationFn: () => queueApi.clear(collection.slug),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['queue', collection.slug] });
-    },
-  });
-  
   const stopMutation = useMutation({
     mutationFn: async () => {
       // Stop local audio first so playback stops immediately
@@ -268,12 +262,12 @@ export default function QueueDisplay({ collection, onQueueCleared }: Props) {
   const hasQueue = queue && queue.length > 0;
   
   return (
-    <div className="queue-display">
-      <div className="queue-header">
+    <div className={styles['queue-display']}>
+      <div className={styles['queue-header']}>
         <h2>Queue</h2>
-        <div className="queue-header-controls">
+        <div className={styles['queue-header-controls']}>
           <button
-            className="queue-control-button"
+            className={styles['queue-control-button']}
             onClick={handlePlayPause}
             disabled={!hasQueue || playMutation.isPending || pauseMutation.isPending}
             title={playbackState?.is_playing ? 'Pause' : 'Play'}
@@ -282,7 +276,7 @@ export default function QueueDisplay({ collection, onQueueCleared }: Props) {
             {playbackState?.is_playing ? <MdPause size={22} /> : <MdPlayArrow size={22} />}
           </button>
           <button
-            className="queue-control-button"
+            className={styles['queue-control-button']}
             onClick={() => skipMutation.mutate()}
             disabled={!nowPlaying || skipMutation.isPending}
             title="Skip"
@@ -291,7 +285,7 @@ export default function QueueDisplay({ collection, onQueueCleared }: Props) {
             <MdSkipNext size={22} />
           </button>
           <button
-            className="queue-control-button stop"
+            className={clsx(styles['queue-control-button'], styles['stop'])}
             onClick={() => stopMutation.mutate()}
             disabled={!hasQueue || stopMutation.isPending}
             title="Stop & Clear"
@@ -304,12 +298,12 @@ export default function QueueDisplay({ collection, onQueueCleared }: Props) {
       
       <div
         ref={queueListRef}
-        className="queue-list"
+        className={styles['queue-list']}
         onDragOver={handleListDragOver}
         onDrop={handleListDrop}
       >
         {!queue || queue.length === 0 ? (
-          <div className="queue-empty">
+          <div className={styles['queue-empty']}>
             <p>Queue is empty</p>
             <p>Use the input to add songs</p>
           </div>
@@ -318,10 +312,10 @@ export default function QueueDisplay({ collection, onQueueCleared }: Props) {
             {/* Now Playing Section */}
             {nowPlaying && (
               <>
-                <div className="now-playing-label">Now Playing</div>
-                <div className="queue-item now-playing-item">
+                <div className={styles['now-playing-label']}>Now Playing</div>
+                <div className={clsx(styles['queue-item'], styles['now-playing-item'])}>
                   {nowPlaying.track.cover_art_path && (
-                    <div className="queue-item-cover">
+                    <div className={styles['queue-item-cover']}>
                       <img
                         src={`/api/media/${nowPlaying.track.cover_art_path}`}
                         alt={`${nowPlaying.track.album_title} cover`}
@@ -329,17 +323,17 @@ export default function QueueDisplay({ collection, onQueueCleared }: Props) {
                     </div>
                   )}
                   
-                  <div className="queue-item-info">
+                  <div className={styles['queue-item-info']}>
                    
-                    <div className="queue-item-title">{nowPlaying.track.title}</div>
-                    <div className="queue-item-artist">{nowPlaying.track.artist}</div>
-                    <div className="queue-item-album">{nowPlaying.track.album_title}</div>
+                    <div className={styles['queue-item-title']}>{nowPlaying.track.title}</div>
+                    <div className={styles['queue-item-artist']}>{nowPlaying.track.artist}</div>
+                    <div className={styles['queue-item-album']}>{nowPlaying.track.album_title}</div>
                     {nowPlaying.track.selection_display && (
-                      <div className="queue-item-selection">{nowPlaying.track.selection_display}</div>
+                      <div className={styles['queue-item-selection']}>{nowPlaying.track.selection_display}</div>
                     )}
                   </div>
                   
-                  <div className="queue-item-duration now-playing-countdown">
+                  <div className={clsx(styles['queue-item-duration'], styles['now-playing-countdown'])}>
                     {formatCountdown(nowPlaying.track.duration_ms, currentPositionMs)}
                   </div>
                 </div>
@@ -349,12 +343,12 @@ export default function QueueDisplay({ collection, onQueueCleared }: Props) {
             {/* Upcoming Queue Items */}
             {upcomingQueue.length > 0 && (
               <>
-                <div className="queue-upcoming-label">Up Next ({upcomingQueue.length})</div>
+                <div className={styles['queue-upcoming-label']}>Up Next ({upcomingQueue.length})</div>
                 {upcomingQueue.map((item, index) => (
                   <React.Fragment key={item.id}>
-                    {dropIndicatorIndex === index + 1 && <div className="queue-drop-indicator" aria-hidden />}
+                    {dropIndicatorIndex === index + 1 && <div className={styles['queue-drop-indicator']} aria-hidden />}
                     <div
-                      className={`queue-item queue-item-draggable ${draggedIndex === index + 1 ? 'dragging' : ''}`}
+                      className={clsx(styles['queue-item'], styles['queue-item-draggable'], draggedIndex === index + 1 && styles['dragging'])}
                       draggable
                       onDragStart={(e) => handleDragStart(e, index + 1)}
                       onDragOver={(e) => handleDragOver(e, index + 1)}
@@ -362,7 +356,7 @@ export default function QueueDisplay({ collection, onQueueCleared }: Props) {
                       onDragEnd={handleDragEnd}
                     >
                     {item.track.cover_art_path && (
-                      <div className="queue-item-cover">
+                      <div className={styles['queue-item-cover']}>
                         <img
                           src={`/api/media/${item.track.cover_art_path}`}
                           alt={`${item.track.album_title} cover`}
@@ -370,22 +364,22 @@ export default function QueueDisplay({ collection, onQueueCleared }: Props) {
                       </div>
                     )}
                     
-                    <div className="queue-item-info">
+                    <div className={styles['queue-item-info']}>
                      
-                      <div className="queue-item-title">{item.track.title}</div>
-                      <div className="queue-item-artist">{item.track.artist}</div>
-                      <div className="queue-item-album">{item.track.album_title}</div>
+                      <div className={styles['queue-item-title']}>{item.track.title}</div>
+                      <div className={styles['queue-item-artist']}>{item.track.artist}</div>
+                      <div className={styles['queue-item-album']}>{item.track.album_title}</div>
                       {item.track.selection_display && (
-                        <div className="queue-item-selection">{item.track.selection_display}</div>
+                        <div className={styles['queue-item-selection']}>{item.track.selection_display}</div>
                       )}
                     </div>
                     
-                    <div className="queue-item-duration">
+                    <div className={styles['queue-item-duration']}>
                       {formatDuration(item.track.duration_ms)}
                     </div>
                     
                     <button
-                      className="queue-item-remove"
+                      className={styles['queue-item-remove']}
                       onClick={() => removeFromQueueMutation.mutate(item.id)}
                       disabled={removeFromQueueMutation.isPending}
                       aria-label="Remove from queue"
@@ -395,11 +389,11 @@ export default function QueueDisplay({ collection, onQueueCleared }: Props) {
                   </div>
                   </React.Fragment>
                 ))}
-                {dropIndicatorIndex === (queue?.length ?? 0) && <div className="queue-drop-indicator" aria-hidden />}
+                {dropIndicatorIndex === (queue?.length ?? 0) && <div className={styles['queue-drop-indicator']} aria-hidden />}
                 {/* Extra drop zone below last item so you can scroll and drop to move item last */}
                 {queue && queue.length > 0 && (
                   <div
-                    className="queue-list-spacer"
+                    className={styles['queue-list-spacer']}
                     onDragOver={(e) => {
                       e.preventDefault();
                       e.dataTransfer.dropEffect = 'move';

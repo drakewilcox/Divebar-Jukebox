@@ -4,7 +4,7 @@ import { MdAdd, MdDelete, MdDragIndicator } from 'react-icons/md';
 import { adminApi } from '../../services/api';
 import type { Collection, CollectionSection } from '../../types';
 import { SECTION_COLORS, MIN_SECTIONS, MAX_SECTIONS } from './SectionColors';
-import './CollectionSections.css';
+import styles from './CollectionSections.module.css';
 
 const ROW_HEIGHT_PX = 48;
 
@@ -271,9 +271,9 @@ export default function CollectionSections({ collection, albums = [] }: Props) {
     (sectionsEnabled && JSON.stringify(collection.sections ?? []) !== JSON.stringify(sections));
 
   return (
-    <div className="collection-sections">
-      <div className="collection-sections-enable">
-        <label className="collection-sections-enable-label">
+    <div className={styles['collection-sections']}>
+      <div className={styles['collection-sections-enable']}>
+        <label className={styles['collection-sections-enable-label']}>
           <input
             type="checkbox"
             checked={sectionsEnabled}
@@ -286,37 +286,37 @@ export default function CollectionSections({ collection, albums = [] }: Props) {
 
       {sectionsEnabled && (
         <>
-          <p className="collection-sections-hint">
+          <p className={styles['collection-sections-hint']}>
             Add 3–10 section labels. Each section has a number, name, and color. Click the color box to choose a color.
           </p>
-          <div className="collection-sections-list">
+          <div className={styles['collection-sections-list']}>
             {sections.map((section, index) => (
-              <div key={index} className="collection-section-row">
-                <span className="collection-section-number">{index + 1}</span>
+              <div key={index} className={styles['collection-section-row']}>
+                <span className={styles['collection-section-number']}>{index + 1}</span>
                 <input
                   type="text"
-                  className="collection-section-name"
+                  className={styles['collection-section-name']}
                   value={section.name}
                   onChange={(e) => updateSection(index, { name: e.target.value })}
                   placeholder="Section name"
                   aria-label={`Section ${index + 1} name`}
                 />
-                <div className="collection-section-color-wrap" ref={index === openColorIndex ? colorPickerRef : null}>
+                <div className={styles['collection-section-color-wrap']} ref={index === openColorIndex ? colorPickerRef : null}>
                   <button
                     type="button"
-                    className="collection-section-color-btn"
+                    className={styles['collection-section-color-btn']}
                     onClick={() => setOpenColorIndex(openColorIndex === index ? null : index)}
                     style={{ backgroundColor: section.color }}
                     aria-label={`Section ${index + 1} color`}
                     title="Choose color"
                   />
                   {openColorIndex === index && (
-                    <div className="collection-section-color-picker" role="dialog" aria-label="Choose color">
+                    <div className={styles['collection-section-color-picker']} role="dialog" aria-label="Choose color">
                       {SECTION_COLORS.map((color) => (
                         <button
                           key={color}
                           type="button"
-                          className="collection-section-color-swatch"
+                          className={styles['collection-section-color-swatch']}
                           style={{ backgroundColor: color }}
                           onClick={() => setSectionColor(index, color)}
                           title={color}
@@ -328,7 +328,7 @@ export default function CollectionSections({ collection, albums = [] }: Props) {
                 </div>
                 <button
                   type="button"
-                  className="collection-section-remove"
+                  className={styles['collection-section-remove']}
                   onClick={() => removeSection(index)}
                   disabled={!canRemove}
                   aria-label="Remove section"
@@ -339,15 +339,15 @@ export default function CollectionSections({ collection, albums = [] }: Props) {
               </div>
             ))}
           </div>
-          <div className="collection-sections-actions">
-            <button type="button" className="collection-sections-add" onClick={addSection} disabled={!canAdd}>
+          <div className={styles['collection-sections-actions']}>
+            <button type="button" className={styles['collection-sections-add']} onClick={addSection} disabled={!canAdd}>
               <MdAdd size={20} />
               Add section
             </button>
             {hasChanges && (
               <button
                 type="button"
-                className="collection-sections-save"
+                className={styles['collection-sections-save']}
                 onClick={handleSave}
                 disabled={updateMutation.isPending}
               >
@@ -356,25 +356,25 @@ export default function CollectionSections({ collection, albums = [] }: Props) {
             )}
           </div>
           {updateMutation.isError && (
-            <p className="collection-sections-error">
+            <p className={styles['collection-sections-error']}>
               {(updateMutation.error as { response?: { data?: { detail?: string } }; message?: string })?.response
                 ?.data?.detail ?? (updateMutation.error as Error).message}
             </p>
           )}
 
           {sectionsEnabled && hasRanges && albumCount > 0 && (
-            <div className="collection-sections-ranges">
-              <h3 className="collection-sections-ranges-title">Section ranges</h3>
-              <p className="collection-sections-ranges-hint">
+            <div className={styles['collection-sections-ranges']}>
+              <h3 className={styles['collection-sections-ranges-title']}>Section ranges</h3>
+              <p className={styles['collection-sections-ranges-hint']}>
                 Drag the dividers between sections to change how many albums are in each section.
               </p>
-              <div className="collection-sections-list-wrap">
-                <table className="collection-sections-table">
+              <div className={styles['collection-sections-list-wrap']}>
+                <table className={styles['collection-sections-table']}>
                   <colgroup>
-                    <col className="collection-sections-col-bar" />
-                    <col className="collection-sections-col-slot" />
-                    <col className="collection-sections-col-cover" />
-                    <col className="collection-sections-col-info" />
+                    <col className={styles['collection-sections-col-bar']} />
+                    <col className={styles['collection-sections-col-slot']} />
+                    <col className={styles['collection-sections-col-cover']} />
+                    <col className={styles['collection-sections-col-info']} />
                   </colgroup>
                   <tbody ref={tableBodyRef}>
                     {albums.map((album, index) => {
@@ -397,31 +397,31 @@ export default function CollectionSections({ collection, albums = [] }: Props) {
 
                       return (
                         <Fragment key={album.id}>
-                          <tr className="collection-sections-album-row" data-slot={slot} style={{ height: ROW_HEIGHT_PX }}>
+                          <tr className={styles['collection-sections-album-row']} data-slot={slot} style={{ height: ROW_HEIGHT_PX }}>
                             {isFirstInSection ? (
                               <td
                                 rowSpan={rowSpan}
-                                className="collection-sections-bar-cell"
+                                className={styles['collection-sections-bar-cell']}
                                 style={{ backgroundColor: section?.color }}
                               >
-                                <span className="collection-sections-bar-number">{sectionIndex + 1}</span>
+                                <span className={styles['collection-sections-bar-number']}>{sectionIndex + 1}</span>
                               </td>
                             ) : null}
-                            <td className="collection-sections-slot-cell">{slot}</td>
-                            <td className="collection-sections-cover-cell">
+                            <td className={styles['collection-sections-slot-cell']}>{slot}</td>
+                            <td className={styles['collection-sections-cover-cell']}>
                               {album.cover_art_path ? (
                                 <img
                                   src={`/api/media/${album.cover_art_path}`}
                                   alt=""
-                                  className="collection-sections-cover-img"
+                                  className={styles['collection-sections-cover-img']}
                                 />
                               ) : (
-                                <div className="collection-sections-cover-placeholder">No art</div>
+                                <div className={styles['collection-sections-cover-placeholder']}>No art</div>
                               )}
                             </td>
-                            <td className="collection-sections-info-cell">
-                              <div className="collection-sections-info-title">{album.title}</div>
-                              <div className="collection-sections-info-artist">{album.artist}</div>
+                            <td className={styles['collection-sections-info-cell']}>
+                              <div className={styles['collection-sections-info-title']}>{album.title}</div>
+                              <div className={styles['collection-sections-info-artist']}>{album.artist}</div>
                             </td>
                           </tr>
                           {showDivider && (() => {
@@ -429,34 +429,34 @@ export default function CollectionSections({ collection, albums = [] }: Props) {
                             const sectionBelow = sortedSections[sectionIndex + 1];
                             return (
                               <tr
-                                className="collection-sections-divider-row"
+                                className={styles['collection-sections-divider-row']}
                                 onMouseDown={(e) => {
                                   e.preventDefault();
                                   setDraggingBoundary(sectionIndex);
                                 }}
                                 role="separator"
                               >
-                                <td className="collection-sections-divider-bar-cell">
-                                  <span className="collection-sections-divider-grip">
+                                <td className={styles['collection-sections-divider-bar-cell']}>
+                                  <span className={styles['collection-sections-divider-grip']}>
                                     <MdDragIndicator size={18} style={{ transform: 'rotate(90deg)' }} />
                                   
                                   </span>
                                 </td>
-                                <td colSpan={3} className="collection-sections-divider-spacer">
-                                  <div className="collection-sections-divider-spacer-inner">
+                                <td colSpan={3} className={styles['collection-sections-divider-spacer']}>
+                                  <div className={styles['collection-sections-divider-spacer-inner']}>
                                     <div
-                                      className="collection-sections-divider-spacer-top"
+                                      className={styles['collection-sections-divider-spacer-top']}
                                       style={{ backgroundColor: sectionAbove?.color }}
                                     >
-                                      <span className="collection-sections-divider-section-name">
+                                      <span className={styles['collection-sections-divider-section-name']}>
                                         {sectionAbove?.name ?? ''}
                                       </span>
                                     </div>
                                     <div
-                                      className="collection-sections-divider-spacer-bottom"
+                                      className={styles['collection-sections-divider-spacer-bottom']}
                                       style={{ backgroundColor: sectionBelow?.color }}
                                     >
-                                      <span className="collection-sections-divider-section-name">
+                                      <span className={styles['collection-sections-divider-section-name']}>
                                         {sectionBelow?.name ?? ''}
                                       </span>
                                     </div>

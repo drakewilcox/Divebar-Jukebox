@@ -4,7 +4,8 @@ import { adminApi } from '../../services/api';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { filterAndSortAlbums, type AlbumSortOption } from '../../utils/albumListFilter';
 import AlbumEditModal from './AlbumEditModal';
-import './LibraryScanner.css';
+import styles from './LibraryScanner.module.css'
+import clsx from 'clsx';
 
 const INFINITE_SCROLL_PAGE_SIZE = 50;
 
@@ -78,15 +79,15 @@ export default function LibraryScanner() {
   }, [displayLimit, filteredSortedAlbums.length]);
 
   return (
-    <div className="library-scanner">
-      <div className="scanner-section">
+    <div className={styles['library-scanner']}>
+      <div className={styles['scanner-section']}>
         <h2>Library Scanner</h2>
         <p>Scan your music library to import new albums. Albums already in the database (matched by folder path) are skipped so your edits and custom track settings are not overwritten.</p>
         
-        <div className="scanner-buttons">
-          <span className="admin-tooltip-wrap" data-tooltip="Scan Library">
+        <div className={styles['scanner-buttons']}>
+          <span className={styles['admin-tooltip-wrap']} data-tooltip="Scan Library">
             <button
-              className="scan-button"
+              className={styles['scan-button']}
               onClick={() => scanMutation.mutate()}
               disabled={scanMutation.isPending}
               aria-label="Scan Library"
@@ -94,9 +95,9 @@ export default function LibraryScanner() {
               <MdOutlineSync size={22} />
             </button>
           </span>
-          <span className="admin-tooltip-wrap" data-tooltip="Clean Track Titles">
+          <span className={styles['admin-tooltip-wrap']} data-tooltip="Clean Track Titles">
             <button
-              className="sanitize-button"
+              className={styles['sanitize-button']}
               onClick={() => {
                 if (confirm('This will remove remaster annotations like "(2014 Remaster)" from all track titles. Continue?')) {
                   sanitizeMutation.mutate();
@@ -111,40 +112,40 @@ export default function LibraryScanner() {
         </div>
         
         {scanResults && (
-          <div className="scan-results">
+          <div className={styles['scan-results']}>
             <h3>Scan Results</h3>
-            <div className="results-grid">
-              <div className="result-item">
-                <div className="result-label">Albums Found</div>
-                <div className="result-value">{scanResults.albums_found}</div>
+            <div className={styles['results-grid']}>
+              <div className={styles['result-item']}>
+                <div className={styles['result-label']}>Albums Found</div>
+                <div className={styles['result-value']}>{scanResults.albums_found}</div>
               </div>
-              <div className="result-item">
-                <div className="result-label">Imported</div>
-                <div className="result-value success">{scanResults.albums_imported}</div>
+              <div className={styles['result-item']}>
+                <div className={styles['result-label']}>Imported</div>
+                <div className={clsx(styles['result-value'], styles['success'])}>{scanResults.albums_imported}</div>
               </div>
-              <div className="result-item">
-                <div className="result-label">Already in library</div>
-                <div className="result-value">{scanResults.albums_already_exist ?? 0}</div>
+              <div className={styles['result-item']}>
+                <div className={styles['result-label']}>Already in library</div>
+                <div className={styles['result-value']}>{scanResults.albums_already_exist ?? 0}</div>
               </div>
-              <div className="result-item">
-                <div className="result-label">Skipped (errors)</div>
-                <div className="result-value warning">{scanResults.albums_skipped}</div>
+              <div className={styles['result-item']}>
+                <div className={styles['result-label']}>Skipped (errors)</div>
+                <div className={clsx(styles['result-value'], styles['warning'])}>{scanResults.albums_skipped}</div>
               </div>
-              <div className="result-item">
-                <div className="result-label">Tracks Imported</div>
-                <div className="result-value">{scanResults.tracks_imported}</div>
+              <div className={styles['result-item']}>
+                <div className={styles['result-label']}>Tracks Imported</div>
+                <div className={styles['result-value']}>{scanResults.tracks_imported}</div>
               </div>
-              <div className="result-item">
-                <div className="result-label">Errors</div>
-                <div className="result-value error">{scanResults.errors.length}</div>
+              <div className={styles['result-item']}>
+                <div className={styles['result-label']}>Errors</div>
+                <div className={clsx(styles['result-value'], styles['error'])}>{scanResults.errors.length}</div>
               </div>
             </div>
             
             {scanResults.errors.length > 0 && (
-              <div className="error-list">
+              <div className={styles['error-list']}>
                 <h4>Errors:</h4>
                 {scanResults.errors.map((error: string, index: number) => (
-                  <div key={index} className="error-message">{error}</div>
+                  <div key={index} className={styles['error-message']}>{error}</div>
                 ))}
               </div>
             )}
@@ -152,25 +153,25 @@ export default function LibraryScanner() {
         )}
       </div>
       
-      <div className="scanner-section">
+      <div className={styles['scanner-section']}>
         <h2>Albums in Database</h2>
         <p>Total albums: {albums?.length || 0} {albums && albums.filter((a: any) => !a.archived).length !== albums.length && `(${albums.filter((a: any) => !a.archived).length} active)`}</p>
 
         {albums && albums.length > 0 && (
           <>
-            <div className="albums-list-toolbar">
+            <div className={styles['albums-list-toolbar']}>
               <input
                 type="search"
                 placeholder="Search by album or artist…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="albums-list-search"
+                className={styles['albums-list-search']}
                 aria-label="Search albums by title or artist"
               />
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as AlbumSortOption)}
-                className="albums-list-sort"
+                className={styles['albums-list-sort']}
                 aria-label="Sort albums"
               >
                 <option value="artist_asc">Artist A–Z</option>
@@ -183,46 +184,46 @@ export default function LibraryScanner() {
                 <option value="year_desc">Year (descending)</option>
               </select>
             </div>
-            <div ref={listRef} className="albums-list">
+            <div ref={listRef} className={styles['albums-list']}>
               {filteredSortedAlbums.length === 0 ? (
-                <p className="albums-list-empty">No albums match your search.</p>
+                <p className={styles['albums-list-empty']}>No albums match your search.</p>
               ) : (
               <>
               {filteredSortedAlbums.slice(0, displayLimit).map((album: any) => (
-                <div key={album.id} className={`album-item ${album.archived ? 'archived' : ''}`}>
+                <div key={album.id} className={clsx(styles['album-item'], album.archived && styles['archived'])}>
                   {album.cover_art_path && (
-                    <div className="album-item-cover">
+                    <div className={styles['album-item-cover']}>
                       <img
                         src={`/api/media/${album.cover_art_path}`}
                         alt={`${album.title} cover`}
                       />
                     </div>
                   )}
-                  <div className="album-item-info">
-                    <div className="album-item-title">
+                  <div className={styles['album-item-info']}>
+                    <div className={styles['album-item-title']}>
                       {album.title}
-                      {album.archived && <span className="archived-badge">Archived</span>}
+                      {album.archived && <span className={styles['archived-badge']}>Archived</span>}
                     </div>
-                    <div className="album-item-artist">{album.artist}</div>
-                    <div className="album-item-path">{album.file_path}</div>
+                    <div className={styles['album-item-artist']}>{album.artist}</div>
+                    <div className={styles['album-item-path']}>{album.file_path}</div>
                   </div>
-                  <div className="album-item-stats">
+                  <div className={styles['album-item-stats']}>
                     <span>{album.total_tracks} tracks</span>
                     {album.year && <span>{album.year}</span>}
                   </div>
-                  <div className="album-item-actions">
-                    <span className="admin-tooltip-wrap" data-tooltip="Edit album">
+                  <div className={styles['album-item-actions']}>
+                    <span className={styles['admin-tooltip-wrap']} data-tooltip="Edit album">
                       <button
-                        className="edit-button"
+                        className={styles['edit-button']}
                         onClick={() => setEditingAlbumId(album.id)}
                         aria-label="Edit album"
                       >
                         <MdEdit size={20} />
                       </button>
                     </span>
-                    <span className="admin-tooltip-wrap" data-tooltip={album.archived ? 'Unarchive' : 'Archive'}>
+                    <span className={styles['admin-tooltip-wrap']} data-tooltip={album.archived ? 'Unarchive' : 'Archive'}>
                       <button
-                        className={`archive-button ${album.archived ? 'unarchive' : ''}`}
+                        className={clsx(styles['archive-button'], album.archived && styles['unarchive'])}
                         onClick={() => archiveMutation.mutate({ id: album.id, archived: !album.archived })}
                         disabled={archiveMutation.isPending}
                         aria-label={album.archived ? 'Unarchive' : 'Archive'}
@@ -234,7 +235,7 @@ export default function LibraryScanner() {
                 </div>
               ))}
               {displayLimit < filteredSortedAlbums.length && (
-                <div ref={sentinelRef} className="infinite-scroll-sentinel" aria-hidden="true" />
+                <div ref={sentinelRef} className={styles['infinite-scroll-sentinel']} aria-hidden="true" />
               )}
               </>
               )}

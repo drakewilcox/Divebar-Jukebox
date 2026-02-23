@@ -3,7 +3,7 @@ import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-quer
 import { collectionsApi, queueApi, playbackApi } from '../services/api';
 import { Collection } from '../types';
 import CardCarousel from './CardCarousel';
-import './JukeboxDisplay.css';
+import styles from './JukeboxDisplay.module.css';
 
 interface Props {
   collection: Collection;
@@ -74,11 +74,11 @@ export default function JukeboxDisplay({ collection, collections, onCollectionCh
   const resolvedCollection = collections?.find((c) => c.id === collection.id) ?? collection;
 
   return (
-    <div className="jukebox-display">
+    <div className={styles['jukebox-display']}>
       {isLoading && albumsToShow.length === 0 && (
-        <div className="jukebox-loading">Loading albums...</div>
+        <div className={styles['jukebox-loading']}>Loading albums...</div>
       )}
-      <div className="jukebox-main">
+      <div className={styles['jukebox-main']}>
         <CardCarousel 
           albums={albumsToShow} 
           collection={resolvedCollection}
@@ -87,7 +87,7 @@ export default function JukeboxDisplay({ collection, collections, onCollectionCh
         />
       </div>
       {!isLoading && albumsToShow.length === 0 && (
-        <div className="jukebox-empty">
+        <div className={styles['jukebox-empty']}>
           <p>No albums in this collection yet.</p>
           <p>Use the admin panel to add albums.</p>
         </div>
