@@ -16,6 +16,11 @@ function getCrossfadeSecondsFromStorage(): number {
   return Number.isNaN(n) || n < 0 || n > 12 ? 0 : n;
 }
 
+function getNormalizeVolume(): boolean {
+  const v = typeof localStorage !== 'undefined' ? localStorage.getItem('normalizeVolume') : null;
+  return v !== 'false';
+}
+
 class AudioService {
   private audioA: HTMLAudioElement;
   private audioB: HTMLAudioElement;
@@ -42,8 +47,13 @@ class AudioService {
     this.setupEventListeners();
     if (typeof window !== 'undefined') {
       window.addEventListener('crossfade-changed', this.handleCrossfadeChanged as EventListener);
+      window.addEventListener('normalize-volume-changed', this.handleNormalizeVolumeChanged as EventListener);
     }
   }
+
+  private handleNormalizeVolumeChanged = () => {
+    this.applyVolumeTo(this.currentAudio, this.currentReplaygainDb);
+  };
 
   private get currentAudio(): HTMLAudioElement {
     return this.currentIndex === 0 ? this.audioA : this.audioB;
@@ -172,7 +182,8 @@ class AudioService {
 
   private applyVolumeTo(el: HTMLAudioElement, replaygainDb: number | null) {
     const base = this.baseVolume / 100;
-    const mult = replaygainDb != null ? replaygainToMultiplier(replaygainDb) : 1;
+    const useGain = getNormalizeVolume() && replaygainDb != null;
+    const mult = useGain ? replaygainToMultiplier(replaygainDb!) : 1;
     el.volume = Math.max(0, Math.min(1, base * mult));
   }
 
@@ -328,7 +339,8 @@ class AudioService {
         const elapsed = performance.now() - startTime;
         const t = Math.min(1, elapsed / durationMs);
         const ease = t * (2 - t);
-        nextEl.volume = Math.max(0, Math.min(1, ease * (this.baseVolume / 100) * (nextGain != null ? replaygainToMultiplier(nextGain) : 1)));
+        const nextMult = getNormalizeVolume() && nextGain != null ? replaygainToMultiplier(nextGain) : 1;
+        nextEl.volume = Math.max(0, Math.min(1, ease * (this.baseVolume / 100) * nextMult));
         currentEl.volume = Math.max(0, currentStartVol * (1 - ease));
         if (t < 1) {
           this.crossfadeAnimationId = requestAnimationFrame(tick);

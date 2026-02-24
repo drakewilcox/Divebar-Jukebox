@@ -33,6 +33,9 @@ export default function SettingsModal({
   const [showColorCoding, setShowColorCoding] = useState<boolean>(true);
   const [crossfadeSeconds, setCrossfadeSeconds] = useState<number>(0);
   const [hitButtonMode, setHitButtonMode] = useState<HitButtonMode>('favorites');
+  const [normalizeVolume, setNormalizeVolume] = useState<boolean>(() =>
+    typeof localStorage !== 'undefined' ? localStorage.getItem('normalizeVolume') !== 'false' : true
+  );
   const [collectionSelectOpen, setCollectionSelectOpen] = useState(false);
   const collectionSelectRef = useRef<HTMLDivElement>(null);
 
@@ -174,6 +177,11 @@ export default function SettingsModal({
     window.dispatchEvent(new CustomEvent('crossfade-changed', { detail: crossfadeSeconds }));
   }, [sortOrder, showJumpToBar, jumpButtonType, showColorCoding, crossfadeSeconds, hitButtonMode]);
 
+  useEffect(() => {
+    localStorage.setItem('normalizeVolume', String(normalizeVolume));
+    window.dispatchEvent(new CustomEvent('normalize-volume-changed'));
+  }, [normalizeVolume]);
+
   const handleSetAsDefault = async () => {
     try {
       await settingsApi.update({ default_collection_slug: currentCollection.slug });
@@ -288,6 +296,24 @@ export default function SettingsModal({
               >
                 Set as Default
               </button>
+            </div>
+          </div>
+
+          <div className={styles['settings-section']}>
+            <div className={styles['form-group']}>
+              <label className={styles['toggle-row']}>
+              <span className={styles['toggle-text']}>Normalize Volume</span>
+                <input
+                  type="checkbox"
+                  checked={normalizeVolume}
+                  onChange={(e) => setNormalizeVolume(e.target.checked)}
+                  className={styles['toggle-checkbox']}
+                />
+               
+              </label>
+              <p className={styles['help-text']}>
+                When on, ReplayGain is applied so tracks play at a consistent loudness
+              </p>
             </div>
           </div>
 
