@@ -51,6 +51,7 @@ export interface Track {
   artist: string;
   duration_ms: number;
   enabled: boolean;
+  archived?: boolean;
   is_favorite: boolean;
   is_recommended: boolean;
   file_path: string;
@@ -74,6 +75,8 @@ export interface QueueItem {
     album_artist: string;
     cover_art_path: string | null;
     selection_display?: string | null;
+    album_id?: string | null;
+    track_number?: number | null; // 1-based
   };
 }
 
@@ -93,6 +96,8 @@ export interface PlaybackState {
     album_year: number | null;
     cover_art_path: string | null;
     selection_display: string | null;
+    album_id?: string | null;
+    track_number?: number | null; // 1-based
     /** ReplayGain in dB (e.g. -5.23); null if not present. Applied to normalize loudness. */
     replaygain_track_gain: number | null;
   } | null;

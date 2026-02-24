@@ -7,12 +7,16 @@ import audioService from '../services/audio';
 import styles from './QueueDisplay.module.css'
 import clsx from 'clsx';
 
+type GetSelectionDisplay = (albumId: string | null | undefined, trackNumber1Based: number | null | undefined) => string | null;
+
 interface Props {
   collection: Collection;
   onQueueCleared?: () => void;
+  /** When provided, selection number is shown in current sort order (e.g. alphabetical) instead of curated. */
+  getSelectionDisplay?: GetSelectionDisplay;
 }
 
-export default function QueueDisplay({ collection, onQueueCleared }: Props) {
+export default function QueueDisplay({ collection, onQueueCleared, getSelectionDisplay }: Props) {
   const queryClient = useQueryClient();
   const [currentPositionMs, setCurrentPositionMs] = useState(0);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -335,8 +339,10 @@ export default function QueueDisplay({ collection, onQueueCleared }: Props) {
                     <div className={styles['queue-item-title']}>{nowPlaying.track.title}</div>
                     <div className={styles['queue-item-artist']}>{nowPlaying.track.artist}</div>
                     <div className={styles['queue-item-album']}>{nowPlaying.track.album_title}</div>
-                    {nowPlaying.track.selection_display && (
-                      <div className={styles['queue-item-selection']}>{nowPlaying.track.selection_display}</div>
+                    {(getSelectionDisplay?.(nowPlaying.track.album_id, nowPlaying.track.track_number) ?? nowPlaying.track.selection_display) && (
+                      <div className={styles['queue-item-selection']}>
+                        {getSelectionDisplay?.(nowPlaying.track.album_id, nowPlaying.track.track_number) ?? nowPlaying.track.selection_display}
+                      </div>
                     )}
                   </div>
                   
@@ -376,8 +382,10 @@ export default function QueueDisplay({ collection, onQueueCleared }: Props) {
                       <div className={styles['queue-item-title']}>{item.track.title}</div>
                       <div className={styles['queue-item-artist']}>{item.track.artist}</div>
                       <div className={styles['queue-item-album']}>{item.track.album_title}</div>
-                      {item.track.selection_display && (
-                        <div className={styles['queue-item-selection']}>{item.track.selection_display}</div>
+                      {(getSelectionDisplay?.(item.track.album_id, item.track.track_number) ?? item.track.selection_display) && (
+                        <div className={styles['queue-item-selection']}>
+                          {getSelectionDisplay?.(item.track.album_id, item.track.track_number) ?? item.track.selection_display}
+                        </div>
                       )}
                     </div>
                     

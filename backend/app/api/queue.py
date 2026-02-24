@@ -23,6 +23,8 @@ class TrackInfo(BaseModel):
     album_artist: str
     cover_art_path: str | None
     selection_display: str | None = None
+    album_id: str | None = None  # for frontend to compute selection_display in current sort
+    track_number: int | None = None  # 1-based track index in album
 
 
 class QueueItemResponse(BaseModel):
@@ -81,6 +83,7 @@ def get_queue(collection: str = Query(..., description="Collection slug"), db: S
             album = item.track.album
             cover = album.custom_cover_art_path or album.cover_art_path
             selection_display = None
+            track_number_1based = None
             if collection_id == '00000000-0000-0000-0000-000000000000':
                 all_albums = album_service.get_all_albums(limit=10000)
                 for idx, a in enumerate(all_albums):
@@ -88,12 +91,14 @@ def get_queue(collection: str = Query(..., description="Collection slug"), db: S
                         tracks = track_service.get_tracks_by_album(album.id)
                         for ti, t in enumerate(tracks):
                             if t.id == item.track.id:
+                                track_number_1based = ti + 1
                                 selection_display = f"{(idx + 1):03d}-{(ti + 1):02d}"
                                 break
                         break
             else:
                 sel = collection_service.get_selection_for_track(collection_id, item.track.id)
                 if sel:
+                    track_number_1based = sel[1]
                     selection_display = f"{sel[0]:03d}-{sel[1]:02d}"
             response.append({
                 "id": item.id,
@@ -109,6 +114,8 @@ def get_queue(collection: str = Query(..., description="Collection slug"), db: S
                     "album_artist": album.artist,
                     "cover_art_path": cover,
                     "selection_display": selection_display,
+                    "album_id": str(album.id),
+                    "track_number": track_number_1based,
                 }
             })
     
@@ -136,19 +143,17 @@ def add_to_queue(request: AddToQueueRequest, db: Session = Depends(get_db)):
             )
         
         album = all_albums[request.album_number - 1]
-        tracks = track_service.get_tracks_by_album(album.id)
-        
-        # Use special UUID for "all" collection
         all_collection_id = '00000000-0000-0000-0000-000000000000'
         
-        # If track_number is 0, add all tracks from album
+        # If track_number is 0, add all tracks from album (including hidden, excluding archived)
         if request.track_number == 0:
-            track_ids = [t.id for t in tracks]
+            tracks_all = track_service.get_tracks_by_album(album.id, enabled_only=False)
+            track_ids = [t.id for t in tracks_all if not getattr(t, 'archived', False)]
             count = queue_service.add_album_to_queue(all_collection_id, track_ids)
             return {"message": f"Added {count} tracks to queue", "count": count}
         
         # Otherwise, add specific track by display position (1-indexed)
-        # User enters display number (1-N), we convert to array index (0-based)
+        tracks = track_service.get_tracks_by_album(album.id)
         if request.track_number < 1 or request.track_number > len(tracks):
             raise HTTPException(
                 status_code=404,
@@ -177,14 +182,14 @@ def add_to_queue(request: AddToQueueRequest, db: Session = Depends(get_db)):
             detail=f"Album number {request.album_number} not found in collection '{request.collection}'"
         )
     
-    # If track_number is 0, add all tracks from album
+    # If track_number is 0, add all tracks from album (including hidden, excluding archived)
     if request.track_number == 0:
-        track_ids = [t['id'] for t in album.get('tracks', [])]
+        tracks_all = track_service.get_tracks_by_album(album['id'], enabled_only=False)
+        track_ids = [t.id for t in tracks_all if not getattr(t, 'archived', False)]
         count = queue_service.add_album_to_queue(collection_obj.id, track_ids)
         return {"message": f"Added {count} tracks to queue", "count": count}
     
     # Otherwise, add specific track by display position (1-indexed)
-    # User enters display number (1-N), we convert to array index (0-based)
     tracks = album.get('tracks', [])
     if request.track_number < 1 or request.track_number > len(tracks):
         raise HTTPException(

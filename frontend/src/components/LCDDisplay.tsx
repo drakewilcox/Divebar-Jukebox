@@ -5,9 +5,11 @@ interface Props {
   value: string; // Format: "XXX-YY" where X and Y can be digits or _
   discLabel?: string;
   trackLabel?: string;
+  /** When true, plays a short brightness flash (e.g. after adding to queue). */
+  flash?: boolean;
 }
 
-export default function LCDDisplay({ value, discLabel = 'Disc Number', trackLabel = 'Track Number' }: Props) {
+export default function LCDDisplay({ value, discLabel = 'Disc Number', trackLabel = 'Track Number', flash = false }: Props) {
   // Parse the value into individual character positions
   // Expected format: "XXX-YY" (5 positions + dash)
   const getCharAtPosition = (position: number): string => {
@@ -35,7 +37,7 @@ export default function LCDDisplay({ value, discLabel = 'Disc Number', trackLabe
   const isDashActive = raw.length >= 4;
 
   return (
-    <div className={styles['lcd-display']}>
+    <div className={clsx(styles['lcd-display'], flash && styles['lcd-flash'])}>
       <div className={styles['lcd-group-with-label']}>
         <div className={styles['lcd-group']}>
           <LCDDigit value={digits[0]} />

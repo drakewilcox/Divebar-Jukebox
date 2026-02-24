@@ -101,7 +101,7 @@ export const adminApi = {
   updateAlbum: (id: string, data: { title?: string; artist?: string; year?: number; archived?: boolean }) =>
     api.put(`/admin/albums/${id}`, data),
   deleteAlbum: (id: string) => api.delete(`/admin/albums/${id}`),
-  updateTrack: (id: string, data: { title?: string; enabled?: boolean; is_favorite?: boolean; is_recommended?: boolean }) =>
+  updateTrack: (id: string, data: { title?: string; enabled?: boolean; archived?: boolean; is_favorite?: boolean; is_recommended?: boolean }) =>
     api.put(`/admin/tracks/${id}`, data),
   // Collection management
   createCollection: (name: string, slug: string, description?: string) =>

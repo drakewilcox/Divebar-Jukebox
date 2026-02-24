@@ -590,26 +590,6 @@
   width: fit-content;
 }
 
-/* Double flash on LCD after adding to queue */
-.lcd-keypad-wrapper.lcd-flash .lcd-display {
-  animation: lcd-flash-twice 0.5s ease-in-out;
-}
-
-@keyframes lcd-flash-twice {
-  0%, 30%, 100% {
-    filter: brightness(1);
-    box-shadow: none;
-  }
-  15% {
-    filter: brightness(1.4);
-    box-shadow: 0 0 20px rgba(149, 194, 149, 0.5);
-  }
-  45% {
-    filter: brightness(1.4);
-    box-shadow: 0 0 20px rgba(149, 194, 149, 0.5);
-  }
-}
-
 .hidden-input {
   position: absolute;
   opacity: 0;

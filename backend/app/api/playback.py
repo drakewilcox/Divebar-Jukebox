@@ -63,6 +63,7 @@ def get_playback_state(collection: str = Query(..., description="Collection slug
             album = track.album
             cover = album.custom_cover_art_path or album.cover_art_path
             selection_display = None
+            track_number_1based = None
             if state.collection_id == '00000000-0000-0000-0000-000000000000':
                 all_albums = album_service.get_all_albums(limit=10000)
                 for idx, a in enumerate(all_albums):
@@ -70,12 +71,14 @@ def get_playback_state(collection: str = Query(..., description="Collection slug
                         tracks = track_service.get_tracks_by_album(album.id)
                         for ti, t in enumerate(tracks):
                             if t.id == track.id:
+                                track_number_1based = ti + 1
                                 selection_display = f"{(idx + 1):03d}-{(ti + 1):02d}"
                                 break
                         break
             else:
                 sel = collection_service.get_selection_for_track(state.collection_id, track.id)
                 if sel:
+                    track_number_1based = sel[1]
                     selection_display = f"{sel[0]:03d}-{sel[1]:02d}"
             # ReplayGain: normalize loudness; prefer track gain, fallback to album gain
             extra = track.extra_metadata or {}
@@ -97,6 +100,8 @@ def get_playback_state(collection: str = Query(..., description="Collection slug
                 "album_year": album.year,
                 "cover_art_path": cover,
                 "selection_display": selection_display,
+                "album_id": str(album.id),
+                "track_number": track_number_1based,
                 "replaygain_track_gain": replaygain_db,
             }
     
