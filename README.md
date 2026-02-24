@@ -103,18 +103,18 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [x] Star and Recommended should possibly still display on songs with long titles. 
 - [x] Double word issue on single word tracks because of appending favorite/recommended icon
 - [x] Remove save and close buttons from edit album modal and just make all fields save onBlur()
-- [ ] Selection Number for songs in Queue (example 042-01) represent their place when added to the Queue, causing the number to be different when sort order is changed. Could be fixed by removing Selection display, or updating fetch selection number logic. 
-- [ ] make Collection Settings form auto save
-- [ ] Remove double scrollbars on Selections Tab of Admin Collection Manager 
+- [x] Selection Number for songs in Queue (example 042-01) represent their place when added to the Queue, causing the number to be different when sort order is changed. Could be fixed by removing Selection display, or updating fetch selection number logic. 
+- [x] Fix LCD line placement logic under number range buttons
+- [x] Make Collection Settings form auto save
+- [x] Remove double scrollbars on Selections Tab of Admin Collection Manager 
 
 ### Admin Features
-
 - [x] Add ability to filter by active in collection list
 - [x] Add functionality for searching collection and library to Admin View
 - [x] Add ability to preview individual tracks in edit modal. 
 - [x] Add track duration to Edit Modal
-- [ ] Add an archive track button in addition to Hide. Hide means it is hidden from display, but will still play during Full Album Play. Archive means it will not play or display.
-- [ ] Add an apply leveling toggle to settings modal. 
+- [x] Add an apply leveling toggle to settings modal. 
+- [x] Add an archive track button in addition to Hide. Hide means it is hidden from display, but will still play during Full Album Play. Archive means it will not play or display.
 
 ### Database Updates
 - [x] Add Architecture for Collection Sections
@@ -168,8 +168,8 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [x] Add now playing to carousel controls
 - [x] Clicking outside of Queue sidebar should close sidebar
 - [ ] Add option to have 4 arrow controls. Two single arrow buttons, and two double arrow buttons. The double arrow buttons would slide two cards at once. 
-- [ ] Create custom confirmation modals for removing albums from collection and archiving albums. 
-- [ ] Move Collection Mananger Settings and Edit Album modal to shared component. 
+- [x] Create custom confirmation modals for removing albums from collection and archiving albums. 
+- [x] Move Collection Mananger Settings and Edit Album modal to shared component. 
 - [ ] Add Overlay toggle to settings (glass and lights overlay). 
 - [ ] Add option for having Section Color Coding either as background or just indicator on top of card. 
 
