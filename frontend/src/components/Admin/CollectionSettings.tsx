@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '../../services/api';
 import type { Collection, HitButtonMode } from '../../types';
@@ -103,10 +103,31 @@ export default function CollectionSettings({ collection }: Props) {
       crossfadeSeconds !== (collection.default_crossfade_seconds ?? 0) ||
       hitButtonMode !== (collection.default_hit_button_mode ?? 'favorites'));
 
-  const handleSave = () => {
-    if (!hasChanges) return;
-    updateMutation.mutate();
-  };
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!collection || !hasChanges) return;
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(() => {
+      saveTimeoutRef.current = null;
+      updateMutation.mutate();
+    }, 300);
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+      }
+    };
+  }, [
+    collection?.id,
+    sortOrder,
+    showJumpToBar,
+    jumpButtonType,
+    showColorCoding,
+    editMode,
+    crossfadeSeconds,
+    hitButtonMode,
+  ]);
 
   if (!collection) return null;
 
@@ -153,22 +174,12 @@ export default function CollectionSettings({ collection }: Props) {
         </p>
       </div>
 
-      <div className={styles['collection-settings-actions']}>
-        <button
-          type="button"
-          className={styles['submit-button']}
-          onClick={handleSave}
-          disabled={!hasChanges || updateMutation.isPending}
-        >
-          {updateMutation.isPending ? 'Saving…' : 'Save Defaults'}
-        </button>
-        {updateMutation.isError && (
-          <p className={styles['collection-settings-error']}>
-            {(updateMutation.error as { response?: { data?: { detail?: string } }; message?: string })?.response
-              ?.data?.detail ?? (updateMutation.error as Error).message}
-          </p>
-        )}
-      </div>
+      {updateMutation.isError && (
+        <p className={styles['collection-settings-error']}>
+          {(updateMutation.error as { response?: { data?: { detail?: string } }; message?: string })?.response
+            ?.data?.detail ?? (updateMutation.error as Error).message}
+        </p>
+      )}
     </div>
   );
 }

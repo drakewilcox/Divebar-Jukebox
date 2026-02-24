@@ -180,7 +180,7 @@ export default function CollectionManager() {
 
           <div className={clsx(styles['collection-manager-tab-content'], selectedCollection && styles['collection-manager-tab-content-has-selection'])}>
             {subTab === 'selections' && (
-              <div className={styles['collection-manager-tab-pane']}>
+              <div className={clsx(styles['collection-manager-tab-pane'], styles['collection-manager-tab-pane-selections'])}>
                 <p className={styles['collection-manager-select-hint']}>
                   Add or remove albums from <strong>{selectedCollection.name}</strong>. Check an album to include it.
                 </p>

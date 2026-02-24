@@ -1,6 +1,7 @@
 /* ── Sections ─────────────────────────────────────────────────────────────── */
 
 .settings-section {
+
   margin-bottom: 0;
 }
 
@@ -9,6 +10,7 @@
   color: var(--vintage-cream);
   margin: 0 0 0.75rem 0;
   padding-bottom: 0.35rem;
+
 }
 
 /* Jump-To / Color Coding block: flex column keeps heading + help-text tight */
@@ -36,6 +38,7 @@
 }
 
 .settings-row.settings-row-toggle {
+  border-bottom: 1px solid color-mix(in srgb, var(--vintage-cream) 30%, transparent);
   padding-bottom: 0.5rem;
 }
 

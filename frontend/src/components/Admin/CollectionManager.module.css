@@ -107,7 +107,7 @@
   min-height: 600px;
 }
 
-/* Inner scroll area for Slots/Sections so sub-tabs stay fixed (same idea as .albums-list for Selections) */
+/* Tab pane: scrollable area below the sub-tabs (Slots, Sections, Settings use this) */
 .collection-manager-tab-pane {
   max-height: 600px;
   overflow-x: hidden;
@@ -131,6 +131,24 @@
 
 .collection-manager-tab-pane::-webkit-scrollbar-thumb:hover {
   background: #555;
+}
+
+/* Selections tab only: pane does not scroll; hint and toolbar stay fixed, only the list scrolls */
+.collection-manager-tab-pane-selections {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.collection-manager-tab-pane-selections .collection-manager-select-hint,
+.collection-manager-tab-pane-selections .albums-list-toolbar {
+  flex-shrink: 0;
+}
+
+.collection-manager-tab-pane-selections .albums-list {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
 }
 
 .manager-section code {
