@@ -283,7 +283,18 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     }
     return displayAlbums;
   }, [displayAlbums]);
-  
+
+  /** Selection number in current sort (e.g. "006-01"). Falls back to API curated value when album not in displayAlbums. */
+  const getSelectionDisplayForTrack = React.useCallback(
+    (albumId: string | null | undefined, trackNumber1Based: number | null | undefined): string | null => {
+      if (!albumId || trackNumber1Based == null) return null;
+      const idx = displayAlbums.findIndex((a) => a.id === albumId);
+      if (idx < 0) return null;
+      return `${String(idx + 1).padStart(3, '0')}-${String(trackNumber1Based).padStart(2, '0')}`;
+    },
+    [displayAlbums]
+  );
+
   const currentAlbums = paddedAlbums.slice(currentIndex, currentIndex + 4);
   const nextAlbums = paddedAlbums.slice(currentIndex + 2, currentIndex + 6);
   const prevAlbums = paddedAlbums.slice(Math.max(0, currentIndex - 2), currentIndex + 2);
@@ -345,7 +356,14 @@ export default function CardCarousel({ albums, collection, collections, onCollec
   const canGoNext = currentIndex < paddedAlbums.length - 4;
   
   const addToQueueMutation = useMutation({
-    mutationFn: async ({ albumNumber, trackNumber }: { albumNumber: number; trackNumber: number }) => {
+    mutationFn: async ({
+      albumNumber,
+      trackNumber,
+    }: {
+      albumNumber: number;
+      trackNumber: number;
+      displaySelection: string;
+    }) => {
       const response = await queueApi.add(collection.slug, albumNumber, trackNumber);
       return response.data as { already_queued?: boolean; queue_id?: string };
     },
@@ -355,8 +373,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
         setFeedback('Already in Queue');
         setTimeout(() => setFeedback(''), 2000);
       } else {
-        const value = String(variables.albumNumber).padStart(3, '0') + String(variables.trackNumber).padStart(2, '0');
-        setDisplayFlash(value);
+        setDisplayFlash(variables.displaySelection);
       }
       inputRef.current?.blur();
     },
@@ -418,7 +435,8 @@ export default function CardCarousel({ albums, collection, collections, onCollec
       navSettings.sortOrder === 'alphabetical'
         ? (displayAlbums[positionOrDisplay - 1]?.display_number ?? positionOrDisplay)
         : positionOrDisplay;
-    addToQueueMutation.mutate({ albumNumber: apiAlbumNumber, trackNumber });
+    const displaySelection = `${String(positionOrDisplay).padStart(3, '0')}${String(trackNumber).padStart(2, '0')}`;
+    addToQueueMutation.mutate({ albumNumber: apiAlbumNumber, trackNumber, displaySelection });
   };
   handleAddToQueueRef.current = handleAddToQueue;
   
@@ -549,7 +567,8 @@ export default function CardCarousel({ albums, collection, collections, onCollec
       navSettings.sortOrder === 'alphabetical'
         ? (displayAlbums[positionOrDisplay - 1]?.display_number ?? positionOrDisplay)
         : positionOrDisplay;
-    addToQueueMutation.mutate({ albumNumber: apiAlbumNumber, trackNumber });
+    const displaySelection = `${String(positionOrDisplay).padStart(3, '0')}${String(trackNumber).padStart(2, '0')}`;
+    addToQueueMutation.mutate({ albumNumber: apiAlbumNumber, trackNumber, displaySelection });
   }, [numberInput, addToQueueMutation, navSettings.sortOrder, displayAlbums]);
 
   // After adding to queue: show numbers, flash twice, then clear
@@ -635,6 +654,30 @@ export default function CardCarousel({ albums, collection, collections, onCollec
           ? prevRangeIndex
           : currentRangeIndex;
 
+  // Number-ranges bar line: show the range most represented by the 4 visible cards (not just the first card)
+  const activeNumberRangeIndex = React.useMemo(() => {
+    if (!showJumpToRangesBar || totalAlbums <= 0 || jumpRangeSize <= 0) return 0;
+    const start = jumpTargetIndex ?? currentIndex;
+    const rangeForSlot = (slot0Based: number): number =>
+      Math.min(7, Math.floor(slot0Based / jumpRangeSize));
+    const counts = new Array(8).fill(0);
+    for (let offset = 0; offset < 4; offset++) {
+      const slot0Based = start + offset;
+      if (slot0Based < totalAlbums) counts[rangeForSlot(slot0Based)]++;
+    }
+    let maxCount = 0;
+    let bestIdx = rangeForSlot(start);
+    for (let i = 0; i < 8; i++) {
+      if (counts[i] > maxCount) {
+        maxCount = counts[i];
+        bestIdx = i;
+      } else if (counts[i] === maxCount && maxCount > 0 && rangeForSlot(start) === i) {
+        bestIdx = i;
+      }
+    }
+    return bestIdx;
+  }, [showJumpToRangesBar, jumpTargetIndex, currentIndex, totalAlbums, jumpRangeSize]);
+
   // Sections bar line: show the section most represented by the 4 visible cards (not just the first card)
   const activeSectionIndex = React.useMemo(() => {
     if (!showSectionsBar || sortedSections.length === 0) return 0;
@@ -719,7 +762,9 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     ? activeSectionIndex
     : showLetterRangesBar
       ? activeLetterIndex
-      : activeLineRangeIndex;
+      : showJumpToRangesBar
+        ? activeNumberRangeIndex
+        : activeLineRangeIndex;
   const navBarButtonSelector = '[data-jump-btn]';
 
   useLayoutEffect(() => {
@@ -1038,6 +1083,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
             <QueueDisplay
               collection={collection}
               onQueueCleared={() => setIsQueueOpen(false)}
+              getSelectionDisplay={getSelectionDisplayForTrack}
             />
           </div>
         </div>
@@ -1053,7 +1099,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
           </button>
 
           <div className={styles['input-section']} ref={inputSectionRef}>
-            <div className={clsx(styles['lcd-keypad-wrapper'], displayFlash != null && styles['lcd-flash'])}>
+            <div className={styles['lcd-keypad-wrapper']}>
               <div
                 onClick={() => setKeypadOpen((open) => !open)}
                 role="button"
@@ -1070,6 +1116,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
                   value={formatDisplay(displayFlash ?? numberInput)}
                   discLabel="Disc"
                   trackLabel="Track"
+                  flash={displayFlash != null}
                 />
               </div>
               {keypadOpen && (
@@ -1122,8 +1169,10 @@ export default function CardCarousel({ albums, collection, collections, onCollec
                       {playbackState.current_track.album_title}
                       {playbackState.current_track.album_year != null && ` (${playbackState.current_track.album_year})`}
                     </div>
-                    {playbackState.current_track.selection_display && (
-                      <div className={styles['now-playing-selection']}>{playbackState.current_track.selection_display}</div>
+                    {(getSelectionDisplayForTrack(playbackState.current_track.album_id, playbackState.current_track.track_number) ?? playbackState.current_track.selection_display) && (
+                      <div className={styles['now-playing-selection']}>
+                        {getSelectionDisplayForTrack(playbackState.current_track.album_id, playbackState.current_track.track_number) ?? playbackState.current_track.selection_display}
+                      </div>
                     )}
                   </div>
                   <div className={styles['now-playing-time']}>
