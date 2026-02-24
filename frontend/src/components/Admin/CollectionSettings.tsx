@@ -90,6 +90,9 @@ export default function CollectionSettings({ collection }: Props) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['collections'] });
+      if (collection?.slug) {
+        queryClient.invalidateQueries({ queryKey: ['collection', collection.slug] });
+      }
     },
   });
 

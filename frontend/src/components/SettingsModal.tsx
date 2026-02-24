@@ -123,7 +123,41 @@ export default function SettingsModal({
     setShowColorCoding(showColorCoding);
     setCrossfadeSeconds(crossfade);
     setHitButtonMode(hitButtonMode);
-  }, [currentCollection.id, currentCollection.default_sort_order, currentCollection.default_show_jump_to_bar, currentCollection.default_jump_button_type, currentCollection.default_show_color_coding, currentCollection.default_crossfade_seconds, currentCollection.default_hit_button_mode]);
+  }, [currentCollection, currentCollection.id, currentCollection.default_sort_order, currentCollection.default_show_jump_to_bar, currentCollection.default_jump_button_type, currentCollection.default_show_color_coding, currentCollection.default_crossfade_seconds, currentCollection.default_hit_button_mode]);
+
+  // When modal opens, sync from currentCollection so radio/controls match display (e.g. jump button type)
+  useEffect(() => {
+    if (!isOpen) return;
+    const c = currentCollection;
+    const s = localStorage.getItem('sortOrder');
+    const sortOrder: 'alphabetical' | 'curated' =
+      c.default_sort_order === 'alphabetical' || c.default_sort_order === 'curated' ? c.default_sort_order : (s === 'alphabetical' || s === 'curated' ? s : 'curated');
+    const showJumpToBar = c.default_show_jump_to_bar != null ? c.default_show_jump_to_bar : localStorage.getItem('showJumpToBar') !== 'false';
+    const j = localStorage.getItem('jumpButtonType');
+    const leg = localStorage.getItem('navBarMode');
+    const jumpButtonType: 'letter-ranges' | 'number-ranges' | 'sections' =
+      c.default_jump_button_type === 'letter-ranges' || c.default_jump_button_type === 'number-ranges' || c.default_jump_button_type === 'sections'
+        ? c.default_jump_button_type
+        : (j === 'letter-ranges' || j === 'number-ranges' || j === 'sections' ? j : leg === 'sections' ? 'sections' : 'number-ranges');
+    const showColorCoding = c.default_show_color_coding != null ? c.default_show_color_coding : localStorage.getItem('showColorCoding') !== 'false';
+    const x = localStorage.getItem('crossfadeSeconds');
+    const n = x != null ? parseInt(x, 10) : NaN;
+    const crossfade = c.default_crossfade_seconds != null && c.default_crossfade_seconds >= 0 && c.default_crossfade_seconds <= 12
+      ? c.default_crossfade_seconds
+      : (Number.isNaN(n) || n < 0 || n > 12 ? 0 : n);
+    const hbm = c.default_hit_button_mode;
+    const shb = localStorage.getItem('hitButtonMode');
+    const hitButtonMode: HitButtonMode =
+      hbm === 'prioritize-section' || hbm === 'favorites' || hbm === 'favorites-and-recommended' || hbm === 'any'
+        ? hbm
+        : (shb === 'prioritize-section' || shb === 'favorites-and-recommended' || shb === 'any' ? shb : 'favorites') as HitButtonMode;
+    setSortOrder(sortOrder);
+    setShowJumpToBar(showJumpToBar);
+    setJumpButtonType(jumpButtonType);
+    setShowColorCoding(showColorCoding);
+    setCrossfadeSeconds(crossfade);
+    setHitButtonMode(hitButtonMode);
+  }, [isOpen, currentCollection]);
 
   useEffect(() => {
     const slug = settings?.default_collection_slug ?? localStorage.getItem('defaultCollection') ?? 'all';

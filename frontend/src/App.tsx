@@ -37,7 +37,14 @@ function App() {
       collections[0];
     setCurrentCollection(defaultCollection);
   }, [collections, currentCollection, setCurrentCollection, settingsFetched, settings?.default_collection_slug]);
-  
+
+  // When collections refetch (e.g. after saving collection settings), use fresh data for current collection
+  useEffect(() => {
+    if (!collections?.length || !currentCollection) return;
+    const fresh = collections.find(c => c.id === currentCollection.id);
+    if (fresh) setCurrentCollection(fresh);
+  }, [collections, currentCollection?.id, setCurrentCollection]);
+
   return (
     <div className={styles['app']}>
       <main className={styles['app-main']}>

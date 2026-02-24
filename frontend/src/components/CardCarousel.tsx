@@ -200,9 +200,9 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     const ljt = localStorage.getItem('jumpButtonType');
     const leg = localStorage.getItem('navBarMode');
     const jumpButtonType: NavSettings['jumpButtonType'] =
-      jt === 'letter-ranges' || jt === 'number-ranges' || jt === 'sections'
+      (jt === 'letter-ranges' || jt === 'number-ranges' || jt === 'sections')
         ? jt
-        : ljt === 'letter-ranges' || ljt === 'number-ranges' || ljt === 'sections'
+        : (ljt === 'letter-ranges' || ljt === 'number-ranges' || ljt === 'sections')
           ? ljt
           : leg === 'sections'
             ? 'sections'
@@ -243,6 +243,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     localStorage.setItem('crossfadeSeconds', String(cf));
     window.dispatchEvent(new CustomEvent('crossfade-changed', { detail: cf }));
   }, [
+    collection,
     collection.id,
     collection.default_sort_order,
     collection.default_show_jump_to_bar,
@@ -767,10 +768,11 @@ export default function CardCarousel({ albums, collection, collections, onCollec
         : activeLineRangeIndex;
   const navBarButtonSelector = '[data-jump-btn]';
 
-  useLayoutEffect(() => {
+  const updateJumpLinePosition = React.useCallback(() => {
     const bar = jumpToBarRef.current;
     if (!bar) return;
-    const button = bar.querySelectorAll(navBarButtonSelector)[activeButtonIndex] as HTMLElement | undefined;
+    const buttons = bar.querySelectorAll(navBarButtonSelector);
+    const button = buttons[activeButtonIndex] as HTMLElement | undefined;
     if (!button) return;
     const barRect = bar.getBoundingClientRect();
     const btnRect = button.getBoundingClientRect();
@@ -780,22 +782,23 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     });
   }, [activeButtonIndex, navBarButtonSelector]);
 
+  useLayoutEffect(() => {
+    updateJumpLinePosition();
+    const raf = requestAnimationFrame(() => {
+      updateJumpLinePosition();
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [activeButtonIndex, navBarButtonSelector, updateJumpLinePosition, showLetterRangesBar, showJumpToRangesBar, showSectionsBar]);
+
   useEffect(() => {
     const bar = jumpToBarRef.current;
     if (!bar) return;
     const resizeObserver = new ResizeObserver(() => {
-      const button = bar.querySelectorAll(navBarButtonSelector)[activeButtonIndex] as HTMLElement | undefined;
-      if (!button) return;
-      const barRect = bar.getBoundingClientRect();
-      const btnRect = button.getBoundingClientRect();
-      setJumpLineStyle({
-        left: btnRect.left - barRect.left,
-        width: btnRect.width,
-      });
+      updateJumpLinePosition();
     });
     resizeObserver.observe(bar);
     return () => resizeObserver.disconnect();
-  }, [activeButtonIndex, navBarButtonSelector]);
+  }, [activeButtonIndex, updateJumpLinePosition]);
 
   // Align jump so two-per-column layout is correct: even indices (0,2,4...) top, odd (1,3,5...) bottom.
   const alignJumpIndex = (startIndex: number) =>

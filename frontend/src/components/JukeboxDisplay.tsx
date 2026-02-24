@@ -13,7 +13,18 @@ interface Props {
 
 export default function JukeboxDisplay({ collection, collections, onCollectionChange }: Props) {
   const queryClient = useQueryClient();
-  
+
+  // Fetch current collection by slug so we always have latest default_* from server (e.g. default_jump_button_type)
+  const { data: collectionFromApi } = useQuery({
+    queryKey: ['collection', collection.slug],
+    queryFn: async () => {
+      const res = await collectionsApi.getBySlug(collection.slug);
+      return res.data;
+    },
+    enabled: !!collection?.slug,
+  });
+  const effectiveCollection = collectionFromApi ?? collection;
+
   // Fetch albums for this collection. keepPreviousData so switching collection in the
   // settings modal doesn’t briefly show empty and the modal stays open.
   const { data: albums, isLoading } = useQuery({
@@ -70,9 +81,6 @@ export default function JukeboxDisplay({ collection, collections, onCollectionCh
   // mounted when switching collections (otherwise the loading div would unmount it).
   const albumsToShow = albums ?? [];
 
-  // Use the freshest collection from the query so we get updated default_* after saving in Admin
-  const resolvedCollection = collections?.find((c) => c.id === collection.id) ?? collection;
-
   return (
     <div className={styles['jukebox-display']}>
       {isLoading && albumsToShow.length === 0 && (
@@ -81,7 +89,7 @@ export default function JukeboxDisplay({ collection, collections, onCollectionCh
       <div className={styles['jukebox-main']}>
         <CardCarousel 
           albums={albumsToShow} 
-          collection={resolvedCollection}
+          collection={effectiveCollection}
           collections={collections}
           onCollectionChange={onCollectionChange}
         />
