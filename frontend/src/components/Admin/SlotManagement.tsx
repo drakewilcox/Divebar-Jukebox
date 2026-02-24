@@ -19,6 +19,7 @@ import { MdDragIndicator, MdEdit, MdDelete } from 'react-icons/md';
 import { collectionsApi, adminApi } from '../../services/api';
 import type { Album } from '../../types';
 import AlbumEditModal from './AlbumEditModal';
+import ConfirmModal from '../ConfirmModal';
 import styles from './SlotManagement.module.css'
 import clsx from 'clsx';
 
@@ -174,6 +175,7 @@ export default function SlotManagement({ collectionSlug }: SlotManagementProps) 
   const [hasLocalChanges, setHasLocalChanges] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [editingAlbumId, setEditingAlbumId] = useState<string | null>(null);
+  const [pendingRemoveAlbumId, setPendingRemoveAlbumId] = useState<string | null>(null);
 
   const effectiveSlug = collectionSlug ?? selectedSlug;
 
@@ -225,13 +227,23 @@ export default function SlotManagement({ collectionSlug }: SlotManagementProps) 
     setEditingAlbumId(albumId);
   };
 
-  const handleRemove = async (albumId: string) => {
+  const handleRemoveClick = (albumId: string) => {
     if (!effectiveSlug) return;
-    if (!confirm('Remove this album from the collection?')) return;
+    setPendingRemoveAlbumId(albumId);
+  };
+
+  const handleRemoveConfirm = async () => {
+    const albumId = pendingRemoveAlbumId;
+    if (!albumId || !effectiveSlug) return;
+    setPendingRemoveAlbumId(null);
     if (hasLocalChanges) {
       await saveMutation.mutateAsync(orderedAlbums);
     }
     removeMutation.mutate(albumId);
+  };
+
+  const handleRemoveCancel = () => {
+    setPendingRemoveAlbumId(null);
   };
 
   const sensors = useSensors(
@@ -360,7 +372,7 @@ export default function SlotManagement({ collectionSlug }: SlotManagementProps) 
                                 slotIndex={cell.index}
                                 slotNumber={cell.slotNumber}
                                 onEdit={handleEdit}
-                                onRemove={handleRemove}
+                                onRemove={handleRemoveClick}
                               />
                             </DroppableSlot>
                           );
@@ -393,6 +405,16 @@ export default function SlotManagement({ collectionSlug }: SlotManagementProps) 
           }}
         />
       )}
+
+      <ConfirmModal
+        isOpen={pendingRemoveAlbumId != null}
+        message="Remove this album from the collection?"
+        cancelButtonText="Cancel"
+        confirmButtonText="Remove"
+        onCancel={handleRemoveCancel}
+        onConfirm={handleRemoveConfirm}
+        confirmVariant="danger"
+      />
     </div>
   );
 }
