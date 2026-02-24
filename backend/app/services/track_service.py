@@ -50,7 +50,7 @@ class TrackService:
         query = self.db.query(Track).filter(Track.album_id == album_id)
         
         if enabled_only:
-            query = query.filter(Track.enabled == True)
+            query = query.filter(Track.enabled == True, Track.archived == False)
         
         return query.order_by(Track.disc_number, Track.track_number).all()
     

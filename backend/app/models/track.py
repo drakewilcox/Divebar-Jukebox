@@ -21,7 +21,8 @@ class Track(Base):
     title = Column(String, nullable=False)
     artist = Column(String, nullable=False)
     duration_ms = Column(Integer, default=0)  # Duration in milliseconds
-    enabled = Column(Boolean, default=True)  # User can disable tracks
+    enabled = Column(Boolean, default=True)  # User can disable tracks (hidden from display/individual selection; still added when adding whole album)
+    archived = Column(Boolean, default=False)  # Same as hidden, but excluded when adding whole album to queue
     is_favorite = Column(Boolean, default=False)  # User-marked favorite
     is_recommended = Column(Boolean, default=False)  # User-marked recommended
     extra_metadata = Column(JSON, default=dict)  # Additional metadata

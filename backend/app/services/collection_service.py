@@ -329,14 +329,15 @@ class CollectionService:
             }
             
             if include_tracks:
-                # Get enabled tracks for this collection
-                # Filter by both collection-specific inclusion AND global Track.enabled
+                # Get enabled tracks for this collection (visible in UI; can be selected individually)
+                # Exclude archived so they never appear or get added when adding whole album
                 enabled_track_ids = set(ca.enabled_track_ids)
                 tracks = self.db.query(Track).filter(
                     and_(
                         Track.album_id == ca.album.id,
                         Track.id.in_(enabled_track_ids),
-                        Track.enabled == True  # Respect global track enabled setting
+                        Track.enabled == True,  # Respect global track enabled setting
+                        Track.archived == False  # Archived tracks hidden and excluded from queue
                     )
                 ).order_by(Track.disc_number, Track.track_number).all()
                 

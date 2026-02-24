@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect, useRef } from 'react';
-import { MdPlayArrow, MdStop, MdVisibility, MdVisibilityOff, MdStar, MdStarBorder, MdCircle } from 'react-icons/md';
+import { MdPlayArrow, MdStop, MdVisibility, MdVisibilityOff, MdArchive, MdUnarchive, MdStar, MdStarBorder, MdCircle } from 'react-icons/md';
 import { adminApi, collectionsApi } from '../../services/api';
 import { audioService } from '../../services/audio';
 import styles from './AlbumEditModal.module.css'
@@ -149,6 +149,11 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
     // Update local state immediately for UI feedback
     setTracks(tracks.map(t => t.id === trackId ? { ...t, is_recommended } : t));
     updateTrackMutation.mutate({ trackId, data: { is_recommended } });
+  };
+
+  const handleTrackArchivedToggle = (trackId: string, archived: boolean) => {
+    setTracks(tracks.map(t => t.id === trackId ? { ...t, archived } : t));
+    updateTrackMutation.mutate({ trackId, data: { archived } });
   };
 
   const toggleCollection = (collection: { id: string; slug: string }) => {
@@ -359,7 +364,7 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
             <div className={styles['tracks-list']}>
               {tracks.map((track) => (
                 <div key={track.id}>
-                  <div className={clsx(styles['track-edit-item'], !track.enabled && styles['disabled'])}>  
+                  <div className={clsx(styles['track-edit-item'], (!track.enabled || track.archived) && styles['disabled'])}>  
                     <div className={styles['track-edit-number']}>{track.disc_number > 1 ? `${track.disc_number}-` : ''}{track.track_number}</div>
                     <button
                       className={styles['track-preview-button']}
@@ -384,6 +389,13 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
                       title={track.enabled ? 'Hide track' : 'Show track'}
                     >
                       {track.enabled ? <MdVisibility size={18} /> : <MdVisibilityOff size={18} />}
+                    </button>
+                    <button
+                      className={clsx(styles['track-icon-button'], track.archived && styles['active'])}
+                      onClick={() => handleTrackArchivedToggle(track.id, !track.archived)}
+                      title={track.archived ? 'Unarchive (include when adding whole album)' : 'Archive (exclude when adding whole album)'}
+                    >
+                      {track.archived ? <MdUnarchive size={18} /> : <MdArchive size={18} />}
                     </button>
                     <button
                       className={clsx(styles['track-icon-button'], track.is_favorite && styles['active'])}

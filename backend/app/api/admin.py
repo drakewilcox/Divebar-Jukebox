@@ -51,6 +51,7 @@ class UpdateAlbumRequest(BaseModel):
 class UpdateTrackRequest(BaseModel):
     title: str | None = None
     enabled: bool | None = None
+    archived: bool | None = None
     is_favorite: bool | None = None
     is_recommended: bool | None = None
 
@@ -162,6 +163,7 @@ def get_album_details(album_id: str, db: Session = Depends(get_db)):
         "artist": track.artist,
         "duration_ms": track.duration_ms,
         "enabled": track.enabled,
+        "archived": getattr(track, 'archived', False),
         "is_favorite": track.is_favorite,
         "is_recommended": track.is_recommended,
         "file_path": track.file_path
@@ -208,6 +210,8 @@ def update_track(track_id: str, request: UpdateTrackRequest, db: Session = Depen
         track.title = request.title
     if request.enabled is not None:
         track.enabled = request.enabled
+    if request.archived is not None:
+        track.archived = request.archived
     if request.is_favorite is not None:
         track.is_favorite = request.is_favorite
     if request.is_recommended is not None:
