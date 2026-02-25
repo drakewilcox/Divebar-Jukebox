@@ -36,6 +36,9 @@ export default function SettingsModal({
   const [normalizeVolume, setNormalizeVolume] = useState<boolean>(() =>
     typeof localStorage !== 'undefined' ? localStorage.getItem('normalizeVolume') !== 'false' : true
   );
+  const [lightAndGlassEffect, setLightAndGlassEffect] = useState<boolean>(() =>
+    typeof localStorage !== 'undefined' ? localStorage.getItem('lightAndGlassEffect') !== 'false' : true
+  );
   const [collectionSelectOpen, setCollectionSelectOpen] = useState(false);
   const collectionSelectRef = useRef<HTMLDivElement>(null);
 
@@ -216,6 +219,11 @@ export default function SettingsModal({
     window.dispatchEvent(new CustomEvent('normalize-volume-changed'));
   }, [normalizeVolume]);
 
+  useEffect(() => {
+    localStorage.setItem('lightAndGlassEffect', String(lightAndGlassEffect));
+    window.dispatchEvent(new CustomEvent('light-and-glass-effect-changed'));
+  }, [lightAndGlassEffect]);
+
   const handleSetAsDefault = async () => {
     try {
       await settingsApi.update({ default_collection_slug: currentCollection.slug });
@@ -274,80 +282,111 @@ export default function SettingsModal({
         </div>
 
         <div className={styles['modal-body']}>
+          {/* Collection */}
           <div className={styles['settings-section']}>
-            <h3>Collection</h3>
-            <div className={clsx(styles['form-group'], styles['collection-row'])}>
-              <div className={styles['form-select-wrap']} ref={collectionSelectRef}>
+            <div className={styles['settings-row']}>
+              <div className={styles['settings-row-left']}>
+                <h3 className={styles['settings-row-title']}>Collection</h3>
+              </div>
+              <div className={clsx(styles['settings-row-right'], styles['collection-controls'])}>
+                <div className={clsx(styles['form-select-wrap'], styles['narrow'])} ref={collectionSelectRef}>
+                  <button
+                    type="button"
+                    className={clsx(styles['form-select'], styles['form-select-trigger'])}
+                    onClick={() => setCollectionSelectOpen((open) => !open)}
+                    aria-expanded={collectionSelectOpen}
+                    aria-haspopup="listbox"
+                    aria-label="Current collection"
+                  >
+                    {currentCollection.slug === defaultCollectionSlug
+                      ? `${currentCollection.name} (Default)`
+                      : currentCollection.name}
+                  </button>
+                  {collectionSelectOpen && (
+                    <ul
+                      className={styles['form-select-dropdown']}
+                      role="listbox"
+                      aria-label="Current collection"
+                      onMouseDown={(e) => e.stopPropagation()}
+                    >
+                      {collections.map((collection) => (
+                        <li
+                          key={collection.id}
+                          role="option"
+                          aria-selected={currentCollection.slug === collection.slug}
+                          className={styles['form-select-option']}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleCollectionSelect(collection.slug);
+                            setCollectionSelectOpen(false);
+                          }}
+                        >
+                          {collection.slug === defaultCollectionSlug
+                            ? `${collection.name} (Default)`
+                            : collection.name}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
                 <button
                   type="button"
-                  className={clsx(styles['form-select'], styles['form-select-trigger'])}
-                  onClick={() => setCollectionSelectOpen((open) => !open)}
-                  aria-expanded={collectionSelectOpen}
-                  aria-haspopup="listbox"
-                  aria-label="Current collection"
+                  className={styles['set-default-button']}
+                  onClick={handleSetAsDefault}
+                  disabled={isCurrentDefault}
                 >
-                  {currentCollection.slug === defaultCollectionSlug
-                    ? `${currentCollection.name} (Default)`
-                    : currentCollection.name}
+                  Set as Default
                 </button>
-                {collectionSelectOpen && (
-                  <ul
-                    className={styles['form-select-dropdown']}
-                    role="listbox"
-                    aria-label="Current collection"
-                    onMouseDown={(e) => e.stopPropagation()}
-                  >
-                    {collections.map((collection) => (
-                      <li
-                        key={collection.id}
-                        role="option"
-                        aria-selected={currentCollection.slug === collection.slug}
-                        className={styles['form-select-option']}
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                        }}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleCollectionSelect(collection.slug);
-                          setCollectionSelectOpen(false);
-                        }}
-                      >
-                        {collection.slug === defaultCollectionSlug
-                          ? `${collection.name} (Default)`
-                          : collection.name}
-                      </li>
-                    ))}
-                  </ul>
-                )}
               </div>
-              <button
-                type="button"
-                className={styles['set-default-button']}
-                onClick={handleSetAsDefault}
-                disabled={isCurrentDefault}
-              >
-                Set as Default
-              </button>
             </div>
           </div>
 
+          {/* Normalize Volume */}
           <div className={styles['settings-section']}>
-            <div className={styles['form-group']}>
-              <label className={styles['toggle-row']}>
-              <span className={styles['toggle-text']}>Normalize Volume</span>
-                <input
-                  type="checkbox"
-                  checked={normalizeVolume}
-                  onChange={(e) => setNormalizeVolume(e.target.checked)}
-                  className={styles['toggle-checkbox']}
-                />
-               
-              </label>
-              <p className={styles['help-text']}>
-                When on, ReplayGain is applied so tracks play at a consistent loudness
-              </p>
+            <div className={styles['settings-row']}>
+              <div className={styles['settings-row-left']}>
+                <h3 className={styles['settings-row-title']}>Normalize Volume</h3>
+                <p className={styles['settings-row-help']}>
+                  When on, ReplayGain is applied so tracks play at a consistent loudness
+                </p>
+              </div>
+              <div className={styles['settings-row-right']}>
+                <label className={styles['toggle-row']}>
+                  <input
+                    type="checkbox"
+                    checked={normalizeVolume}
+                    onChange={(e) => setNormalizeVolume(e.target.checked)}
+                    className={styles['toggle-checkbox']}
+                  />
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* Jukebox Lights */}
+          <div className={styles['settings-section']}>
+            <div className={styles['settings-row']}>
+              <div className={styles['settings-row-left']}>
+                <h3 className={styles['settings-row-title']}>Jukebox Lights</h3>
+                <p className={styles['settings-row-help']}>
+                  Enable gradient lights and glass effect on the carousel
+                </p>
+              </div>
+              <div className={styles['settings-row-right']}>
+                <label className={styles['toggle-row']}>
+                  <input
+                    type="checkbox"
+                    checked={lightAndGlassEffect}
+                    onChange={(e) => setLightAndGlassEffect(e.target.checked)}
+                    className={styles['toggle-checkbox']}
+                  />
+                </label>
+              </div>
             </div>
           </div>
 

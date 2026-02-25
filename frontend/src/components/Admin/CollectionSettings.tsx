@@ -3,7 +3,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '../../services/api';
 import type { Collection, HitButtonMode } from '../../types';
 import styles from './CollectionSettings.module.css';
-import clsx from 'clsx';
 import JukeboxSettingsPanel from '../JukeboxSettingsPanel';
 
 type Props = {
@@ -158,23 +157,26 @@ export default function CollectionSettings({ collection }: Props) {
       />
 
       <div className={styles['collection-settings-section']}>
-        <div className={clsx(styles['collection-settings-row'], styles['collection-settings-row-toggle'])}>
-          <h3>Edit Mode</h3>
-          <label className={styles['toggle-label']}>
-            <div className={styles['toggle-label-content']}>
-              <input
-                type="checkbox"
-                checked={editMode}
-                onChange={(e) => setEditMode(e.target.checked)}
-                className={styles['toggle-checkbox']}
-              />
-              <span className={styles['toggle-text']}>{editMode ? 'ON' : 'OFF'}</span>
-            </div>
-          </label>
+        <div className={styles['settings-row']}>
+          <div className={styles['settings-row-left']}>
+            <h3 className={styles['settings-row-title']}>Edit Mode</h3>
+            <p className={styles['settings-row-help']}>
+              When enabled, hover over album covers to quickly edit albums from the jukebox view.
+            </p>
+          </div>
+          <div className={styles['settings-row-right']}>
+            <label className={styles['toggle-label']}>
+              <div className={styles['toggle-label-content']}>
+                <input
+                  type="checkbox"
+                  checked={editMode}
+                  onChange={(e) => setEditMode(e.target.checked)}
+                  className={styles['toggle-checkbox']}
+                />
+              </div>
+            </label>
+          </div>
         </div>
-        <p className={styles['help-text']}>
-          When enabled, hover over album covers to quickly edit albums from the jukebox view.
-        </p>
       </div>
 
       {updateMutation.isError && (

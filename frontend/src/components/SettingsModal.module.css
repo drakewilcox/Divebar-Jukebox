@@ -25,7 +25,7 @@
 }
 
 .settings-modal {
-  max-width: 500px;
+  max-width: 800px;
   width: 90%;
   min-width: 0;
 }
@@ -119,17 +119,77 @@
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--vintage-cream) 40%, transparent);
 }
 
-/* ── Collection Row ───────────────────────────────────────────────────────── */
+/* ── Spotify-style settings row (label + help left, control right) ───────────── */
 
 .settings-section {
   margin-bottom: 0;
 }
 
-.settings-section h3 {
+.settings-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.25rem;
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+}
+
+.settings-section:not(:last-child) .settings-row {
+  border-bottom: 1px solid color-mix(in srgb, var(--vintage-cream) 18%, transparent);
+}
+
+.settings-row-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-row-title {
   font-size: 1.1rem;
+  font-weight: 700;
   color: var(--vintage-cream);
-  margin: 0 0 0.75rem 0;
-  padding-bottom: 0.35rem;
+  margin: 0 0 0.25rem 0;
+}
+
+.settings-row-help {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.4;
+  font-style: italic;
+}
+
+.settings-row-right {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Collection: same height as other settings dropdowns + Set as default */
+.collection-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.collection-controls .form-select-wrap {
+  width: auto;
+  min-width: 160px;
+  max-width: 220px;
+}
+
+/* Match JukeboxSettingsPanel narrow dropdown height */
+.collection-controls .form-select-wrap .form-select,
+.collection-controls .form-select-wrap .form-select-trigger {
+  padding: 0.5rem 1.75rem 0.5rem 0.75rem;
+  font-size: 0.9rem;
+}
+
+.collection-controls .set-default-button {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  min-height: 2.25rem;
+  box-sizing: border-box;
 }
 
 .form-group {
@@ -138,22 +198,17 @@
   width: 100%;
 }
 
-.collection-row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.collection-row .form-select-wrap {
-  flex: 1;
-  min-width: 0;
-}
-
 .form-select-wrap {
   position: relative;
   width: 100%;
   min-width: 0;
   max-width: 100%;
+}
+
+.form-select-wrap.narrow {
+  min-width: 140px;
+  max-width: 220px;
+  width: auto;
 }
 
 .form-select-wrap::after {
@@ -265,7 +320,7 @@
   opacity: 0.7;
 }
 
-/* ── Playback toggle (Normalize Volume) ────────────────────────────────────── */
+/* ── Toggle (used in settings row right) ───────────────────────────────────── */
 
 .toggle-row {
   display: inline-flex;
@@ -324,13 +379,4 @@
   font-size: 1rem;
   font-weight: 600;
   color: var(--text-primary);
-}
-
-.settings-section .help-text {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  margin-top: 0.5rem;
-  margin-bottom: 0;
-  line-height: 1.4;
-  font-style: italic;
 }
