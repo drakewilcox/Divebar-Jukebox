@@ -135,7 +135,7 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [x] Add Playback display to control bar, and move Queue Display above this. 
 - [x] Add Green LCD effect to mini playback display and album image 
 - [x] Make sure playblack and Queue use Database track data, not metadata 
-- [ ] Add better handling of Comiplations or albums with "Various" albums: 
+- [ ] Add better handling of Compilations or albums with "Various" artists: 
   - [ ] Display Artist next to Tracks for Compilations and Playlists
   - [ ] Add an Artist input to the Edit Track Row for Comps and Playlists
 
@@ -176,13 +176,13 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [ ] Add option to have 4 arrow controls. Two single arrow buttons, and two double arrow buttons. The double arrow buttons would slide two cards at once. 
 - [x] Create custom confirmation modals for removing albums from collection and archiving albums. 
 - [x] Move Collection Mananger Settings and Edit Album modal to shared component. 
-- [ ] Add Overlay toggle to settings (glass and lights overlay). 
+- [x] Add Overlay toggle to settings (glass and lights overlay). 
 - [ ] Add option for having Section Color Coding either as background or just indicator on top of card. 
 
 
 ### Routing
 - [ ] Add specific "Collection" routing so user can share a specific Collection (route would contain user slug and collection slug)
-- [ ] put Admin content behind protected routes. 
+- [ ] Put Admin content behind protected routes. 
 
 ### Integration & Infrastructure
 - [ ] Add ability to add playlist folders as albums
