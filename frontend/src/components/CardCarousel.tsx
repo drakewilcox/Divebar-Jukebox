@@ -113,7 +113,17 @@ export default function CardCarousel({ albums, collection, collections, onCollec
   const handleAddToQueueRef = useRef<() => void>(() => {});
   const lastSubmittedRef = useRef<string | null>(null);
   const [jumpLineStyle, setJumpLineStyle] = useState({ left: 0, width: 0 });
-  
+  const [lightAndGlassEffect, setLightAndGlassEffect] = useState<boolean>(() =>
+    typeof localStorage !== 'undefined' ? localStorage.getItem('lightAndGlassEffect') !== 'false' : true
+  );
+
+  useEffect(() => {
+    const handler = () =>
+      setLightAndGlassEffect(typeof localStorage !== 'undefined' ? localStorage.getItem('lightAndGlassEffect') !== 'false' : true);
+    window.addEventListener('light-and-glass-effect-changed', handler);
+    return () => window.removeEventListener('light-and-glass-effect-changed', handler);
+  }, []);
+
   // Fetch queue and playback state
   const { data: queue } = useQuery({
     queryKey: ['queue', collection.slug],
@@ -883,7 +893,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
 
   return (
     <div className={styles['card-carousel']}>
-      <div className={styles['carousel-container']}>
+      <div className={clsx(styles['carousel-container'], lightAndGlassEffect && styles['light-and-glass-effect'])}>
         {jumpTargetIndex != null ? (
           <>
             <div className={styles['carousel-full-slide-wrap']}>

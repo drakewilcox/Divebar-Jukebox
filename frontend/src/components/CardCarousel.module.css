@@ -37,8 +37,14 @@
     0 8px 24px rgba(0, 0, 0, 0.5); */
 }
 
-/* Darkening gradient behind lights for depth - with reduced opacity */
-.carousel-container::before {
+/* Light and glass effect: only when enabled via settings */
+.carousel-container:not(.light-and-glass-effect) .glass-overlay {
+  display: none;
+}
+
+/* Darkening gradient behind lights – vignette at top/bottom for depth */
+.carousel-container.light-and-glass-effect::before {
+  /* display: none; */
   content: '';
   position: absolute;
   top: 0;
@@ -62,12 +68,11 @@
     );
   pointer-events: none;
   z-index: 5000;
-  opacity: .15;
+  opacity: 0.15;
 }
 
-
 /* Four rainbow gradient light sources - 2 top, 2 bottom */
-.carousel-container::after {
+.carousel-container.light-and-glass-effect::after {
   content: '';
   position: absolute;
   top: 0;
@@ -124,26 +129,51 @@
   opacity: .6;
 }
 
-/* Glass overlay effect - top layer (subtle reflection simulating glass) */
-.glass-overlay {
+/* Glass overlay – one main diagonal streak (top-right to bottom-left) + two smaller parallel ones */
+.carousel-container.light-and-glass-effect .glass-overlay {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.15) 0%,
-    rgba(255, 255, 255, 0.08) 10%,
-    rgba(255, 255, 255, 0.03) 25%,
-    rgba(0, 0, 0, 0.05) 50%,
-    rgba(255, 255, 255, 0.03) 75%,
-    rgba(255, 255, 255, 0.08) 90%,
-    rgba(255, 255, 255, 0.15) 100%
-  );
+  background:
+    /* Main streak: top-right toward bottom-left, wider and intense */
+    linear-gradient(
+      135deg,
+      transparent 0%,
+      transparent 28%,
+      rgba(255, 255, 255, 0.35) 38%,
+      rgba(255, 255, 255, 0.75) 50%,
+      rgba(255, 255, 255, 0.35) 62%,
+      transparent 72%,
+      transparent 100%
+    ),
+    /* Smaller parallel streak – closer to top-right */
+    linear-gradient(
+      135deg,
+      transparent 0%,
+      transparent 8%,
+      rgba(255, 255, 255, 0.2) 12%,
+      rgba(255, 255, 255, 0.5) 16%,
+      rgba(255, 255, 255, 0.2) 20%,
+      transparent 24%,
+      transparent 100%
+    ),
+    /* Smaller parallel streak – closer to bottom-left */
+    linear-gradient(
+      135deg,
+      transparent 0%,
+      transparent 76%,
+      rgba(255, 255, 255, 0.2) 80%,
+      rgba(255, 255, 255, 0.5) 84%,
+      rgba(255, 255, 255, 0.2) 88%,
+      transparent 92%,
+      transparent 100%
+    );
   pointer-events: none;
   mix-blend-mode: overlay;
-  z-index: 5002;
+  z-index: 5003;
+  opacity: 75%;
 }
 
 /* Jump To: 8 buttons above carousel controls – fill container width */
