@@ -1,19 +1,24 @@
 /**
- * 10 light, distinguishable colors for section labels (readable with black text).
- * Style: old printer paper / pastel.
+ * 13 paper background colors matching Paper{HEX}.jpg textures in public/images.
+ * Each hex corresponds to /images/Paper{HEX}.jpg used for section info cards and jump-to buttons.
  */
-export const SECTION_COLORS: string[] = [
-  '#fff59d', // yellow
-  '#81d4fa', // light blue
-  '#f48fb1', // pink
-  '#a5d6a7', // green
-  '#ffcc80', // orange
-  '#ce93d8', // purple
-  '#80cbc4', // teal
-  '#ffab91', // peach
-  '#b39ddb', // lavender
-  '#80deea', // cyan
-];
+export const SECTION_PAPER_HEXES = [
+  '8492CC',
+  '92CA9E',
+  'A6C9D6',
+  'BBF7B4',
+  'C27775',
+  'C9B289',
+  'CABADD',
+  'D6BB68',
+  'DE986A',
+  'EAC1A9',
+  'EEE9DE',
+  'F6D49C',
+  'FCF8AA',
+] as const;
+
+export const SECTION_COLORS: string[] = SECTION_PAPER_HEXES.map((h) => `#${h}`);
 
 export const MIN_SECTIONS = 3;
-export const MAX_SECTIONS = 10;
+export const MAX_SECTIONS = 13;
