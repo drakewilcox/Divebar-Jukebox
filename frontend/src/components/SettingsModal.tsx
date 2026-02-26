@@ -95,13 +95,11 @@ export default function SettingsModal({
                 ? 'sections'
                 : 'number-ranges';
           })();
+    const fromStorageColor = localStorage.getItem('showColorCoding');
     const showColorCoding =
-      c.default_show_color_coding != null
-        ? c.default_show_color_coding
-        : (() => {
-            const s = localStorage.getItem('showColorCoding');
-            return s != null ? s === 'true' : true;
-          })();
+      fromStorageColor !== null
+        ? fromStorageColor === 'true'
+        : (c.default_show_color_coding != null ? c.default_show_color_coding : true);
     const crossfade =
       c.default_crossfade_seconds != null && c.default_crossfade_seconds >= 0 && c.default_crossfade_seconds <= 12
         ? c.default_crossfade_seconds
@@ -142,7 +140,8 @@ export default function SettingsModal({
       c.default_jump_button_type === 'letter-ranges' || c.default_jump_button_type === 'number-ranges' || c.default_jump_button_type === 'sections'
         ? c.default_jump_button_type
         : (j === 'letter-ranges' || j === 'number-ranges' || j === 'sections' ? j : leg === 'sections' ? 'sections' : 'number-ranges');
-    const showColorCoding = c.default_show_color_coding != null ? c.default_show_color_coding : localStorage.getItem('showColorCoding') !== 'false';
+    const fromStorageColor = localStorage.getItem('showColorCoding');
+    const showColorCoding = fromStorageColor !== null ? fromStorageColor === 'true' : (c.default_show_color_coding != null ? c.default_show_color_coding : true);
     const x = localStorage.getItem('crossfadeSeconds');
     const n = x != null ? parseInt(x, 10) : NaN;
     const crossfade = c.default_crossfade_seconds != null && c.default_crossfade_seconds >= 0 && c.default_crossfade_seconds <= 12
