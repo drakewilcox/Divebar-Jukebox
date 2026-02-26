@@ -125,6 +125,7 @@ export const adminApi = {
       default_show_jump_to_bar?: boolean;
       default_jump_button_type?: 'letter-ranges' | 'number-ranges' | 'sections';
       default_show_color_coding?: boolean;
+      default_show_card_background?: boolean;
       default_edit_mode?: boolean;
       default_crossfade_seconds?: number;
       default_hit_button_mode?: string;

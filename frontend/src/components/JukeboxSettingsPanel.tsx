@@ -11,6 +11,8 @@ export interface JukeboxSettingsPanelProps {
   onJumpButtonTypeChange: (v: 'letter-ranges' | 'number-ranges' | 'sections') => void;
   showColorCoding: boolean;
   onShowColorCodingChange: (v: boolean) => void;
+  showCardBackground: boolean;
+  onShowCardBackgroundChange: (v: boolean) => void;
   crossfadeSeconds: number;
   onCrossfadeSecondsChange: (v: number) => void;
   hitButtonMode: HitButtonMode;
@@ -29,6 +31,8 @@ export default function JukeboxSettingsPanel({
   onJumpButtonTypeChange,
   showColorCoding,
   onShowColorCodingChange,
+  showCardBackground,
+  onShowCardBackgroundChange,
   crossfadeSeconds,
   onCrossfadeSecondsChange,
   hitButtonMode,
@@ -159,6 +163,36 @@ export default function JukeboxSettingsPanel({
                   type="checkbox"
                   checked={showColorCoding}
                   onChange={(e) => onShowColorCodingChange(e.target.checked)}
+                  className={styles['toggle-checkbox']}
+                  disabled={!colorCodingEnabled}
+                />
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      {/* Card Background */}
+      <div
+        className={clsx(
+          styles['settings-section'],
+          !colorCodingEnabled && styles['settings-block-disabled']
+        )}
+      >
+        <div className={styles['settings-row']}>
+          <div className={styles['settings-row-left']}>
+            <h3 className={styles['settings-row-title']}>Card Background</h3>
+            <p className={styles['settings-row-help']}>
+              When on, section color is a full overlay on the card. When off, a 10px accent line at the top
+            </p>
+          </div>
+          <div className={styles['settings-row-right']}>
+            <label className={styles['toggle-label']}>
+              <div className={styles['toggle-label-content']}>
+                <input
+                  type="checkbox"
+                  checked={showCardBackground}
+                  onChange={(e) => onShowCardBackgroundChange(e.target.checked)}
                   className={styles['toggle-checkbox']}
                   disabled={!colorCodingEnabled}
                 />

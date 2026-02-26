@@ -31,6 +31,7 @@ export default function SettingsModal({
   const [showJumpToBar, setShowJumpToBar] = useState<boolean>(true);
   const [jumpButtonType, setJumpButtonType] = useState<'letter-ranges' | 'number-ranges' | 'sections'>('number-ranges');
   const [showColorCoding, setShowColorCoding] = useState<boolean>(true);
+  const [showCardBackground, setShowCardBackground] = useState<boolean>(true);
   const [crossfadeSeconds, setCrossfadeSeconds] = useState<number>(0);
   const [hitButtonMode, setHitButtonMode] = useState<HitButtonMode>('favorites');
   const [normalizeVolume, setNormalizeVolume] = useState<boolean>(() =>
@@ -63,100 +64,87 @@ export default function SettingsModal({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [collectionSelectOpen]);
 
-  // Sync nav settings when currentCollection changes (collection defaults or localStorage)
-  // This runs on mount and when user switches collection in the modal
+  // Sync nav settings when currentCollection changes. Prefer localStorage (user's last choice) so
+  // reopening the modal doesn't revert to collection defaults; fall back to collection default when localStorage is empty.
   useEffect(() => {
     const c = currentCollection;
+    const sSort = localStorage.getItem('sortOrder');
     const sortOrder =
-      c.default_sort_order === 'alphabetical' || c.default_sort_order === 'curated'
-        ? c.default_sort_order
-        : (() => {
-            const s = localStorage.getItem('sortOrder');
-            return s === 'alphabetical' || s === 'curated' ? s : 'curated';
-          })();
-    const showJumpToBar =
-      c.default_show_jump_to_bar != null
-        ? c.default_show_jump_to_bar
-        : (() => {
-            const s = localStorage.getItem('showJumpToBar');
-            return s != null ? s === 'true' : true;
-          })();
+      sSort === 'alphabetical' || sSort === 'curated'
+        ? sSort
+        : (c.default_sort_order === 'alphabetical' || c.default_sort_order === 'curated' ? c.default_sort_order : 'curated');
+    const sJump = localStorage.getItem('showJumpToBar');
+    const showJumpToBar = sJump !== null ? sJump === 'true' : (c.default_show_jump_to_bar != null ? c.default_show_jump_to_bar : true);
+    const j = localStorage.getItem('jumpButtonType');
+    const leg = localStorage.getItem('navBarMode');
     const jumpButtonType =
-      c.default_jump_button_type === 'letter-ranges' ||
-      c.default_jump_button_type === 'number-ranges' ||
-      c.default_jump_button_type === 'sections'
-        ? c.default_jump_button_type
-        : (() => {
-            const j = localStorage.getItem('jumpButtonType');
-            const leg = localStorage.getItem('navBarMode');
-            return j === 'letter-ranges' || j === 'number-ranges' || j === 'sections'
-              ? j
-              : leg === 'sections'
-                ? 'sections'
-                : 'number-ranges';
-          })();
+      j === 'letter-ranges' || j === 'number-ranges' || j === 'sections'
+        ? j
+        : (c.default_jump_button_type === 'letter-ranges' || c.default_jump_button_type === 'number-ranges' || c.default_jump_button_type === 'sections'
+            ? c.default_jump_button_type
+            : leg === 'sections' ? 'sections' : 'number-ranges');
     const fromStorageColor = localStorage.getItem('showColorCoding');
-    const showColorCoding =
-      fromStorageColor !== null
-        ? fromStorageColor === 'true'
-        : (c.default_show_color_coding != null ? c.default_show_color_coding : true);
+    const showColorCoding = fromStorageColor !== null ? fromStorageColor === 'true' : (c.default_show_color_coding != null ? c.default_show_color_coding : true);
+    const fromStorageCardBg = localStorage.getItem('showCardBackground');
+    const showCardBackground = fromStorageCardBg !== null ? fromStorageCardBg === 'true' : (c.default_show_card_background != null ? c.default_show_card_background : true);
+    const x = localStorage.getItem('crossfadeSeconds');
+    const n = x != null ? parseInt(x, 10) : NaN;
     const crossfade =
-      c.default_crossfade_seconds != null && c.default_crossfade_seconds >= 0 && c.default_crossfade_seconds <= 12
-        ? c.default_crossfade_seconds
-        : (() => {
-            const x = localStorage.getItem('crossfadeSeconds');
-            const n = x != null ? parseInt(x, 10) : NaN;
-            return Number.isNaN(n) || n < 0 || n > 12 ? 0 : n;
-          })();
-    const hbm = c.default_hit_button_mode;
+      !Number.isNaN(n) && n >= 0 && n <= 12
+        ? n
+        : (c.default_crossfade_seconds != null && c.default_crossfade_seconds >= 0 && c.default_crossfade_seconds <= 12 ? c.default_crossfade_seconds : 0);
+    const shb = localStorage.getItem('hitButtonMode');
+    const validHit: HitButtonMode[] = ['prioritize-section', 'favorites', 'favorites-and-recommended', 'any'];
     const hitButtonMode: HitButtonMode =
-      hbm === 'prioritize-section' || hbm === 'favorites' || hbm === 'favorites-and-recommended' || hbm === 'any'
-        ? hbm
-        : (() => {
-            const s = localStorage.getItem('hitButtonMode');
-            return s === 'prioritize-section' || s === 'favorites-and-recommended' || s === 'any'
-              ? (s as HitButtonMode)
-              : 'favorites';
-          })();
+      validHit.includes(shb as HitButtonMode)
+        ? (shb as HitButtonMode)
+        : (c.default_hit_button_mode && validHit.includes(c.default_hit_button_mode as HitButtonMode) ? c.default_hit_button_mode : 'favorites');
     setSortOrder(sortOrder);
     setShowJumpToBar(showJumpToBar);
     setJumpButtonType(jumpButtonType);
     setShowColorCoding(showColorCoding);
+    setShowCardBackground(showCardBackground);
     setCrossfadeSeconds(crossfade);
     setHitButtonMode(hitButtonMode);
-  }, [currentCollection, currentCollection.id, currentCollection.default_sort_order, currentCollection.default_show_jump_to_bar, currentCollection.default_jump_button_type, currentCollection.default_show_color_coding, currentCollection.default_crossfade_seconds, currentCollection.default_hit_button_mode]);
+  }, [currentCollection, currentCollection.id, currentCollection.default_sort_order, currentCollection.default_show_jump_to_bar, currentCollection.default_jump_button_type, currentCollection.default_show_color_coding, currentCollection.default_show_card_background, currentCollection.default_crossfade_seconds, currentCollection.default_hit_button_mode]);
 
-  // When modal opens, sync from currentCollection so radio/controls match display (e.g. jump button type)
+  // When modal opens, sync from localStorage first (user's last choice), then collection default. Same rule as above.
   useEffect(() => {
     if (!isOpen) return;
     const c = currentCollection;
-    const s = localStorage.getItem('sortOrder');
+    const sSort = localStorage.getItem('sortOrder');
     const sortOrder: 'alphabetical' | 'curated' =
-      c.default_sort_order === 'alphabetical' || c.default_sort_order === 'curated' ? c.default_sort_order : (s === 'alphabetical' || s === 'curated' ? s : 'curated');
-    const showJumpToBar = c.default_show_jump_to_bar != null ? c.default_show_jump_to_bar : localStorage.getItem('showJumpToBar') !== 'false';
+      sSort === 'alphabetical' || sSort === 'curated' ? sSort : (c.default_sort_order === 'alphabetical' || c.default_sort_order === 'curated' ? c.default_sort_order : 'curated');
+    const sJump = localStorage.getItem('showJumpToBar');
+    const showJumpToBar = sJump !== null ? sJump === 'true' : (c.default_show_jump_to_bar != null ? c.default_show_jump_to_bar : true);
     const j = localStorage.getItem('jumpButtonType');
     const leg = localStorage.getItem('navBarMode');
     const jumpButtonType: 'letter-ranges' | 'number-ranges' | 'sections' =
-      c.default_jump_button_type === 'letter-ranges' || c.default_jump_button_type === 'number-ranges' || c.default_jump_button_type === 'sections'
-        ? c.default_jump_button_type
-        : (j === 'letter-ranges' || j === 'number-ranges' || j === 'sections' ? j : leg === 'sections' ? 'sections' : 'number-ranges');
+      j === 'letter-ranges' || j === 'number-ranges' || j === 'sections'
+        ? j
+        : (c.default_jump_button_type === 'letter-ranges' || c.default_jump_button_type === 'number-ranges' || c.default_jump_button_type === 'sections'
+            ? c.default_jump_button_type
+            : leg === 'sections' ? 'sections' : 'number-ranges');
     const fromStorageColor = localStorage.getItem('showColorCoding');
     const showColorCoding = fromStorageColor !== null ? fromStorageColor === 'true' : (c.default_show_color_coding != null ? c.default_show_color_coding : true);
+    const fromStorageCardBg = localStorage.getItem('showCardBackground');
+    const showCardBackground = fromStorageCardBg !== null ? fromStorageCardBg === 'true' : (c.default_show_card_background != null ? c.default_show_card_background : true);
     const x = localStorage.getItem('crossfadeSeconds');
     const n = x != null ? parseInt(x, 10) : NaN;
-    const crossfade = c.default_crossfade_seconds != null && c.default_crossfade_seconds >= 0 && c.default_crossfade_seconds <= 12
-      ? c.default_crossfade_seconds
-      : (Number.isNaN(n) || n < 0 || n > 12 ? 0 : n);
-    const hbm = c.default_hit_button_mode;
+    const crossfade = !Number.isNaN(n) && n >= 0 && n <= 12
+      ? n
+      : (c.default_crossfade_seconds != null && c.default_crossfade_seconds >= 0 && c.default_crossfade_seconds <= 12 ? c.default_crossfade_seconds : 0);
     const shb = localStorage.getItem('hitButtonMode');
+    const validHit: HitButtonMode[] = ['prioritize-section', 'favorites', 'favorites-and-recommended', 'any'];
     const hitButtonMode: HitButtonMode =
-      hbm === 'prioritize-section' || hbm === 'favorites' || hbm === 'favorites-and-recommended' || hbm === 'any'
-        ? hbm
-        : (shb === 'prioritize-section' || shb === 'favorites-and-recommended' || shb === 'any' ? shb : 'favorites') as HitButtonMode;
+      validHit.includes(shb as HitButtonMode)
+        ? (shb as HitButtonMode)
+        : (c.default_hit_button_mode && validHit.includes(c.default_hit_button_mode as HitButtonMode) ? c.default_hit_button_mode : 'favorites');
     setSortOrder(sortOrder);
     setShowJumpToBar(showJumpToBar);
     setJumpButtonType(jumpButtonType);
     setShowColorCoding(showColorCoding);
+    setShowCardBackground(showCardBackground);
     setCrossfadeSeconds(crossfade);
     setHitButtonMode(hitButtonMode);
   }, [isOpen, currentCollection]);
@@ -203,15 +191,16 @@ export default function SettingsModal({
     localStorage.setItem('showJumpToBar', String(showJumpToBar));
     localStorage.setItem('jumpButtonType', jumpButtonType);
     localStorage.setItem('showColorCoding', String(showColorCoding));
+    localStorage.setItem('showCardBackground', String(showCardBackground));
     localStorage.setItem('crossfadeSeconds', String(crossfadeSeconds));
     localStorage.setItem('hitButtonMode', hitButtonMode);
     window.dispatchEvent(
       new CustomEvent('navigation-settings-changed', {
-        detail: { sortOrder, showJumpToBar, jumpButtonType, showColorCoding, hitButtonMode },
+        detail: { sortOrder, showJumpToBar, jumpButtonType, showColorCoding, showCardBackground, hitButtonMode },
       })
     );
     window.dispatchEvent(new CustomEvent('crossfade-changed', { detail: crossfadeSeconds }));
-  }, [sortOrder, showJumpToBar, jumpButtonType, showColorCoding, crossfadeSeconds, hitButtonMode]);
+  }, [sortOrder, showJumpToBar, jumpButtonType, showColorCoding, showCardBackground, crossfadeSeconds, hitButtonMode]);
 
   useEffect(() => {
     localStorage.setItem('normalizeVolume', String(normalizeVolume));
@@ -398,6 +387,8 @@ export default function SettingsModal({
             onJumpButtonTypeChange={setJumpButtonType}
             showColorCoding={showColorCoding}
             onShowColorCodingChange={setShowColorCoding}
+            showCardBackground={showCardBackground}
+            onShowCardBackgroundChange={setShowCardBackground}
             crossfadeSeconds={crossfadeSeconds}
             onCrossfadeSecondsChange={setCrossfadeSeconds}
             hitButtonMode={hitButtonMode}

@@ -22,6 +22,7 @@ class CollectionResponse(BaseModel):
     default_show_jump_to_bar: bool | None = None
     default_jump_button_type: str | None = None
     default_show_color_coding: bool | None = None
+    default_show_card_background: bool | None = None
     default_edit_mode: bool | None = None
     default_crossfade_seconds: int | None = None
     default_hit_button_mode: str | None = None

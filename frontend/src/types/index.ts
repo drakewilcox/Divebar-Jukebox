@@ -27,6 +27,7 @@ export interface Collection {
   default_show_jump_to_bar?: boolean | null;
   default_jump_button_type?: 'letter-ranges' | 'number-ranges' | 'sections' | null;
   default_show_color_coding?: boolean | null;
+  default_show_card_background?: boolean | null;
   default_edit_mode?: boolean | null;
   default_crossfade_seconds?: number | null;
   default_hit_button_mode?: HitButtonMode | null;

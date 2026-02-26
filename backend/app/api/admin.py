@@ -88,6 +88,7 @@ class UpdateCollectionSettingsRequest(BaseModel):
     default_show_jump_to_bar: bool | None = None
     default_jump_button_type: str | None = None  # 'letter-ranges' | 'number-ranges' | 'sections'
     default_show_color_coding: bool | None = None
+    default_show_card_background: bool | None = None  # True = full overlay, False = 5px top line
     default_edit_mode: bool | None = None
     default_crossfade_seconds: int | None = None  # 0-12
     default_hit_button_mode: str | None = None  # 'favorites' | 'favorites-and-recommended' | 'any' | 'prioritize-section'
@@ -326,6 +327,7 @@ def update_collection_settings(
             default_show_jump_to_bar=body.default_show_jump_to_bar,
             default_jump_button_type=body.default_jump_button_type,
             default_show_color_coding=body.default_show_color_coding,
+            default_show_card_background=body.default_show_card_background,
             default_edit_mode=body.default_edit_mode,
             default_crossfade_seconds=body.default_crossfade_seconds,
             default_hit_button_mode=body.default_hit_button_mode,

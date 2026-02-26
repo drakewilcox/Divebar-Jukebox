@@ -15,6 +15,7 @@ export default function CollectionSettings({ collection }: Props) {
   const [showJumpToBar, setShowJumpToBar] = useState(true);
   const [jumpButtonType, setJumpButtonType] = useState<'letter-ranges' | 'number-ranges' | 'sections'>('number-ranges');
   const [showColorCoding, setShowColorCoding] = useState(true);
+  const [showCardBackground, setShowCardBackground] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [crossfadeSeconds, setCrossfadeSeconds] = useState(0);
   const [hitButtonMode, setHitButtonMode] = useState<HitButtonMode>('favorites');
@@ -40,6 +41,7 @@ export default function CollectionSettings({ collection }: Props) {
         : 'number-ranges'
     );
     setShowColorCoding(collection.default_show_color_coding ?? true);
+    setShowCardBackground(collection.default_show_card_background ?? true);
     setEditMode(collection.default_edit_mode ?? false);
     const cf = collection.default_crossfade_seconds;
     setCrossfadeSeconds(
@@ -51,7 +53,7 @@ export default function CollectionSettings({ collection }: Props) {
         ? hbm
         : 'favorites'
     );
-  }, [collection?.id, collection?.default_sort_order, collection?.default_show_jump_to_bar, collection?.default_jump_button_type, collection?.default_show_color_coding, collection?.default_edit_mode, collection?.default_crossfade_seconds, collection?.default_hit_button_mode]);
+  }, [collection?.id, collection?.default_sort_order, collection?.default_show_jump_to_bar, collection?.default_jump_button_type, collection?.default_show_color_coding, collection?.default_show_card_background, collection?.default_edit_mode, collection?.default_crossfade_seconds, collection?.default_hit_button_mode]);
 
   useEffect(() => {
     if (sortOrder === 'alphabetical' && jumpButtonType === 'sections') {
@@ -82,6 +84,7 @@ export default function CollectionSettings({ collection }: Props) {
         default_show_jump_to_bar: showJumpToBar,
         default_jump_button_type: jumpButtonType,
         default_show_color_coding: showColorCoding,
+        default_show_card_background: showCardBackground,
         default_edit_mode: editMode,
         default_crossfade_seconds: crossfadeSeconds,
         default_hit_button_mode: hitButtonMode,
@@ -101,6 +104,7 @@ export default function CollectionSettings({ collection }: Props) {
       showJumpToBar !== (collection.default_show_jump_to_bar ?? true) ||
       jumpButtonType !== (collection.default_jump_button_type ?? 'number-ranges') ||
       showColorCoding !== (collection.default_show_color_coding ?? true) ||
+      showCardBackground !== (collection.default_show_card_background ?? true) ||
       editMode !== (collection.default_edit_mode ?? false) ||
       crossfadeSeconds !== (collection.default_crossfade_seconds ?? 0) ||
       hitButtonMode !== (collection.default_hit_button_mode ?? 'favorites'));
@@ -126,6 +130,7 @@ export default function CollectionSettings({ collection }: Props) {
     showJumpToBar,
     jumpButtonType,
     showColorCoding,
+    showCardBackground,
     editMode,
     crossfadeSeconds,
     hitButtonMode,
@@ -148,6 +153,8 @@ export default function CollectionSettings({ collection }: Props) {
         onJumpButtonTypeChange={setJumpButtonType}
         showColorCoding={showColorCoding}
         onShowColorCodingChange={setShowColorCoding}
+        showCardBackground={showCardBackground}
+        onShowCardBackgroundChange={setShowCardBackground}
         crossfadeSeconds={crossfadeSeconds}
         onCrossfadeSecondsChange={setCrossfadeSeconds}
         hitButtonMode={hitButtonMode}

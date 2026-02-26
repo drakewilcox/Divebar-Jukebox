@@ -27,6 +27,7 @@ class Collection(Base):
     default_show_jump_to_bar = Column(Boolean, nullable=True)
     default_jump_button_type = Column(String, nullable=True)  # 'letter-ranges' | 'number-ranges' | 'sections'
     default_show_color_coding = Column(Boolean, nullable=True)
+    default_show_card_background = Column(Boolean, nullable=True)  # True = overlay, False = 5px top line
     default_edit_mode = Column(Boolean, nullable=True)
     default_crossfade_seconds = Column(Integer, nullable=True)  # 0-12, null = use 0
     default_hit_button_mode = Column(String, nullable=True)  # 'favorites' | 'favorites-and-recommended' | 'any' | 'prioritize-section'

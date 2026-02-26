@@ -1245,7 +1245,7 @@
   z-index: 1;
 }
 
-/* Paper on ::before so you can set opacity on the image only (e.g. opacity: 0.8) – content stays full opacity */
+/* Paper on ::before – default VPaper01; every 5th card uses staples via .album-row-info-paper-staples */
 .album-row-info::before {
   content: '';
   position: absolute;
@@ -1254,8 +1254,11 @@
   pointer-events: none;
   background-size: cover;
   background-position: right center;
-  background-image: url(/images/VPaperStaples.jpg);
+  background-image: url(/images/VPaper01.jpg);
   opacity: 1;
+}
+.album-row-info-paper-staples::before {
+  background-image: url(/images/VPaperStaples.jpg);
 }
 .album-row-info > * {
   position: relative;
@@ -1297,6 +1300,42 @@
 .album-row-info.section-paper-F6D49C::after { background: linear-gradient(180deg, rgba(246, 212, 156, .75), rgba(246, 212, 156, .65)); }
 .album-row-info.section-paper-FCF8AA::after { background: linear-gradient(180deg, rgba(252, 248, 170, .75), rgba(252, 248, 170, .65)); }
 
+/* Color Coding with Card Background off: 10px section color line at top (overlay, does not push content) */
+.album-row-info.section-line-8492CC::after,
+.album-row-info.section-line-92CA9E::after,
+.album-row-info.section-line-A6C9D6::after,
+.album-row-info.section-line-BBF7B4::after,
+.album-row-info.section-line-C27775::after,
+.album-row-info.section-line-C9B289::after,
+.album-row-info.section-line-CABADD::after,
+.album-row-info.section-line-D6BB68::after,
+.album-row-info.section-line-DE986A::after,
+.album-row-info.section-line-EAC1A9::after,
+.album-row-info.section-line-EEE9DE::after,
+.album-row-info.section-line-F6D49C::after,
+.album-row-info.section-line-FCF8AA::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 7px;
+  z-index: 2;
+  pointer-events: none;
+}
+.album-row-info.section-line-8492CC::after { background: #8492CC; }
+.album-row-info.section-line-92CA9E::after { background: #92CA9E; }
+.album-row-info.section-line-A6C9D6::after { background: #A6C9D6; }
+.album-row-info.section-line-BBF7B4::after { background: #BBF7B4; }
+.album-row-info.section-line-C27775::after { background: #C27775; }
+.album-row-info.section-line-C9B289::after { background: #C9B289; }
+.album-row-info.section-line-CABADD::after { background: #CABADD; }
+.album-row-info.section-line-D6BB68::after { background: #D6BB68; }
+.album-row-info.section-line-DE986A::after { background: #DE986A; }
+.album-row-info.section-line-EAC1A9::after { background: #EAC1A9; }
+.album-row-info.section-line-EEE9DE::after { background: #EEE9DE; }
+.album-row-info.section-line-F6D49C::after { background: #F6D49C; }
+.album-row-info.section-line-FCF8AA::after { background: #FCF8AA; }
 
 /* Card number box: direct child of .album-row, at boundary (--cover-width from JS); top 30% shows over row above */
 .card-number-box {
@@ -1304,7 +1343,7 @@
   top: -17px; /* 30% of 55px so top of circle extends over the row above */
   left: calc(var(--cover-width, 0px) - 27.5px); /* 27.5px = half of 55px */
   z-index: 60; /* above tape overlays (50) and row-above's paper overlay */
-  background-color: black;
+  background-color: #000;
   border: 2px solid #000;
   padding: 5px 0 0 0; /* nudge number down slightly */
   font-size: 1.25rem;

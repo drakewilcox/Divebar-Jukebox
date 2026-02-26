@@ -109,6 +109,7 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [x] Remove double scrollbars on Selections Tab of Admin Collection Manager 
 - [x] Default Jump Button Type not persisting to Jump to Buttons or Settings Modal
 - [x] Jump button LCD not updating correctly when Jump Button Type changes
+- [x] Fix Color coding toggle option not persisting. 
 
 ### Admin Features
 - [x] Add ability to filter by active in collection list
@@ -167,7 +168,7 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [x] add an icon to represent that a song is already in the queue (maybe prevent duplicates)
 - [x] Update Card Sliders to make them look like "Card Holders" seen on NSM Jukeboxes
 - [ ] Enhance carousel slider animations for smoother transitions
-- [ ] Add a "scotch-tape" overlay to random cards. 
+- [x] Add a "scotch-tape" overlay to random cards. 
 
 ### UI Features
 - [x] Setup edit mode in the carousel for quick album management

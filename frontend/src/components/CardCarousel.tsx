@@ -76,6 +76,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     showJumpToBar: boolean;
     jumpButtonType: 'letter-ranges' | 'number-ranges' | 'sections';
     showColorCoding: boolean;
+    showCardBackground: boolean;
     hitButtonMode: HitButtonMode;
   };
   const [navSettings, setNavSettings] = useState<NavSettings>(() => {
@@ -83,6 +84,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     const showJumpToBar = localStorage.getItem('showJumpToBar');
     const jumpButtonType = localStorage.getItem('jumpButtonType');
     const showColorCoding = localStorage.getItem('showColorCoding');
+    const showCardBackground = localStorage.getItem('showCardBackground');
     const legacy = localStorage.getItem('navBarMode');
     const hitButtonMode = localStorage.getItem('hitButtonMode');
     return {
@@ -95,6 +97,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
             ? 'sections'
             : 'number-ranges',
       showColorCoding: showColorCoding !== null ? showColorCoding === 'true' : true,
+      showCardBackground: showCardBackground !== null ? showCardBackground === 'true' : true,
       hitButtonMode:
         hitButtonMode === 'prioritize-section' ||
         hitButtonMode === 'favorites-and-recommended' ||
@@ -224,6 +227,13 @@ export default function CardCarousel({ albums, collection, collections, onCollec
         : lc != null
           ? lc === 'true'
           : true;
+    const lcb = localStorage.getItem('showCardBackground');
+    const showCardBackground =
+      collection.default_show_card_background != null
+        ? collection.default_show_card_background
+        : lcb != null
+          ? lcb === 'true'
+          : true;
     const lhb = localStorage.getItem('hitButtonMode');
     const dhb = collection.default_hit_button_mode;
     const hitButtonMode: HitButtonMode =
@@ -232,12 +242,13 @@ export default function CardCarousel({ albums, collection, collections, onCollec
         : lhb === 'prioritize-section' || lhb === 'favorites-and-recommended' || lhb === 'any'
           ? (lhb as HitButtonMode)
           : 'favorites';
-    const next: NavSettings = { sortOrder, showJumpToBar, jumpButtonType, showColorCoding, hitButtonMode };
+    const next: NavSettings = { sortOrder, showJumpToBar, jumpButtonType, showColorCoding, showCardBackground, hitButtonMode };
     setNavSettings(next);
     localStorage.setItem('sortOrder', next.sortOrder);
     localStorage.setItem('showJumpToBar', String(next.showJumpToBar));
     localStorage.setItem('jumpButtonType', next.jumpButtonType);
     localStorage.setItem('showColorCoding', String(next.showColorCoding));
+    localStorage.setItem('showCardBackground', String(next.showCardBackground));
     localStorage.setItem('hitButtonMode', next.hitButtonMode);
     window.dispatchEvent(new CustomEvent('navigation-settings-changed', { detail: next }));
     const cf =
@@ -259,6 +270,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     collection.default_show_jump_to_bar,
     collection.default_jump_button_type,
     collection.default_show_color_coding,
+    collection.default_show_card_background,
     collection.default_crossfade_seconds,
     collection.default_hit_button_mode,
   ]);
@@ -878,6 +890,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     const tapeImages = showTape
       ? [TAPE_IMAGES[tapeBase], TAPE_IMAGES[(tapeBase + 1) % TAPE_IMAGES.length]]
       : null;
+    const useStaplesPaper = cardDisplayNumber > 0 && cardDisplayNumber % 5 === 0;
     return album ? (
       <AlbumRow
         key={album.id}
@@ -888,8 +901,10 @@ export default function CardCarousel({ albums, collection, collections, onCollec
         currentTrackId={currentTrackId}
         queueTrackIds={queueTrackIds}
         sectionBackgroundColor={getSectionColorForSlot(slotIndex + 1)}
+        useCardBackgroundOverlay={navSettings.showCardBackground}
         cardDisplayNumber={cardDisplayNumber}
         tapeImages={tapeImages}
+        useStaplesPaper={useStaplesPaper}
       />
     ) : (
       <div key={`${keyPrefix}-${idx}`} className={clsx(styles['album-row'], styles['album-row-empty'])}></div>
@@ -1276,10 +1291,14 @@ interface AlbumRowProps {
   currentTrackId: string | null;
   queueTrackIds: string[];
   sectionBackgroundColor?: string;
+  /** When true (and section color set), use full overlay; when false, use 5px top line only */
+  useCardBackgroundOverlay?: boolean;
   /** Number shown in card-number-box: position (1-based) when alphabetical, display_number when curated */
   cardDisplayNumber: number;
-  /** Two tape image paths for overlay, or null to hide tape (used on every 5th album) */
+  /** Two tape image paths for overlay, or null to hide tape (used on every 3rd album) */
   tapeImages: string[] | null;
+  /** Use VPaperStaples.jpg for info background (every 5th card); otherwise VPaper01.jpg */
+  useStaplesPaper?: boolean;
 }
 
 const TAPE_IMAGES = [
@@ -1433,7 +1452,7 @@ function TrackTitle({
   );
 }
 
-function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, queueTrackIds, sectionBackgroundColor, cardDisplayNumber, tapeImages }: AlbumRowProps) {
+function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, queueTrackIds, sectionBackgroundColor, useCardBackgroundOverlay = true, cardDisplayNumber, tapeImages, useStaplesPaper }: AlbumRowProps) {
   const [isHovered, setIsHovered] = useState(false);
   const tracksContainerRef = useRef<HTMLDivElement>(null);
   const albumRowRef = useRef<HTMLDivElement>(null);
@@ -1598,7 +1617,9 @@ function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, qu
       <div
         className={clsx(
           styles['album-row-info'],
-          sectionBackgroundColor && styles[`section-paper-${sectionBackgroundColor.replace(/^#/, '').toUpperCase()}`]
+          useStaplesPaper && styles['album-row-info-paper-staples'],
+          sectionBackgroundColor && useCardBackgroundOverlay && styles[`section-paper-${sectionBackgroundColor.replace(/^#/, '').toUpperCase()}`],
+          sectionBackgroundColor && !useCardBackgroundOverlay && styles[`section-line-${sectionBackgroundColor.replace(/^#/, '').toUpperCase()}`]
         )}
       >
         <div className={styles['album-info-text']}>

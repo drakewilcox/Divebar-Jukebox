@@ -177,6 +177,7 @@ class CollectionService:
         default_show_jump_to_bar: bool = None,
         default_jump_button_type: str = None,
         default_show_color_coding: bool = None,
+        default_show_card_background: bool = None,
         default_edit_mode: bool = None,
         default_crossfade_seconds: int = None,
         default_hit_button_mode: str = None,
@@ -197,6 +198,8 @@ class CollectionService:
             collection.default_jump_button_type = default_jump_button_type
         if default_show_color_coding is not None:
             collection.default_show_color_coding = default_show_color_coding
+        if default_show_card_background is not None:
+            collection.default_show_card_background = default_show_card_background
         if default_edit_mode is not None:
             collection.default_edit_mode = default_edit_mode
         if default_crossfade_seconds is not None:
