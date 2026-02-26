@@ -126,10 +126,10 @@
     );
   pointer-events: none;
   z-index: 5001;
-  opacity: .6;
+  opacity: 45%;
 }
 
-/* Glass overlay – one main diagonal streak (top-right to bottom-left) + two smaller parallel ones */
+/* Glass overlay – diagonal streaks. Only visible when “Jukebox Lights” is ON in Settings. */
 .carousel-container.light-and-glass-effect .glass-overlay {
   position: absolute;
   top: 0;
@@ -137,43 +137,43 @@
   right: 0;
   bottom: 0;
   background:
-    /* Main streak: top-right toward bottom-left, wider and intense */
+    /* Main streak: top-right toward bottom-left */
     linear-gradient(
       135deg,
       transparent 0%,
-      transparent 28%,
-      rgba(255, 255, 255, 0.35) 38%,
-      rgba(255, 255, 255, 0.75) 50%,
-      rgba(255, 255, 255, 0.35) 62%,
-      transparent 72%,
+      transparent 26%,
+      rgba(255, 255, 255, 0.5) 36%,
+      rgba(255, 255, 255, 0.95) 50%,
+      rgba(255, 255, 255, 0.5) 64%,
+      transparent 74%,
       transparent 100%
     ),
-    /* Smaller parallel streak – closer to top-right */
+    /* Smaller parallel streak – top-right */
     linear-gradient(
       135deg,
       transparent 0%,
-      transparent 8%,
-      rgba(255, 255, 255, 0.2) 12%,
-      rgba(255, 255, 255, 0.5) 16%,
-      rgba(255, 255, 255, 0.2) 20%,
-      transparent 24%,
+      transparent 6%,
+      rgba(255, 255, 255, 0.35) 12%,
+      rgba(255, 255, 255, 0.7) 16%,
+      rgba(255, 255, 255, 0.35) 20%,
+      transparent 26%,
       transparent 100%
     ),
-    /* Smaller parallel streak – closer to bottom-left */
+    /* Smaller parallel streak – bottom-left */
     linear-gradient(
       135deg,
       transparent 0%,
-      transparent 76%,
-      rgba(255, 255, 255, 0.2) 80%,
-      rgba(255, 255, 255, 0.5) 84%,
-      rgba(255, 255, 255, 0.2) 88%,
-      transparent 92%,
+      transparent 74%,
+      rgba(255, 255, 255, 0.35) 80%,
+      rgba(255, 255, 255, 0.7) 84%,
+      rgba(255, 255, 255, 0.35) 88%,
+      transparent 94%,
       transparent 100%
     );
   pointer-events: none;
   mix-blend-mode: overlay;
   z-index: 5003;
-  opacity: 75%;
+  opacity: 25%;
 }
 
 /* Jump To: 8 buttons above carousel controls – fill container width */
@@ -318,6 +318,8 @@
 }
 
 .section-button-label {
+  position: relative;
+  z-index: 1;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -337,6 +339,82 @@
   background: var(--section-bg) !important;
   filter: brightness(0.95);
 }
+
+/* Section jump-to buttons: default paper when color mode is off */
+.section-button-default-paper {
+  background: #fff url(/images/VPaper01.jpg) right center/cover !important;
+}
+
+/* Section jump-to buttons: VPaper01 for all; color overlay via ::after when Color Coding on */
+.section-button-paper-8492CC,
+.section-button-paper-92CA9E,
+.section-button-paper-A6C9D6,
+.section-button-paper-BBF7B4,
+.section-button-paper-C27775,
+.section-button-paper-C9B289,
+.section-button-paper-CABADD,
+.section-button-paper-D6BB68,
+.section-button-paper-DE986A,
+.section-button-paper-EAC1A9,
+.section-button-paper-EEE9DE,
+.section-button-paper-F6D49C,
+.section-button-paper-FCF8AA {
+  position: relative;
+  overflow: hidden;
+  background: #fff !important;
+}
+.section-button-paper-8492CC::before,
+.section-button-paper-92CA9E::before,
+.section-button-paper-A6C9D6::before,
+.section-button-paper-BBF7B4::before,
+.section-button-paper-C27775::before,
+.section-button-paper-C9B289::before,
+.section-button-paper-CABADD::before,
+.section-button-paper-D6BB68::before,
+.section-button-paper-DE986A::before,
+.section-button-paper-EAC1A9::before,
+.section-button-paper-EEE9DE::before,
+.section-button-paper-F6D49C::before,
+.section-button-paper-FCF8AA::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: #fff url(/images/VPaper01.jpg) right center/cover;
+}
+.section-button-paper-8492CC::after,
+.section-button-paper-92CA9E::after,
+.section-button-paper-A6C9D6::after,
+.section-button-paper-BBF7B4::after,
+.section-button-paper-C27775::after,
+.section-button-paper-C9B289::after,
+.section-button-paper-CABADD::after,
+.section-button-paper-D6BB68::after,
+.section-button-paper-DE986A::after,
+.section-button-paper-EAC1A9::after,
+.section-button-paper-EEE9DE::after,
+.section-button-paper-F6D49C::after,
+.section-button-paper-FCF8AA::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0.5;
+  pointer-events: none;
+}
+.section-button-paper-8492CC::after { background: linear-gradient(180deg, rgba(132, 146, 204, 1), rgba(132, 146, 204, .75)); }
+.section-button-paper-92CA9E::after { background: linear-gradient(180deg, rgba(146, 202, 158, 1), rgba(146, 202, 158, .75)); }
+.section-button-paper-A6C9D6::after { background: linear-gradient(180deg, rgba(166, 201, 214, 1), rgba(166, 201, 214, .75)); }
+.section-button-paper-BBF7B4::after { background: linear-gradient(180deg, rgba(187, 247, 180, 1), rgba(187, 247, 180, .75)); }
+.section-button-paper-C27775::after { background: linear-gradient(180deg, rgba(194, 119, 117, 1), rgba(194, 119, 117, .75)); }
+.section-button-paper-C9B289::after { background: linear-gradient(180deg, rgba(201, 178, 137, 1), rgba(201, 178, 137, .75)); }
+.section-button-paper-CABADD::after { background: linear-gradient(180deg, rgba(202, 186, 221, 1), rgba(202, 186, 221, .75)); }
+.section-button-paper-D6BB68::after { background: linear-gradient(180deg, rgba(214, 187, 104, 1), rgba(214, 187, 104, .75)); }
+.section-button-paper-DE986A::after { background: linear-gradient(180deg, rgba(222, 152, 106, 1), rgba(222, 152, 106, .75)); }
+.section-button-paper-EAC1A9::after { background: linear-gradient(180deg, rgba(234, 193, 169, 1), rgba(234, 193, 169, .75)); }
+.section-button-paper-EEE9DE::after { background: linear-gradient(180deg, rgba(238, 233, 222, 1), rgba(238, 233, 222, .75)); }
+.section-button-paper-F6D49C::after { background: linear-gradient(180deg, rgba(246, 212, 156, 1), rgba(246, 212, 156, .75)); }
+.section-button-paper-FCF8AA::after { background: linear-gradient(180deg, rgba(252, 248, 170, 1), rgba(252, 248, 170, .75)); }
 
 .carousel-controls-wrapper {
   position: relative;
@@ -763,6 +841,8 @@
   gap: 0.15rem;
   background-color: var(--background-dark);
   border: 2px solid var(--background-dark);
+  /* Promote to compositor layer so background images don’t cause repaint during slide */
+  will-change: transform;
 }
 
 /* Animated sliding cards */
@@ -777,6 +857,8 @@
   background-color: var(--background-dark);
   border: 2px solid var(--background-dark);
   z-index: 100;
+  /* Promote to compositor layer so slide animation is GPU-only (no repaint of Paper bg images) */
+  will-change: transform;
 }
 
 /* Right card sliding left to cover left card (clicking right arrow) */
@@ -911,6 +993,7 @@
   opacity: 0.6;
   pointer-events: none;
   z-index: 0;
+  display: none;
 }
 
 .album-row-empty {
@@ -973,9 +1056,36 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  isolation: isolate; /* keep photocopy blend from affecting album-row-info */
 }
 
-.album-row-cover-image-wrap img {
+/* Wrapper for img only – overlay aligned to top-left of img */
+.album-row-cover-img-wrap {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  isolation: isolate;
+}
+
+/* Crumpled paper: soft-light works on both light and dark covers */
+.album-row-cover-img-wrap::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+  background: url(/images/Crumpled01.jpg) top left/cover;
+  mix-blend-mode: multiply;
+  opacity: 1;
+}
+
+.album-row-cover-image-wrap img,
+.album-row-cover-img-wrap img {
   position: static;
   z-index: auto;
 }
@@ -1074,6 +1184,38 @@
   transform: translate(-50%, -50%) scale(1.05);
 }
 
+/* Two tape overlays along the seam between cover and info, spaced evenly */
+.album-row-tape-overlays {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  pointer-events: none;
+}
+
+.album-row-tape-overlays .album-row-tape-overlay {
+  position: absolute;
+  top: 22%;
+  left: calc(var(--cover-width, 0px) - 50px);
+  transform: translateY(-50%);
+  width: 100px;
+  z-index: 50;
+}
+
+.album-row-tape-overlays .album-row-tape-overlay:last-child {
+  top: 78%;
+}
+
+.album-row-tape-overlay img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 95px;
+  object-fit: contain;
+}
+
 .album-row-cover img,
 .album-row-cover-image-wrap img {
   width: 100%;
@@ -1098,31 +1240,62 @@
   min-width: 0;
   overflow: hidden;
   font-family: var(--font-mono);
-  background-color: #f5f0e8;
-  background-image: 
-    repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 2px,
-      rgba(0, 0, 0, 0.015) 2px,
-      rgba(0, 0, 0, 0.015) 4px
-    ),
-    repeating-linear-gradient(
-      90deg,
-      transparent,
-      transparent 2px,
-      rgba(0, 0, 0, 0.015) 2px,
-      rgba(0, 0, 0, 0.015) 4px
-    ),
-    linear-gradient(
-      135deg,
-      rgba(0, 0, 0, 0.02) 0%,
-      transparent 50%,
-      rgba(255, 255, 255, 0.015) 100%
-    );
+  background-color: #fff;
   position: relative;
   z-index: 1;
 }
+
+/* Paper on ::before so you can set opacity on the image only (e.g. opacity: 0.8) – content stays full opacity */
+.album-row-info::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-size: cover;
+  background-position: right center;
+  background-image: url(/images/VPaperStaples.jpg);
+  opacity: 1;
+}
+.album-row-info > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Color Coding: VPaper01 (::before); section color tints paper via ::after with blend mode */
+.album-row-info.section-paper-8492CC::after,
+.album-row-info.section-paper-92CA9E::after,
+.album-row-info.section-paper-A6C9D6::after,
+.album-row-info.section-paper-BBF7B4::after,
+.album-row-info.section-paper-C27775::after,
+.album-row-info.section-paper-C9B289::after,
+.album-row-info.section-paper-CABADD::after,
+.album-row-info.section-paper-D6BB68::after,
+.album-row-info.section-paper-DE986A::after,
+.album-row-info.section-paper-EAC1A9::after,
+.album-row-info.section-paper-EEE9DE::after,
+.album-row-info.section-paper-F6D49C::after,
+.album-row-info.section-paper-FCF8AA::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+}
+.album-row-info.section-paper-8492CC::after { background: linear-gradient(180deg, rgba(132, 146, 204, .75), rgba(132, 146, 204, .65)); }
+.album-row-info.section-paper-92CA9E::after { background: linear-gradient(180deg, rgba(146, 202, 158, .75), rgba(146, 202, 158, .65)); }
+.album-row-info.section-paper-A6C9D6::after { background: linear-gradient(180deg, rgba(166, 201, 214, .75), rgba(166, 201, 214, .65)); }
+.album-row-info.section-paper-BBF7B4::after { background: linear-gradient(180deg, rgba(187, 247, 180, .75), rgba(187, 247, 180, .65)); }
+.album-row-info.section-paper-C27775::after { background: linear-gradient(180deg, rgba(194, 119, 117, .75), rgba(194, 119, 117, .65)); }
+.album-row-info.section-paper-C9B289::after { background: linear-gradient(180deg, rgba(201, 178, 137, .75), rgba(201, 178, 137, .65)); }
+.album-row-info.section-paper-CABADD::after { background: linear-gradient(180deg, rgba(202, 186, 221, .75), rgba(202, 186, 221, .65)); }
+.album-row-info.section-paper-D6BB68::after { background: linear-gradient(180deg, rgba(214, 187, 104, .75), rgba(214, 187, 104, .65)); }
+.album-row-info.section-paper-DE986A::after { background: linear-gradient(180deg, rgba(222, 152, 106, .75), rgba(222, 152, 106, .65)); }
+.album-row-info.section-paper-EAC1A9::after { background: linear-gradient(180deg, rgba(234, 193, 169, .75), rgba(234, 193, 169, .65)); }
+.album-row-info.section-paper-EEE9DE::after { background: linear-gradient(180deg, rgba(238, 233, 222, .75), rgba(238, 233, 222, .65)); }
+.album-row-info.section-paper-F6D49C::after { background: linear-gradient(180deg, rgba(246, 212, 156, .75), rgba(246, 212, 156, .65)); }
+.album-row-info.section-paper-FCF8AA::after { background: linear-gradient(180deg, rgba(252, 248, 170, .75), rgba(252, 248, 170, .65)); }
 
 
 /* Card number box: direct child of .album-row, at boundary (--cover-width from JS); top 30% shows over row above */
@@ -1130,7 +1303,7 @@
   position: absolute;
   top: -17px; /* 30% of 55px so top of circle extends over the row above */
   left: calc(var(--cover-width, 0px) - 27.5px); /* 27.5px = half of 55px */
-  z-index: 10; /* above row-above's paper overlay when overlapping */
+  z-index: 60; /* above tape overlays (50) and row-above's paper overlay */
   background-color: black;
   border: 2px solid #000;
   padding: 5px 0 0 0; /* nudge number down slightly */
@@ -1154,7 +1327,7 @@
   gap: 0.2rem;
   padding: 10px 15px 5px 15px;
   text-align: center;
-  border-bottom: 1px solid #d0c8b8;
+  border-bottom: 1px dotted rgba(0, 0, 0, 0.7);
   position: relative;
   z-index: 2;
 }

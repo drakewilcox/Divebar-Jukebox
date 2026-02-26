@@ -633,12 +633,11 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     return 0;
   };
 
-  // Section color for a 1-based slot (for album-row-info background); only when showColorCoding and sections bar active
-  const getSectionBackgroundForSlot = (slot: number): string | undefined => {
+  // Section color (hex) for a 1-based slot – used for Paper texture class on album-row-info and jump-to buttons
+  const getSectionColorForSlot = (slot: number): string | undefined => {
     if (!applySectionColors || !showSectionsBar || !sectionsHaveRanges) return undefined;
     const i = getSectionIndexForSlot(slot);
-    const c = sortedSections[i]?.color;
-    return c ? blendWithCream(c, 0.5) : undefined;
+    return sortedSections[i]?.color ?? undefined;
   };
 
   // Jump To: 8 buttons, ranges adapt to album count (e.g. 80 albums → 1-10, 11-20, …)
@@ -874,6 +873,11 @@ export default function CardCarousel({ albums, collection, collections, onCollec
       album && navSettings.sortOrder === 'alphabetical'
         ? slotIndex + 1
         : (album?.display_number ?? 0);
+    const showTape = album && cardDisplayNumber > 0 && cardDisplayNumber % 3 === 0;
+    const tapeBase = showTape ? Math.floor((cardDisplayNumber - 1) / 3) % TAPE_IMAGES.length : 0;
+    const tapeImages = showTape
+      ? [TAPE_IMAGES[tapeBase], TAPE_IMAGES[(tapeBase + 1) % TAPE_IMAGES.length]]
+      : null;
     return album ? (
       <AlbumRow
         key={album.id}
@@ -883,8 +887,9 @@ export default function CardCarousel({ albums, collection, collections, onCollec
         onEditClick={setEditingAlbumId}
         currentTrackId={currentTrackId}
         queueTrackIds={queueTrackIds}
-        sectionBackgroundColor={getSectionBackgroundForSlot(slotIndex + 1)}
+        sectionBackgroundColor={getSectionColorForSlot(slotIndex + 1)}
         cardDisplayNumber={cardDisplayNumber}
+        tapeImages={tapeImages}
       />
     ) : (
       <div key={`${keyPrefix}-${idx}`} className={clsx(styles['album-row'], styles['album-row-empty'])}></div>
@@ -1002,20 +1007,29 @@ export default function CardCarousel({ albums, collection, collections, onCollec
               const nameLen = (section.name ?? '').length;
               const textSizeClass =
                 nameLen > 24 ? 'section-button-text-long' : nameLen > 14 ? 'section-button-text-medium' : 'section-button-text-short';
-              const bgColor = applySectionColors
+              const sectionHex = section.color ? section.color.replace(/^#/, '').toUpperCase() : '';
+              const paperClass = applySectionColors && sectionHex ? styles[`section-button-paper-${sectionHex}`] : null;
+              const defaultPaperClass = !applySectionColors ? styles['section-button-default-paper'] : null;
+              const bgColor = applySectionColors && !paperClass
                 ? blendWithCream(section.color ?? SECTION_BUTTON_CREAM, 0.65)
                 : SECTION_BUTTON_CREAM;
+              const paperBgValue = paperClass ? `#${sectionHex}` : null;
+              const defaultPaperBgValue = defaultPaperClass ? '#fff url(/images/VPaper01.jpg) right center/cover' : null;
               return (
                 <button
                   key={i}
                   type="button"
                   data-jump-btn
-                  className={clsx(styles['section-button'], styles['jump-to-button'], styles[textSizeClass])}
-                  style={{
-                    ['--section-bg' as string]: bgColor,
-                    background: bgColor,
-                    backgroundColor: bgColor,
-                  }}
+                  className={clsx(styles['section-button'], styles['jump-to-button'], styles[textSizeClass], paperClass, defaultPaperClass)}
+                  style={paperClass
+                    ? { ['--section-bg' as string]: paperBgValue ?? undefined }
+                    : defaultPaperClass
+                      ? { ['--section-bg' as string]: defaultPaperBgValue ?? undefined }
+                      : {
+                          ['--section-bg' as string]: bgColor,
+                          background: bgColor,
+                          backgroundColor: bgColor,
+                        }}
                   onClick={() => handleJumpToSection(i)}
                   aria-label={`Jump to ${section.name}`}
                 >
@@ -1264,7 +1278,17 @@ interface AlbumRowProps {
   sectionBackgroundColor?: string;
   /** Number shown in card-number-box: position (1-based) when alphabetical, display_number when curated */
   cardDisplayNumber: number;
+  /** Two tape image paths for overlay, or null to hide tape (used on every 5th album) */
+  tapeImages: string[] | null;
 }
+
+const TAPE_IMAGES = [
+  '/images/ScotchTape-01.png',
+  '/images/ScotchTape-02.png',
+  '/images/ScotchTape-03.png',
+  '/images/ScotchTape-06.png',
+  '/images/ScotchTape-07.png',
+];
 
 // ── TrackTitle ──────────────────────────────────────────────────────────────
 // Renders a track title with optional favorite/recommended icons.
@@ -1409,7 +1433,7 @@ function TrackTitle({
   );
 }
 
-function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, queueTrackIds, sectionBackgroundColor, cardDisplayNumber }: AlbumRowProps) {
+function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, queueTrackIds, sectionBackgroundColor, cardDisplayNumber, tapeImages }: AlbumRowProps) {
   const [isHovered, setIsHovered] = useState(false);
   const tracksContainerRef = useRef<HTMLDivElement>(null);
   const albumRowRef = useRef<HTMLDivElement>(null);
@@ -1530,14 +1554,16 @@ function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, qu
       >
         <div className={styles['album-row-cover-image-wrap']}>
           {album.cover_art_path ? (
-            <img
-              src={`/api/media/${album.cover_art_path}`}
-              alt={`${album.title} cover`}
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-                e.currentTarget.nextElementSibling?.classList.remove('hidden');
-              }}
-            />
+            <div className={styles['album-row-cover-img-wrap']}>
+              <img
+                src={`/api/media/${album.cover_art_path}`}
+                alt={`${album.title} cover`}
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  e.currentTarget.closest(`.${styles['album-row-cover-image-wrap']}`)?.querySelector(`.${styles['album-row-cover-placeholder']}`)?.classList.remove('hidden');
+                }}
+              />
+            </div>
           ) : null}
           <div className={clsx(styles['album-row-cover-placeholder'], album.cover_art_path && styles['hidden'])}>
             🎵
@@ -1557,10 +1583,23 @@ function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, qu
           </button>
         )}
       </div>
-      
+
+      {tapeImages && (
+        <div className={styles['album-row-tape-overlays']} aria-hidden="true">
+          <div className={styles['album-row-tape-overlay']}>
+            <img src={tapeImages[0]} alt="" />
+          </div>
+          <div className={styles['album-row-tape-overlay']}>
+            <img src={tapeImages[1]} alt="" />
+          </div>
+        </div>
+      )}
+
       <div
-        className={styles['album-row-info']}
-        style={sectionBackgroundColor ? { backgroundColor: sectionBackgroundColor } : undefined}
+        className={clsx(
+          styles['album-row-info'],
+          sectionBackgroundColor && styles[`section-paper-${sectionBackgroundColor.replace(/^#/, '').toUpperCase()}`]
+        )}
       >
         <div className={styles['album-info-text']}>
           <div className={styles['album-row-artist']}>{album.artist.toUpperCase()}</div>
