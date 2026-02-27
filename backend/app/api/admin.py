@@ -1,11 +1,13 @@
 """Admin API endpoints"""
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from pathlib import Path
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List
 from pydantic import BaseModel
 import logging
 
+from app.config import settings
 from app.database import get_db
 from app.services.album_service import AlbumService
 from app.services.collection_service import CollectionService
@@ -36,6 +38,7 @@ class AlbumListResponse(BaseModel):
     year: int | None
     various_artists: bool
     archived: bool
+    is_playlist: bool = False
     created_at: datetime | None
 
     class Config:
@@ -48,6 +51,7 @@ class UpdateAlbumRequest(BaseModel):
     year: int | None = None
     various_artists: bool | None = None
     archived: bool | None = None
+    description: str | None = None
 
 
 class UpdateTrackRequest(BaseModel):
@@ -108,10 +112,15 @@ def run_library_scan(db: Session):
 def scan_library(background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """Trigger a library scan to import new albums (existing albums by file_path are skipped, not updated)."""
     album_service = AlbumService(db)
-    
-    # Run scan synchronously (could be moved to background for large libraries)
     results = album_service.scan_and_import_library()
-    
+    return results
+
+
+@router.post("/playlists/scan", response_model=ScanResultResponse)
+def scan_playlists_endpoint(db: Session = Depends(get_db)):
+    """Scan Playlists folder and import each subfolder as an album (Various Artists, various_artists=True, is_playlist=True)."""
+    album_service = AlbumService(db)
+    results = album_service.scan_and_import_playlists()
     return results
 
 
@@ -145,7 +154,9 @@ def update_album(album_id: str, request: UpdateAlbumRequest, db: Session = Depen
         album.various_artists = request.various_artists
     if request.archived is not None:
         album.archived = request.archived
-    
+    if request.description is not None:
+        album.description = request.description
+
     db.commit()
     return {"message": "Album updated", "id": album.id}
 
@@ -200,10 +211,89 @@ def get_album_details(album_id: str, db: Session = Depends(get_db)):
         "custom_cover_art_path": album.custom_cover_art_path,
         "various_artists": album.various_artists,
         "archived": album.archived,
+        "description": getattr(album, "description", None),
+        "is_playlist": getattr(album, "is_playlist", False),
         "genre": genre_list,
         "tracks": tracks,
         "collection_ids": collection_ids
     }
+
+
+@router.post("/albums/{album_id}/cover")
+def upload_album_cover(album_id: str, file: UploadFile = File(...), db: Session = Depends(get_db)):
+    """Upload custom cover art for an album. Saved as custom-cover.jpg in the album folder."""
+    album = db.query(Album).filter(Album.id == album_id).first()
+    if not album:
+        raise HTTPException(status_code=404, detail=f"Album '{album_id}' not found")
+
+    # Validate content type and choose extension
+    allowed = {"image/jpeg": ".jpg", "image/png": ".png", "image/gif": ".gif", "image/webp": ".webp"}
+    content_type = (file.content_type or "").split(";")[0].strip().lower()
+    ext = allowed.get(content_type)
+    if not ext:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid file type. Allowed: JPEG, PNG, GIF, WebP (got {content_type})",
+        )
+
+    root = Path(settings.resolved_playlists_path if getattr(album, "is_playlist", False) else settings.music_library_path)
+    album_folder = (root / album.file_path).resolve()
+    root = root.resolve()
+    if not str(album_folder).startswith(str(root)):
+        raise HTTPException(status_code=403, detail="Invalid album path")
+    if not album_folder.exists() or not album_folder.is_dir():
+        raise HTTPException(status_code=400, detail="Album folder not found")
+
+    # Save as custom-cover.{ext} so content-type matches when serving
+    custom_cover_filename = "custom-cover" + ext
+    custom_cover_path = album_folder / custom_cover_filename
+    try:
+        # Remove any existing custom-cover.* so we don't leave old files
+        for old in album_folder.glob("custom-cover.*"):
+            if old.is_file():
+                old.unlink()
+        contents = file.file.read()
+        with open(custom_cover_path, "wb") as f:
+            f.write(contents)
+    except Exception as e:
+        logger.exception("Failed to save custom cover")
+        raise HTTPException(status_code=500, detail=f"Failed to save cover: {e}")
+
+    # Store relative path from library root for serving via /api/media
+    relative_path = (Path(album.file_path) / custom_cover_filename).as_posix()
+    album.custom_cover_art_path = relative_path
+    db.commit()
+
+    return {
+        "message": "Cover updated",
+        "custom_cover_art_path": album.custom_cover_art_path,
+    }
+
+
+@router.delete("/albums/{album_id}/cover")
+def restore_album_cover(album_id: str, db: Session = Depends(get_db)):
+    """Remove custom cover and revert to default (cover.jpg). Deletes custom-cover.jpg from disk."""
+    album = db.query(Album).filter(Album.id == album_id).first()
+    if not album:
+        raise HTTPException(status_code=404, detail=f"Album '{album_id}' not found")
+    if not album.custom_cover_art_path:
+        raise HTTPException(status_code=400, detail="No custom cover to restore")
+
+    root = Path(settings.resolved_playlists_path if getattr(album, "is_playlist", False) else settings.music_library_path)
+    custom_cover_full = (root / album.custom_cover_art_path).resolve()
+    root = root.resolve()
+    if not str(custom_cover_full).startswith(str(root)):
+        raise HTTPException(status_code=403, detail="Invalid path")
+    if custom_cover_full.exists() and custom_cover_full.is_file():
+        try:
+            custom_cover_full.unlink()
+        except Exception as e:
+            logger.exception("Failed to delete custom cover file")
+            raise HTTPException(status_code=500, detail=f"Failed to remove file: {e}")
+
+    album.custom_cover_art_path = None
+    db.commit()
+    return {"message": "Default cover restored"}
 
 
 @router.put("/tracks/{track_id}")

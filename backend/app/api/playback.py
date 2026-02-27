@@ -99,6 +99,7 @@ def get_playback_state(collection: str = Query(..., description="Collection slug
                 "album_artist": album.artist,
                 "album_year": album.year,
                 "cover_art_path": cover,
+                "is_playlist": getattr(album, "is_playlist", False),
                 "selection_display": selection_display,
                 "album_id": str(album.id),
                 "track_number": track_number_1based,
@@ -257,15 +258,15 @@ def get_next_transition(collection: str = Query(..., description="Collection slu
 
 @router.get("/stream/{track_id}")
 def stream_track(track_id: str, db: Session = Depends(get_db)):
-    """Stream a FLAC file"""
+    """Stream an audio file (FLAC or MP3)."""
     track_service = TrackService(db)
-    
     file_path = track_service.get_track_file_path(track_id)
     if not file_path:
         raise HTTPException(status_code=404, detail=f"Track '{track_id}' not found or file does not exist")
-    
+    suffix = file_path.suffix.lower()
+    media_type = "audio/mpeg" if suffix == ".mp3" else "audio/flac"
     return FileResponse(
         path=str(file_path),
-        media_type="audio/flac",
-        filename=file_path.name
+        media_type=media_type,
+        filename=file_path.name,
     )

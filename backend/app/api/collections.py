@@ -40,6 +40,8 @@ class AlbumInCollectionResponse(BaseModel):
     year: int | None
     total_tracks: int
     has_multi_disc: bool
+    various_artists: bool = False
+    is_playlist: bool = False
 
 
 @router.get("", response_model=List[CollectionResponse])
@@ -88,10 +90,12 @@ def get_collection_albums(slug: str, db: Session = Depends(get_db)):
                 "display_number": idx + 1,
                 "title": album.title,
                 "artist": album.artist,
-                "cover_art_path": album.cover_art_path,
+                "cover_art_path": album.custom_cover_art_path or album.cover_art_path,
                 "year": album.year,
                 "total_tracks": album.total_tracks,
                 "has_multi_disc": album.has_multi_disc,
+                "various_artists": getattr(album, "various_artists", False),
+                "is_playlist": getattr(album, "is_playlist", False),
             }
             for idx, album in enumerate([a for a in all_albums if not a.archived])
         ]

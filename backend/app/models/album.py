@@ -24,6 +24,8 @@ class Album(Base):
     has_multi_disc = Column(Boolean, default=False)
     various_artists = Column(Boolean, default=False)  # If true, show per-track artist in UI and allow editing
     archived = Column(Boolean, default=False)  # Hide from jukebox when archived
+    description = Column(String, nullable=True)  # Optional description (shown in edit modal when various_artists)
+    is_playlist = Column(Boolean, default=False)  # True if album was imported from Playlists folder (paths under playlists_path)
     extra_metadata = Column(JSON, default=dict)  # Additional metadata from FLAC tags
     created_at = Column(DateTime, default=datetime.utcnow, server_default=func.now())
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, server_default=func.now())

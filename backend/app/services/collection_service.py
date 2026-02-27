@@ -325,11 +325,12 @@ class CollectionService:
                 'display_number': ca.display_number,
                 'title': ca.album.title,
                 'artist': ca.album.artist,
-                'cover_art_path': ca.album.cover_art_path,
+                'cover_art_path': ca.album.custom_cover_art_path or ca.album.cover_art_path,
                 'year': ca.album.year,
                 'total_tracks': ca.album.total_tracks,
                 'has_multi_disc': ca.album.has_multi_disc,
                 'various_artists': ca.album.various_artists,
+                'is_playlist': getattr(ca.album, 'is_playlist', False),
             }
             
             if include_tracks:

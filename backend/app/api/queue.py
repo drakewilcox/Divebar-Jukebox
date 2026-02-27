@@ -22,6 +22,7 @@ class TrackInfo(BaseModel):
     album_title: str
     album_artist: str
     cover_art_path: str | None
+    is_playlist: bool = False
     selection_display: str | None = None
     album_id: str | None = None  # for frontend to compute selection_display in current sort
     track_number: int | None = None  # 1-based track index in album
@@ -113,6 +114,7 @@ def get_queue(collection: str = Query(..., description="Collection slug"), db: S
                     "album_title": album.title,
                     "album_artist": album.artist,
                     "cover_art_path": cover,
+                    "is_playlist": getattr(album, "is_playlist", False),
                     "selection_display": selection_display,
                     "album_id": str(album.id),
                     "track_number": track_number_1based,

@@ -56,24 +56,20 @@ class TrackService:
     
     def get_track_file_path(self, track_id: str) -> Optional[Path]:
         """
-        Get full filesystem path to track's FLAC file
-        
-        Args:
-            track_id: Track UUID
-            
-        Returns:
-            Full path to FLAC file or None if not found
+        Get full filesystem path to track's audio file.
+        Uses music_library_path for normal albums, playlists_path for playlist albums.
         """
-        track = self.get_track_by_id(track_id)
-        if not track:
+        track = self.db.query(Track).filter(Track.id == track_id).first()
+        if not track or not track.album:
             return None
-        
-        full_path = self.library_path / track.file_path
-        
+        if getattr(track.album, 'is_playlist', False):
+            root = Path(settings.resolved_playlists_path)
+        else:
+            root = self.library_path
+        full_path = root / track.file_path
         if not full_path.exists():
-            logger.error(f"Track file not found: {full_path}")
+            logger.error("Track file not found: %s", full_path)
             return None
-        
         return full_path
     
     def toggle_track_enabled(self, track_id: str) -> Optional[Track]:

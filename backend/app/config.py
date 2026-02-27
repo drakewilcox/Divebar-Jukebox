@@ -18,6 +18,17 @@ class Settings(BaseSettings):
     
     # Music Library
     music_library_path: str = "/Volumes/SamsungT7/MusicLibrary/Albums"
+    # Playlists folder (sibling to Albums: same parent, e.g. MusicLibrary/Playlists)
+    playlists_path: str | None = None
+
+    @property
+    def resolved_playlists_path(self) -> str:
+        """Playlists directory: playlists_path if set, else parent of music_library_path + '/Playlists'."""
+        if self.playlists_path:
+            return self.playlists_path
+        from pathlib import Path
+        parent = Path(self.music_library_path).parent
+        return str(parent / "Playlists")
     
     # Collections
     collections_config_dir: str = "./collections"

@@ -6,6 +6,7 @@ import logging
 from app.models.album import Album
 from app.models.track import Track
 from app.utils.metadata_extractor import MetadataExtractor
+from app.utils.playlist_scanner import scan_playlists
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +82,53 @@ class AlbumService:
             results['errors'].append(error_msg)
         
         return results
+
+    def scan_and_import_playlists(self) -> dict:
+        """
+        Scan Playlists folder and import each subfolder as an album (various_artists, is_playlist).
+        Uses same result shape as scan_and_import_library. Existing playlist albums matched by file_path are updated (refresh only); new ones are imported.
+        """
+        logger.info("Starting playlist scan...")
+        results = {
+            'albums_found': 0,
+            'albums_imported': 0,
+            'albums_updated': 0,
+            'albums_already_exist': 0,
+            'albums_skipped': 0,
+            'tracks_imported': 0,
+            'errors': []
+        }
+        try:
+            albums_data = scan_playlists()
+            results['albums_found'] = len(albums_data)
+            for album_data in albums_data:
+                try:
+                    existing_album = self.db.query(Album).filter(
+                        Album.file_path == album_data['file_path'],
+                        Album.is_playlist == True
+                    ).first()
+                    if existing_album:
+                        self._refresh_file_metadata(existing_album, album_data)
+                        results['albums_updated'] += 1
+                        logger.debug("Refreshed playlist: %s", album_data['file_path'])
+                    else:
+                        self._create_album_from_data(album_data)
+                        results['albums_imported'] += 1
+                        results['tracks_imported'] += len(album_data.get('tracks', []))
+                        logger.info("Imported playlist: %s", album_data['title'])
+                except Exception as e:
+                    error_msg = "Error importing playlist %s: %s" % (album_data.get('file_path'), str(e))
+                    logger.error(error_msg)
+                    results['errors'].append(error_msg)
+                    results['albums_skipped'] += 1
+            self.db.commit()
+            logger.info("Playlist scan complete: %s", results)
+        except Exception as e:
+            self.db.rollback()
+            error_msg = "Playlist scan failed: %s" % str(e)
+            logger.error(error_msg)
+            results['errors'].append(error_msg)
+        return results
     
     def _create_album_from_data(self, album_data: dict) -> Album:
         """
@@ -100,7 +148,10 @@ class AlbumService:
             cover_art_path=album_data.get('cover_art_path'),
             total_tracks=album_data['total_tracks'],
             year=album_data.get('year'),
-            has_multi_disc=album_data['has_multi_disc'],
+            has_multi_disc=album_data.get('has_multi_disc', False),
+            various_artists=album_data.get('various_artists', False),
+            is_playlist=album_data.get('is_playlist', False),
+            description=album_data.get('description'),
             extra_metadata=album_data.get('extra_metadata', {})
         )
         
