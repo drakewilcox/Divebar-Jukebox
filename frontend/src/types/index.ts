@@ -43,6 +43,8 @@ export interface Album {
   total_tracks: number;
   has_multi_disc: boolean;
   various_artists?: boolean;
+  description?: string | null;
+  is_playlist?: boolean;
 }
 
 export interface Track {
@@ -76,6 +78,7 @@ export interface QueueItem {
     album_title: string;
     album_artist: string;
     cover_art_path: string | null;
+    is_playlist?: boolean;
     selection_display?: string | null;
     album_id?: string | null;
     track_number?: number | null; // 1-based
@@ -97,6 +100,7 @@ export interface PlaybackState {
     album_artist: string;
     album_year: number | null;
     cover_art_path: string | null;
+    is_playlist?: boolean;
     selection_display: string | null;
     album_id?: string | null;
     track_number?: number | null; // 1-based

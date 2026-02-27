@@ -16,7 +16,7 @@ import {
 import { arrayMove } from '@dnd-kit/sortable';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { MdDragIndicator, MdEdit, MdDelete } from 'react-icons/md';
-import { collectionsApi, adminApi } from '../../services/api';
+import { collectionsApi, adminApi, getMediaUrl } from '../../services/api';
 import type { Album } from '../../types';
 import AlbumEditModal from './AlbumEditModal';
 import ConfirmModal from '../ConfirmModal';
@@ -51,8 +51,8 @@ function SlotCard({ album, slotNumber, isDragging }: { album: Album; slotNumber:
             <MdDragIndicator size={18} />
           </div>
           <div className={styles['slot-card-cover']}>
-            {album.cover_art_path ? (
-              <img src={`/api/media/${album.cover_art_path}`} alt="" />
+            {album.cover_art_path && getMediaUrl(album.cover_art_path, album.is_playlist) ? (
+              <img src={getMediaUrl(album.cover_art_path, album.is_playlist)!} alt="" />
             ) : (
               <div className={styles['slot-card-cover-placeholder']}>No art</div>
             )}
@@ -96,8 +96,8 @@ function DraggableSlotCard({
             <MdDragIndicator size={18} />
           </div>
           <div className={styles['slot-card-cover']}>
-            {album.cover_art_path ? (
-              <img src={`/api/media/${album.cover_art_path}`} alt="" />
+            {album.cover_art_path && getMediaUrl(album.cover_art_path, album.is_playlist) ? (
+              <img src={getMediaUrl(album.cover_art_path, album.is_playlist)!} alt="" />
             ) : (
               <div className={styles['slot-card-cover-placeholder']}>No art</div>
             )}

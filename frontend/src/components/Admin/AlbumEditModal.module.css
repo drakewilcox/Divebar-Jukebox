@@ -101,6 +101,7 @@
   display: flex;
   gap: 1.5rem;
   margin-bottom: 1rem;
+  position: relative;
 }
 
 .album-edit-cover-wrap {
@@ -115,6 +116,36 @@
   align-items: center;
   justify-content: center;
   border: 1px solid var(--border-color);
+  position: relative;
+}
+
+.album-edit-cover-edit-btn {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  color: var(--vintage-cream);
+  border: none;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.album-edit-cover-wrap:hover .album-edit-cover-edit-btn {
+  opacity: 1;
+}
+
+.cover-file-input-hidden {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+  overflow: hidden;
 }
 
 .album-edit-cover-img {
@@ -126,6 +157,68 @@
 .album-edit-cover-placeholder {
   font-size: 3rem;
   opacity: 0.3;
+}
+
+/* Cover edit sub-modal */
+.cover-edit-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10001;
+}
+
+.cover-edit-modal {
+  background: var(--background-card);
+  border-radius: 12px;
+  min-width: 280px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+  border: 1px solid var(--border-color);
+}
+
+.cover-edit-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.cover-edit-modal-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--vintage-cream);
+}
+
+.cover-edit-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem 1.25rem;
+}
+
+.cover-edit-option {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  background: var(--background-dark);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.cover-edit-option:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--primary-color);
+}
+
+.cover-edit-option:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .album-edit-form-fields {

@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect, useRef } from 'react';
-import { MdPlayArrow, MdStop, MdVisibility, MdVisibilityOff, MdArchive, MdUnarchive, MdStar, MdStarBorder, MdCircle } from 'react-icons/md';
-import { adminApi, collectionsApi } from '../../services/api';
+import { MdPlayArrow, MdStop, MdVisibility, MdVisibilityOff, MdArchive, MdUnarchive, MdStar, MdStarBorder, MdCircle, MdEdit } from 'react-icons/md';
+import { adminApi, collectionsApi, getMediaUrl } from '../../services/api';
 import { audioService } from '../../services/audio';
 import styles from './AlbumEditModal.module.css'
 import clsx from 'clsx';
@@ -17,6 +17,7 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
   const [artist, setArtist] = useState('');
   const [year, setYear] = useState<number | ''>('');
   const [variousArtists, setVariousArtists] = useState(false);
+  const [description, setDescription] = useState('');
   const [tracks, setTracks] = useState<any[]>([]);
   const [selectedCollections, setSelectedCollections] = useState<Set<string>>(new Set());
   
@@ -27,6 +28,9 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   const progressIntervalRef = useRef<number | null>(null);
   const initialLoadDoneRef = useRef(false);
+
+  const [showCoverEditModal, setShowCoverEditModal] = useState(false);
+  const coverFileInputRef = useRef<HTMLInputElement | null>(null);
 
   const { data: albumData, isLoading } = useQuery({
     queryKey: ['album-details', albumId],
@@ -52,6 +56,7 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
       setArtist(albumData.artist);
       setYear(albumData.year || '');
       setVariousArtists(!!(albumData as { various_artists?: boolean }).various_artists);
+      setDescription((albumData as { description?: string | null }).description ?? '');
       setTracks(albumData.tracks);
       setSelectedCollections(new Set(albumData.collection_ids));
       initialLoadDoneRef.current = true;
@@ -95,6 +100,7 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
         artist,
         year: year || undefined,
         various_artists: variousArtists,
+        description: variousArtists ? (description || null) : undefined,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-albums'] });
@@ -132,6 +138,26 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
     },
   });
 
+  const uploadCoverMutation = useMutation({
+    mutationFn: (file: File) => adminApi.uploadAlbumCover(albumId, file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['album-details', albumId] });
+      queryClient.invalidateQueries({ queryKey: ['collection-albums'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-albums'] });
+      setShowCoverEditModal(false);
+    },
+  });
+
+  const restoreCoverMutation = useMutation({
+    mutationFn: () => adminApi.restoreAlbumCover(albumId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['album-details', albumId] });
+      queryClient.invalidateQueries({ queryKey: ['collection-albums'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-albums'] });
+      setShowCoverEditModal(false);
+    },
+  });
+
   const handleTrackTitleChange = (trackId: string, newTitle: string) => {
     setTracks(tracks.map(t => t.id === trackId ? { ...t, title: newTitle } : t));
   };
@@ -161,6 +187,38 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
   const handleTrackArchivedToggle = (trackId: string, archived: boolean) => {
     setTracks(tracks.map(t => t.id === trackId ? { ...t, archived } : t));
     updateTrackMutation.mutate({ trackId, data: { archived } });
+  };
+
+  const handleCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      uploadCoverMutation.mutate(file);
+    }
+    e.target.value = '';
+  };
+
+  const handleCoverPaste = async () => {
+    try {
+      const items = await navigator.clipboard.read();
+      for (const item of items) {
+        for (const type of item.types) {
+          if (type.startsWith('image/')) {
+            const blob = await item.getType(type);
+            const file = new File([blob], 'pasted-cover.jpg', { type: blob.type });
+            uploadCoverMutation.mutate(file);
+            return;
+          }
+        }
+      }
+      alert('No image found in clipboard.');
+    } catch (err) {
+      console.error('Clipboard read failed:', err);
+      alert('Could not read clipboard. Ensure clipboard permission is granted.');
+    }
+  };
+
+  const handleRestoreDefault = () => {
+    restoreCoverMutation.mutate();
   };
 
   const toggleCollection = (collection: { id: string; slug: string }) => {
@@ -278,7 +336,8 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
     (title !== (albumData.title ?? '') ||
       artist !== (albumData.artist ?? '') ||
       (year ?? '') !== (albumData.year ?? '') ||
-      variousArtists !== !!((albumData as { various_artists?: boolean }).various_artists));
+      variousArtists !== !!((albumData as { various_artists?: boolean }).various_artists) ||
+      (variousArtists && description !== ((albumData as { description?: string | null }).description ?? '')));
 
   const handleAlbumInfoBlur = () => {
     if (hasAlbumInfoChanges && !updateAlbumMutation.isPending) {
@@ -304,13 +363,32 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
                 {(() => {
                   const coverPath = (albumData as { cover_art_path?: string | null; custom_cover_art_path?: string | null })?.custom_cover_art_path ||
                     (albumData as { cover_art_path?: string | null })?.cover_art_path;
-                  return coverPath ? (
-                    <img src={`/api/media/${coverPath}`} alt={`${title} cover`} className={styles['album-edit-cover-img']} />
+                  const isPlaylist = !!(albumData as { is_playlist?: boolean }).is_playlist;
+                  const src = getMediaUrl(coverPath ?? null, isPlaylist);
+                  return src ? (
+                    <img src={src} alt={`${title} cover`} className={styles['album-edit-cover-img']} />
                   ) : (
                     <div className={styles['album-edit-cover-placeholder']}>🎵</div>
                   );
                 })()}
+                <button
+                  type="button"
+                  className={styles['album-edit-cover-edit-btn']}
+                  onClick={() => setShowCoverEditModal(true)}
+                  title="Change cover art"
+                  aria-label="Change cover art"
+                >
+                  <MdEdit size={24} />
+                </button>
               </div>
+              <input
+                ref={coverFileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                className={styles['cover-file-input-hidden']}
+                onChange={handleCoverUpload}
+                aria-hidden
+              />
               <div className={styles['album-edit-form-fields']}>
             <div className={styles['form-group']}>
               <label>Title</label>
@@ -359,6 +437,19 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
                 Various artists (show per-track artist in jukebox and allow editing here)
               </label>
             </div>
+            {variousArtists && (
+              <div className={styles['form-group']}>
+                <label>Description</label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  onBlur={handleAlbumInfoBlur}
+                  className={styles['form-input']}
+                  rows={3}
+                  placeholder="Optional description for this album or playlist"
+                />
+              </div>
+            )}
               </div>
             </div>
           </div>
@@ -469,6 +560,43 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
           </div>
         </div>
 
+        {showCoverEditModal && (
+          <div className={styles['cover-edit-modal-overlay']} onClick={() => setShowCoverEditModal(false)}>
+            <div className={styles['cover-edit-modal']} onClick={(e) => e.stopPropagation()}>
+              <div className={styles['cover-edit-modal-header']}>
+                <h3>Change cover art</h3>
+                <button type="button" className={styles['close-button']} onClick={() => setShowCoverEditModal(false)}>✕</button>
+              </div>
+              <div className={styles['cover-edit-modal-body']}>
+                <button
+                  type="button"
+                  className={styles['cover-edit-option']}
+                  onClick={() => coverFileInputRef.current?.click()}
+                  disabled={uploadCoverMutation.isPending}
+                >
+                  Upload from computer
+                </button>
+                <button
+                  type="button"
+                  className={styles['cover-edit-option']}
+                  onClick={handleCoverPaste}
+                  disabled={uploadCoverMutation.isPending}
+                >
+                  Paste from clipboard
+                </button>
+                <button
+                  type="button"
+                  className={styles['cover-edit-option']}
+                  onClick={handleRestoreDefault}
+                  disabled={restoreCoverMutation.isPending || !(albumData as { custom_cover_art_path?: string | null })?.custom_cover_art_path}
+                  title={!(albumData as { custom_cover_art_path?: string | null })?.custom_cover_art_path ? 'No custom cover to restore' : undefined}
+                >
+                  Restore default image
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

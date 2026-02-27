@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MdEdit } from 'react-icons/md';
-import { collectionsApi, adminApi } from '../../services/api';
+import { collectionsApi, adminApi, getMediaUrl } from '../../services/api';
 import { filterAndSortAlbums, type AlbumSortOption } from '../../utils/albumListFilter';
 import type { Collection } from '../../types';
 import CollectionSections from './CollectionSections';
@@ -221,7 +221,7 @@ export default function CollectionManager() {
                   {filteredForDisplay.length === 0 ? (
                     <p className={styles['albums-list-empty']}>No albums match.</p>
                   ) : (
-                    filteredForDisplay.map((album: { id: string; title: string; artist: string; cover_art_path?: string | null; file_path?: string; total_tracks?: number; year?: number }) => (
+                    filteredForDisplay.map((album: { id: string; title: string; artist: string; cover_art_path?: string | null; is_playlist?: boolean; file_path?: string; total_tracks?: number; year?: number }) => (
                       <div
                         key={album.id}
                         className={clsx(styles['album-item'], !collectionAlbumIds.has(album.id) && styles['not-in-collection'])}
@@ -235,9 +235,9 @@ export default function CollectionManager() {
                             disabled={addRemoveMutation.isPending}
                           />
                         </label>
-                        {album.cover_art_path && (
+                        {album.cover_art_path && getMediaUrl(album.cover_art_path, album.is_playlist) && (
                           <div className={styles['album-item-cover']}>
-                            <img src={`/api/media/${album.cover_art_path}`} alt="" />
+                            <img src={getMediaUrl(album.cover_art_path, album.is_playlist)!} alt="" />
                           </div>
                         )}
                         <div className={styles['album-item-info']}>

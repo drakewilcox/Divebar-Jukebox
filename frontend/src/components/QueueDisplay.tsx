@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import React, { useState, useEffect, useRef } from 'react';
 import { MdPlayArrow, MdPause, MdSkipNext, MdStop } from 'react-icons/md';
 import { Collection } from '../types';
-import { queueApi, playbackApi } from '../services/api';
+import { queueApi, playbackApi, getMediaUrl } from '../services/api';
 import audioService from '../services/audio';
 import styles from './QueueDisplay.module.css'
 import clsx from 'clsx';
@@ -325,10 +325,10 @@ export default function QueueDisplay({ collection, onQueueCleared, getSelectionD
               <>
                 <div className={styles['now-playing-label']}>Now Playing</div>
                 <div className={clsx(styles['queue-item'], styles['now-playing-item'])}>
-                  {nowPlaying.track.cover_art_path && (
+                  {nowPlaying.track.cover_art_path && getMediaUrl(nowPlaying.track.cover_art_path, nowPlaying.track.is_playlist) && (
                     <div className={styles['queue-item-cover']}>
                       <img
-                        src={`/api/media/${nowPlaying.track.cover_art_path}`}
+                        src={getMediaUrl(nowPlaying.track.cover_art_path, nowPlaying.track.is_playlist)!}
                         alt={`${nowPlaying.track.album_title} cover`}
                       />
                     </div>
@@ -368,10 +368,10 @@ export default function QueueDisplay({ collection, onQueueCleared, getSelectionD
                       onDrop={(e) => handleDrop(e, index + 1)}
                       onDragEnd={handleDragEnd}
                     >
-                    {item.track.cover_art_path && (
+                    {item.track.cover_art_path && getMediaUrl(item.track.cover_art_path, item.track.is_playlist) && (
                       <div className={styles['queue-item-cover']}>
                         <img
-                          src={`/api/media/${item.track.cover_art_path}`}
+                          src={getMediaUrl(item.track.cover_art_path, item.track.is_playlist)!}
                           alt={`${item.track.album_title} cover`}
                         />
                       </div>

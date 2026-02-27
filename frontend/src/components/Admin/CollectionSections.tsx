@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, Fragment } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { MdAdd, MdDelete, MdDragIndicator } from 'react-icons/md';
-import { adminApi } from '../../services/api';
+import { adminApi, getMediaUrl } from '../../services/api';
 import type { Collection, CollectionSection } from '../../types';
 import { SECTION_COLORS, MIN_SECTIONS, MAX_SECTIONS } from './SectionColors';
 import styles from './CollectionSections.module.css';
@@ -13,6 +13,7 @@ type AlbumInOrder = {
   title: string;
   artist: string;
   cover_art_path?: string | null;
+  is_playlist?: boolean;
   display_number?: number;
 };
 
@@ -409,9 +410,9 @@ export default function CollectionSections({ collection, albums = [] }: Props) {
                             ) : null}
                             <td className={styles['collection-sections-slot-cell']}>{slot}</td>
                             <td className={styles['collection-sections-cover-cell']}>
-                              {album.cover_art_path ? (
+                              {album.cover_art_path && getMediaUrl(album.cover_art_path, album.is_playlist) ? (
                                 <img
-                                  src={`/api/media/${album.cover_art_path}`}
+                                  src={getMediaUrl(album.cover_art_path, album.is_playlist)!}
                                   alt=""
                                   className={styles['collection-sections-cover-img']}
                                 />

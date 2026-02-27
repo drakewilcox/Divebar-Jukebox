@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { MdOutlineSync, MdOutlineCleaningServices, MdEdit, MdArchive, MdUnarchive } from 'react-icons/md';
-import { adminApi } from '../../services/api';
+import { MdOutlineSync, MdOutlineCleaningServices, MdOutlineQueueMusic, MdEdit, MdArchive, MdUnarchive, MdMusicNote } from 'react-icons/md';
+import { adminApi, getMediaUrl } from '../../services/api';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { filterAndSortAlbums, type AlbumSortOption } from '../../utils/albumListFilter';
 import AlbumEditModal from './AlbumEditModal';
@@ -29,6 +29,14 @@ export default function LibraryScanner() {
   
   const scanMutation = useMutation({
     mutationFn: () => adminApi.scanLibrary(),
+    onSuccess: (response) => {
+      setScanResults(response.data);
+      queryClient.invalidateQueries({ queryKey: ['admin-albums'] });
+    },
+  });
+
+  const scanPlaylistsMutation = useMutation({
+    mutationFn: () => adminApi.scanPlaylists(),
     onSuccess: (response) => {
       setScanResults(response.data);
       queryClient.invalidateQueries({ queryKey: ['admin-albums'] });
@@ -85,7 +93,7 @@ export default function LibraryScanner() {
         <p>Scan your music library to import new albums. Albums already in the database (matched by folder path) are skipped so your edits and custom track settings are not overwritten.</p>
         
         <div className={styles['scanner-buttons']}>
-          <span className={styles['admin-tooltip-wrap']} data-tooltip="Scan Library">
+          <span className={styles['admin-tooltip-wrap']} data-tooltip="Scan Albums Folder">
             <button
               className={styles['scan-button']}
               onClick={() => scanMutation.mutate()}
@@ -93,6 +101,17 @@ export default function LibraryScanner() {
               aria-label="Scan Library"
             >
               <MdOutlineSync size={22} />
+            </button>
+          </span>
+          <span className={styles['admin-tooltip-wrap']} data-tooltip="Scan Playlists Folder">
+            <button
+              className={styles['scan-button']}
+              onClick={() => scanPlaylistsMutation.mutate()}
+              disabled={scanPlaylistsMutation.isPending}
+              aria-label="Scan Playlists"
+              title="Scan Playlists"
+            >
+              <MdOutlineQueueMusic size={22} />
             </button>
           </span>
           <span className={styles['admin-tooltip-wrap']} data-tooltip="Clean Track Titles">
@@ -191,14 +210,18 @@ export default function LibraryScanner() {
               <>
               {filteredSortedAlbums.slice(0, displayLimit).map((album: any) => (
                 <div key={album.id} className={clsx(styles['album-item'], album.archived && styles['archived'])}>
-                  {album.cover_art_path && (
-                    <div className={styles['album-item-cover']}>
+                  <div className={styles['album-item-cover']}>
+                    {album.cover_art_path && getMediaUrl(album.cover_art_path, album.is_playlist) ? (
                       <img
-                        src={`/api/media/${album.cover_art_path}`}
+                        src={getMediaUrl(album.cover_art_path, album.is_playlist)!}
                         alt={`${album.title} cover`}
                       />
-                    </div>
-                  )}
+                    ) : (
+                      <div className={styles['album-item-cover-placeholder']} aria-hidden>
+                        <MdMusicNote size={28} />
+                      </div>
+                    )}
+                  </div>
                   <div className={styles['album-item-info']}>
                     <div className={styles['album-item-title']}>
                       {album.title}

@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { Collection } from '../types';
-import { playbackApi } from '../services/api';
+import { playbackApi, getMediaUrl } from '../services/api';
 import audioService from '../services/audio';
 import styles from './NowPlaying.module.css'
 import clsx from 'clsx';
@@ -153,10 +153,10 @@ export default function NowPlaying({ collection }: Props) {
   return (
     <div className={styles['now-playing']}>
       <div className={styles['now-playing-info']}>
-        {current_track.cover_art_path && (
+        {current_track.cover_art_path && getMediaUrl(current_track.cover_art_path, current_track.is_playlist) && (
           <div className={styles['now-playing-cover']}>
             <img
-              src={`/api/media/${current_track.cover_art_path}`}
+              src={getMediaUrl(current_track.cover_art_path, current_track.is_playlist)!}
               alt={`${current_track.album_title} cover`}
             />
           </div>

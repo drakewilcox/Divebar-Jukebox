@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MdStar, MdFiberManualRecord, MdSettings, MdEdit, MdVolumeUp, MdOutlineQueueMusic } from 'react-icons/md';
 import { Album, Collection } from '../types';
 import type { HitButtonMode } from '../types';
-import { albumsApi, queueApi, playbackApi } from '../services/api';
+import { albumsApi, queueApi, playbackApi, getMediaUrl } from '../services/api';
 import audioService from '../services/audio';
 import SettingsModal from './SettingsModal';
 import AlbumEditModal from './Admin/AlbumEditModal';
@@ -350,7 +350,8 @@ export default function CardCarousel({ albums, collection, collections, onCollec
       });
       if (album.cover_art_path) {
         const img = new Image();
-        img.src = `/api/media/${album.cover_art_path}`;
+        const src = getMediaUrl(album.cover_art_path, album.is_playlist);
+        if (src) img.src = src;
       }
     });
   }, [currentIndex, paddedAlbums, collection.slug, queryClient]);
@@ -1210,10 +1211,10 @@ export default function CardCarousel({ albums, collection, collections, onCollec
             {playbackState?.current_track ? (
               <>
                 <div className={styles['now-playing-mini-row']}>
-                  {playbackState.current_track.cover_art_path && (
+                  {playbackState.current_track.cover_art_path && getMediaUrl(playbackState.current_track.cover_art_path, playbackState.current_track.is_playlist) && (
                     <div className={styles['now-playing-cover-wrap']}>
                       <img 
-                        src={`/api/media/${playbackState.current_track.cover_art_path}`}
+                        src={getMediaUrl(playbackState.current_track.cover_art_path, playbackState.current_track.is_playlist)!}
                         alt={playbackState.current_track.album_title}
                         className={styles['now-playing-cover']}
                       />
@@ -1587,10 +1588,10 @@ function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, qu
         onMouseLeave={() => setIsHovered(false)}
       >
         <div className={styles['album-row-cover-image-wrap']}>
-          {album.cover_art_path ? (
+          {album.cover_art_path && getMediaUrl(album.cover_art_path, album.is_playlist) ? (
             <div className={styles['album-row-cover-img-wrap']}>
               <img
-                src={`/api/media/${album.cover_art_path}`}
+                src={getMediaUrl(album.cover_art_path, album.is_playlist)!}
                 alt={`${album.title} cover`}
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
@@ -1599,7 +1600,7 @@ function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, qu
               />
             </div>
           ) : null}
-          <div className={clsx(styles['album-row-cover-placeholder'], album.cover_art_path && styles['hidden'])}>
+          <div className={clsx(styles['album-row-cover-placeholder'], album.cover_art_path && getMediaUrl(album.cover_art_path, album.is_playlist) && styles['hidden'])}>
             🎵
           </div>
         </div>
@@ -1638,11 +1639,24 @@ function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, qu
         )}
       >
         <div className={styles['album-info-text']}>
-          <div className={styles['album-row-artist']}>{album.artist.toUpperCase()}</div>
-          <div className={styles['album-row-title']}>
-            {album.title}
-            {album.year != null && ` (${album.year})`}
-          </div>
+          {album.various_artists ? (
+            <>
+              <div className={clsx(styles['album-row-title'], styles['album-row-title-va'])}>
+                {album.title.toUpperCase()}
+              </div>
+              {albumDetails?.description && (
+                <div className={styles['album-row-description']}>{albumDetails.description}</div>
+              )}
+            </>
+          ) : (
+            <>
+              <div className={styles['album-row-artist']}>{album.artist.toUpperCase()}</div>
+              <div className={styles['album-row-title']}>
+                {album.title}
+                {album.year != null && ` (${album.year})`}
+              </div>
+            </>
+          )}
         </div>
         
         {albumDetails && albumDetails.tracks && (

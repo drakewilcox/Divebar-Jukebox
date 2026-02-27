@@ -92,14 +92,43 @@ export const playbackApi = {
     ),
 };
 
+/** Build URL for cover art: playlist albums use /api/media/playlist/, others use /api/media/ */
+export function getMediaUrl(
+  coverPath: string | null | undefined,
+  isPlaylist?: boolean
+): string | null {
+  if (!coverPath) return null;
+  const base = isPlaylist ? '/api/media/playlist/' : '/api/media/';
+  return `${base}${coverPath}`;
+}
+
 // Admin API
 export const adminApi = {
   scanLibrary: () => api.post<ScanResult>('/admin/library/scan'),
+  scanPlaylists: () => api.post<ScanResult>('/admin/playlists/scan'),
   listAllAlbums: (limit: number = 1000, offset: number = 0) =>
     api.get('/admin/library/albums', { params: { limit, offset } }),
   getAlbumDetails: (id: string) => api.get(`/admin/albums/${id}`),
-  updateAlbum: (id: string, data: { title?: string; artist?: string; year?: number; various_artists?: boolean; archived?: boolean }) =>
-    api.put(`/admin/albums/${id}`, data),
+  updateAlbum: (
+    id: string,
+    data: {
+      title?: string;
+      artist?: string;
+      year?: number;
+      various_artists?: boolean;
+      archived?: boolean;
+      description?: string | null;
+    }
+  ) => api.put(`/admin/albums/${id}`, data),
+  uploadAlbumCover: (albumId: string, file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post<{ message: string; custom_cover_art_path: string }>(`/admin/albums/${albumId}/cover`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  restoreAlbumCover: (albumId: string) =>
+    api.delete<{ message: string }>(`/admin/albums/${albumId}/cover`),
   deleteAlbum: (id: string) => api.delete(`/admin/albums/${id}`),
   updateTrack: (id: string, data: { title?: string; artist?: string; enabled?: boolean; archived?: boolean; is_favorite?: boolean; is_recommended?: boolean }) =>
     api.put(`/admin/tracks/${id}`, data),

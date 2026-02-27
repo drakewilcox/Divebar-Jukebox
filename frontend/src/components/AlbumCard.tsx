@@ -1,5 +1,6 @@
 import { Album, Collection } from '../types';
 import { useJukeboxStore } from '../stores/jukeboxStore';
+import { getMediaUrl } from '../services/api';
 import styles from './AlbumCard.module.css';
 import clsx from 'clsx';
 
@@ -27,9 +28,9 @@ export default function AlbumCard({ album }: Props) {
       <div className={styles['album-number']}>{displayNumber}</div>
       
       <div className={styles['album-cover']}>
-        {album.cover_art_path ? (
+        {album.cover_art_path && getMediaUrl(album.cover_art_path, album.is_playlist) ? (
           <img
-            src={`/api/media/${album.cover_art_path}`}
+            src={getMediaUrl(album.cover_art_path, album.is_playlist)!}
             alt={`${album.title} cover`}
             onError={(e) => {
               e.currentTarget.src = '/placeholder-album.png';
