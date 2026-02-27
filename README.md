@@ -118,6 +118,7 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [x] Add track duration to Edit Modal
 - [x] Add an apply leveling toggle to settings modal. 
 - [x] Add an archive track button in addition to Hide. Hide means it is hidden from display, but will still play during Full Album Play. Archive means it will not play or display.
+- [ ] Add ability to upload Playlists as albums. 
 
 
 ### Database Updates
@@ -167,8 +168,9 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [x] add a speaker icon for currently playing track in track info card
 - [x] add an icon to represent that a song is already in the queue (maybe prevent duplicates)
 - [x] Update Card Sliders to make them look like "Card Holders" seen on NSM Jukeboxes
-- [ ] Enhance carousel slider animations for smoother transitions
 - [x] Add a "scotch-tape" overlay to random cards. 
+- [x] Add Label Maker effect to Section Jump-To buttons
+- [ ] Enhance carousel slider animations for smoother transitions
 
 ### UI Features
 - [x] Setup edit mode in the carousel for quick album management
@@ -178,7 +180,7 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [x] Create custom confirmation modals for removing albums from collection and archiving albums. 
 - [x] Move Collection Mananger Settings and Edit Album modal to shared component. 
 - [x] Add Overlay toggle to settings (glass and lights overlay). 
-- [ ] Add option for having Section Color Coding either as background or just indicator on top of card. 
+- [x] Add option for having Section Color Coding either as background or just indicator on top of card. 
 
 
 ### Routing

@@ -293,9 +293,9 @@
   color: #1a1a1a;
   border: 2px solid rgba(0, 0, 0, 0.2);
   text-shadow: 0 0 2px rgba(255, 255, 255, 0.4);
-  min-height: 40px;
+  min-height: 32px;
   height: auto;
-  padding: 0.35rem 0.4rem;
+  padding: 0.2rem 0.4rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -317,6 +317,14 @@
   font-weight: 900;
 }
 
+/* Wrapper stays narrow so tape doesn't stretch to full button on two-line labels */
+.section-button-label-wrap {
+  flex: 0 0 auto;
+  width: max-content;
+  /* Cap so two-line text wraps in a strip that's "just behind" the lines, not full button */
+  max-width: min(100%, 10em);
+}
+
 .section-button-label {
   position: relative;
   z-index: 1;
@@ -327,6 +335,22 @@
   line-height: 1.25;
   word-break: break-word;
   overflow-wrap: break-word;
+  width: 100%;
+  box-sizing: border-box;
+  /* Slight slant like hand-taped label; angle set per button via --tape-angle */
+  transform: rotate(var(--tape-angle, -1.2deg));
+  /* Vintage label-maker: tape image set per button via --tape-image */
+  background: var(--tape-image, url(/images/ElectricalTape-01.png)) center/cover no-repeat;
+  padding: 0.3em 0.55em;
+  color: #e8e0c8;
+  text-shadow:
+    0 -1px 0 rgba(255, 255, 255, 0.35),
+    0 1px 0 rgba(0, 0, 0, 0.4),
+    1px 0 0 rgba(0, 0, 0, 0.2),
+    -1px 0 0 rgba(0, 0, 0, 0.2),
+    0 1px 1px rgba(0, 0, 0, 0.25);
+  text-transform: uppercase;
+  opacity: .95;
 }
 
 .section-button:hover {
@@ -402,19 +426,19 @@
   z-index: 0.5;
   pointer-events: none;
 }
-.section-button-paper-8492CC::after { background: linear-gradient(180deg, rgba(132, 146, 204, 1), rgba(132, 146, 204, .75)); }
-.section-button-paper-92CA9E::after { background: linear-gradient(180deg, rgba(146, 202, 158, 1), rgba(146, 202, 158, .75)); }
-.section-button-paper-A6C9D6::after { background: linear-gradient(180deg, rgba(166, 201, 214, 1), rgba(166, 201, 214, .75)); }
-.section-button-paper-BBF7B4::after { background: linear-gradient(180deg, rgba(187, 247, 180, 1), rgba(187, 247, 180, .75)); }
-.section-button-paper-C27775::after { background: linear-gradient(180deg, rgba(194, 119, 117, 1), rgba(194, 119, 117, .75)); }
-.section-button-paper-C9B289::after { background: linear-gradient(180deg, rgba(201, 178, 137, 1), rgba(201, 178, 137, .75)); }
-.section-button-paper-CABADD::after { background: linear-gradient(180deg, rgba(202, 186, 221, 1), rgba(202, 186, 221, .75)); }
-.section-button-paper-D6BB68::after { background: linear-gradient(180deg, rgba(214, 187, 104, 1), rgba(214, 187, 104, .75)); }
-.section-button-paper-DE986A::after { background: linear-gradient(180deg, rgba(222, 152, 106, 1), rgba(222, 152, 106, .75)); }
-.section-button-paper-EAC1A9::after { background: linear-gradient(180deg, rgba(234, 193, 169, 1), rgba(234, 193, 169, .75)); }
-.section-button-paper-EEE9DE::after { background: linear-gradient(180deg, rgba(238, 233, 222, 1), rgba(238, 233, 222, .75)); }
-.section-button-paper-F6D49C::after { background: linear-gradient(180deg, rgba(246, 212, 156, 1), rgba(246, 212, 156, .75)); }
-.section-button-paper-FCF8AA::after { background: linear-gradient(180deg, rgba(252, 248, 170, 1), rgba(252, 248, 170, .75)); }
+.section-button-paper-8492CC::after { background: linear-gradient(180deg, rgba(132, 146, 204, 1), rgba(132, 146, 204, .8)); }
+.section-button-paper-92CA9E::after { background: linear-gradient(180deg, rgba(146, 202, 158, 1), rgba(146, 202, 158, .8)); }
+.section-button-paper-A6C9D6::after { background: linear-gradient(180deg, rgba(166, 201, 214, 1), rgba(166, 201, 214, .8)); }
+.section-button-paper-BBF7B4::after { background: linear-gradient(180deg, rgba(187, 247, 180, 1), rgba(187, 247, 180, .8)); }
+.section-button-paper-C27775::after { background: linear-gradient(180deg, rgba(194, 119, 117, 1), rgba(194, 119, 117, .8)); }
+.section-button-paper-C9B289::after { background: linear-gradient(180deg, rgba(201, 178, 137, 1), rgba(201, 178, 137, .8)); }
+.section-button-paper-CABADD::after { background: linear-gradient(180deg, rgba(202, 186, 221, 1), rgba(202, 186, 221, .8)); }
+.section-button-paper-D6BB68::after { background: linear-gradient(180deg, rgba(214, 187, 104, 1), rgba(214, 187, 104, .8)); }
+.section-button-paper-DE986A::after { background: linear-gradient(180deg, rgba(222, 152, 106, 1), rgba(222, 152, 106, .8)); }
+.section-button-paper-EAC1A9::after { background: linear-gradient(180deg, rgba(234, 193, 169, 1), rgba(234, 193, 169, .8)); }
+.section-button-paper-EEE9DE::after { background: linear-gradient(180deg, rgba(238, 233, 222, 1), rgba(238, 233, 222, .8)); }
+.section-button-paper-F6D49C::after { background: linear-gradient(180deg, rgba(246, 212, 156, 1), rgba(246, 212, 156, .8)); }
+.section-button-paper-FCF8AA::after { background: linear-gradient(180deg, rgba(252, 248, 170, 1), rgba(252, 248, 170, .8)); }
 
 .carousel-controls-wrapper {
   position: relative;
@@ -639,7 +663,7 @@
   width: 50px;
   height: 50px;
   color: #1a1a1a;
-  background: linear-gradient(180deg, #f5f0e8 0%, #e8dfd0 100%);
+  background: #fff url(/images/VPaper01.jpg) right center/cover;
   border: 2px solid #c0b8a8;
   border-radius: 6px;
   display: flex;
@@ -658,9 +682,9 @@
 }
 
 .settings-button:hover {
-  background: linear-gradient(180deg, #f8f3eb 0%, #ebe2d3 100%);
   border-color: #b0a898;
   transform: translateY(-2px);
+  filter: brightness(1.08);
   box-shadow: 
     0 7px 14px rgba(0, 0, 0, 0.45),
     0 3px 6px rgba(0, 0, 0, 0.35),
@@ -670,11 +694,11 @@
 
 .settings-button:active {
   transform: translateY(2px);
+  filter: brightness(0.95);
   box-shadow: 
     0 1px 2px rgba(0, 0, 0, 0.3),
     inset 0 3px 6px rgba(0, 0, 0, 0.25),
     inset 0 1px 0 rgba(0, 0, 0, 0.1);
-  background: linear-gradient(180deg, #e0d8c8 0%, #d8d0c0 100%);
 }
 
 .carousel-title {
@@ -779,7 +803,7 @@
   font-size: 1.8rem;
   font-weight: 700;
   color: #1a1a1a;
-  background: linear-gradient(180deg, #f5f0e8 0%, #e8dfd0 100%);
+  background: #fff url(/images/VPaper01.jpg) right center/cover;
   border: 2px solid #c0b8a8;
   border-radius: 6px;
   display: flex;
@@ -796,9 +820,9 @@
 }
 
 .nav-button:hover:not(:disabled) {
-  background: linear-gradient(180deg, #f8f3eb 0%, #ebe2d3 100%);
   border-color: #b0a898;
   transform: translateY(-2px);
+  filter: brightness(1.08);
   box-shadow: 
     0 7px 14px rgba(0, 0, 0, 0.45),
     0 3px 6px rgba(0, 0, 0, 0.35),
@@ -809,11 +833,11 @@
 .nav-button:active:not(:disabled),
 .nav-button.pressed:not(:disabled) {
   transform: translateY(2px);
+  filter: brightness(0.95);
   box-shadow: 
     0 1px 2px rgba(0, 0, 0, 0.3),
     inset 0 3px 6px rgba(0, 0, 0, 0.25),
     inset 0 1px 0 rgba(0, 0, 0, 0.1);
-  background: linear-gradient(180deg, #e0d8c8 0%, #d8d0c0 100%);
 }
 
 .nav-button:disabled {

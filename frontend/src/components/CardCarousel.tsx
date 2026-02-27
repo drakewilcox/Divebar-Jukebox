@@ -21,6 +21,12 @@ const LETTERS_LEFT = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K'];
 const LETTERS_RIGHT = ['L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'U', 'V'];
 const LETTERS = [...LETTERS_LEFT, ...LETTERS_RIGHT];
 
+const SECTION_TAPE_ANGLES = [-1.2, 0.8, -0.5, 1.1];
+const SECTION_TAPE_IMAGES = [
+  '/images/ElectricalTape-01.png',
+  '/images/ElectricalTape-04.png',
+];
+
 function parseHex(hex: string): [number, number, number] | null {
   const m = hex.match(/^#?([0-9a-f]{3}|[0-9a-f]{6})$/i);
   if (!m) return null;
@@ -1030,25 +1036,34 @@ export default function CardCarousel({ albums, collection, collections, onCollec
                 : SECTION_BUTTON_CREAM;
               const paperBgValue = paperClass ? `#${sectionHex}` : null;
               const defaultPaperBgValue = defaultPaperClass ? '#fff url(/images/VPaper01.jpg) right center/cover' : null;
+              const tapeAngle = SECTION_TAPE_ANGLES[i % SECTION_TAPE_ANGLES.length];
+              const tapeImage = SECTION_TAPE_IMAGES[i % SECTION_TAPE_IMAGES.length];
+              const baseStyle = paperClass
+                ? { ['--section-bg' as string]: paperBgValue ?? undefined }
+                : defaultPaperClass
+                  ? { ['--section-bg' as string]: defaultPaperBgValue ?? undefined }
+                  : {
+                      ['--section-bg' as string]: bgColor,
+                      background: bgColor,
+                      backgroundColor: bgColor,
+                    };
               return (
                 <button
                   key={i}
                   type="button"
                   data-jump-btn
                   className={clsx(styles['section-button'], styles['jump-to-button'], styles[textSizeClass], paperClass, defaultPaperClass)}
-                  style={paperClass
-                    ? { ['--section-bg' as string]: paperBgValue ?? undefined }
-                    : defaultPaperClass
-                      ? { ['--section-bg' as string]: defaultPaperBgValue ?? undefined }
-                      : {
-                          ['--section-bg' as string]: bgColor,
-                          background: bgColor,
-                          backgroundColor: bgColor,
-                        }}
+                  style={{
+                    ...baseStyle,
+                    ['--tape-angle' as string]: `${tapeAngle}deg`,
+                    ['--tape-image' as string]: `url(${tapeImage})`,
+                  }}
                   onClick={() => handleJumpToSection(i)}
                   aria-label={`Jump to ${section.name}`}
                 >
-                  <span className={styles['section-button-label']}>{section.name}</span>
+                  <span className={styles['section-button-label-wrap']}>
+                    <span className={styles['section-button-label']}>{section.name}</span>
+                  </span>
                 </button>
               );
             })
