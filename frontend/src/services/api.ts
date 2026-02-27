@@ -98,10 +98,10 @@ export const adminApi = {
   listAllAlbums: (limit: number = 1000, offset: number = 0) =>
     api.get('/admin/library/albums', { params: { limit, offset } }),
   getAlbumDetails: (id: string) => api.get(`/admin/albums/${id}`),
-  updateAlbum: (id: string, data: { title?: string; artist?: string; year?: number; archived?: boolean }) =>
+  updateAlbum: (id: string, data: { title?: string; artist?: string; year?: number; various_artists?: boolean; archived?: boolean }) =>
     api.put(`/admin/albums/${id}`, data),
   deleteAlbum: (id: string) => api.delete(`/admin/albums/${id}`),
-  updateTrack: (id: string, data: { title?: string; enabled?: boolean; archived?: boolean; is_favorite?: boolean; is_recommended?: boolean }) =>
+  updateTrack: (id: string, data: { title?: string; artist?: string; enabled?: boolean; archived?: boolean; is_favorite?: boolean; is_recommended?: boolean }) =>
     api.put(`/admin/tracks/${id}`, data),
   // Collection management
   createCollection: (name: string, slug: string, description?: string) =>

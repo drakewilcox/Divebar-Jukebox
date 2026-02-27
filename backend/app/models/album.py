@@ -22,6 +22,7 @@ class Album(Base):
     total_tracks = Column(Integer, default=0)
     year = Column(Integer, nullable=True)
     has_multi_disc = Column(Boolean, default=False)
+    various_artists = Column(Boolean, default=False)  # If true, show per-track artist in UI and allow editing
     archived = Column(Boolean, default=False)  # Hide from jukebox when archived
     extra_metadata = Column(JSON, default=dict)  # Additional metadata from FLAC tags
     created_at = Column(DateTime, default=datetime.utcnow, server_default=func.now())

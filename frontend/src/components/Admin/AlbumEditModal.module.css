@@ -266,8 +266,15 @@
   font-family: var(--font-mono);
 }
 
-.track-title-input {
+.track-title-artist-wrap {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.track-title-input {
+  width: 100%;
   padding: 0.5rem;
   background-color: var(--background-card);
   border: 1px solid var(--border-color);
@@ -277,7 +284,19 @@
   font-family: var(--font-mono);
 }
 
-.album-edit-modal .track-title-input:focus {
+.track-artist-input {
+  width: 100%;
+  padding: 0.4rem 0.5rem;
+  background-color: var(--background-card);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-family: var(--font-mono);
+}
+
+.album-edit-modal .track-title-input:focus,
+.album-edit-modal .track-artist-input:focus {
   outline: none;
   border-color: var(--vintage-cream);
   box-shadow: none;

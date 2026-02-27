@@ -16,6 +16,7 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
   const [title, setTitle] = useState('');
   const [artist, setArtist] = useState('');
   const [year, setYear] = useState<number | ''>('');
+  const [variousArtists, setVariousArtists] = useState(false);
   const [tracks, setTracks] = useState<any[]>([]);
   const [selectedCollections, setSelectedCollections] = useState<Set<string>>(new Set());
   
@@ -50,6 +51,7 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
       setTitle(albumData.title);
       setArtist(albumData.artist);
       setYear(albumData.year || '');
+      setVariousArtists(!!(albumData as { various_artists?: boolean }).various_artists);
       setTracks(albumData.tracks);
       setSelectedCollections(new Set(albumData.collection_ids));
       initialLoadDoneRef.current = true;
@@ -92,6 +94,7 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
         title,
         artist,
         year: year || undefined,
+        various_artists: variousArtists,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-albums'] });
@@ -131,6 +134,10 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
 
   const handleTrackTitleChange = (trackId: string, newTitle: string) => {
     setTracks(tracks.map(t => t.id === trackId ? { ...t, title: newTitle } : t));
+  };
+
+  const handleTrackArtistChange = (trackId: string, newArtist: string) => {
+    setTracks(tracks.map(t => t.id === trackId ? { ...t, artist: newArtist } : t));
   };
 
   const handleTrackEnabledToggle = (trackId: string, enabled: boolean) => {
@@ -270,7 +277,8 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
     albumData &&
     (title !== (albumData.title ?? '') ||
       artist !== (albumData.artist ?? '') ||
-      (year ?? '') !== (albumData.year ?? ''));
+      (year ?? '') !== (albumData.year ?? '') ||
+      variousArtists !== !!((albumData as { various_artists?: boolean }).various_artists));
 
   const handleAlbumInfoBlur = () => {
     if (hasAlbumInfoChanges && !updateAlbumMutation.isPending) {
@@ -338,6 +346,19 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
                 />
               </div>
             </div>
+            <div className={styles['form-group']}>
+              <label className={styles['checkbox-label']}>
+                <input
+                  type="checkbox"
+                  checked={variousArtists}
+                  onChange={(e) => {
+                    setVariousArtists(e.target.checked);
+                  }}
+                  onBlur={handleAlbumInfoBlur}
+                />
+                Various artists (show per-track artist in jukebox and allow editing here)
+              </label>
+            </div>
               </div>
             </div>
           </div>
@@ -373,13 +394,25 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
                     >
                       {previewTrackId === track.id ? <MdStop size={18} /> : <MdPlayArrow size={18} />}
                     </button>
-                    <input
-                      type="text"
-                      value={track.title}
-                      onChange={(e) => handleTrackTitleChange(track.id, e.target.value)}
-                      onBlur={() => updateTrackMutation.mutate({ trackId: track.id, data: { title: track.title } })}
-                      className={styles['track-title-input']}
-                    />
+                    <div className={styles['track-title-artist-wrap']}>
+                      <input
+                        type="text"
+                        value={track.title}
+                        onChange={(e) => handleTrackTitleChange(track.id, e.target.value)}
+                        onBlur={() => updateTrackMutation.mutate({ trackId: track.id, data: { title: track.title } })}
+                        className={styles['track-title-input']}
+                      />
+                      {variousArtists && (
+                        <input
+                          type="text"
+                          value={track.artist ?? ''}
+                          onChange={(e) => handleTrackArtistChange(track.id, e.target.value)}
+                          onBlur={() => updateTrackMutation.mutate({ trackId: track.id, data: { artist: track.artist } })}
+                          className={styles['track-artist-input']}
+                          placeholder="Track artist"
+                        />
+                      )}
+                    </div>
                     <span className={styles['track-edit-duration']} title="Track duration">
                       {formatDuration(track.duration_ms ?? 0)}
                     </span>

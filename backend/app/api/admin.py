@@ -34,6 +34,7 @@ class AlbumListResponse(BaseModel):
     cover_art_path: str | None
     total_tracks: int
     year: int | None
+    various_artists: bool
     archived: bool
     created_at: datetime | None
 
@@ -45,11 +46,13 @@ class UpdateAlbumRequest(BaseModel):
     title: str | None = None
     artist: str | None = None
     year: int | None = None
+    various_artists: bool | None = None
     archived: bool | None = None
 
 
 class UpdateTrackRequest(BaseModel):
     title: str | None = None
+    artist: str | None = None
     enabled: bool | None = None
     archived: bool | None = None
     is_favorite: bool | None = None
@@ -138,6 +141,8 @@ def update_album(album_id: str, request: UpdateAlbumRequest, db: Session = Depen
         album.artist = request.artist
     if request.year is not None:
         album.year = request.year
+    if request.various_artists is not None:
+        album.various_artists = request.various_artists
     if request.archived is not None:
         album.archived = request.archived
     
@@ -193,6 +198,7 @@ def get_album_details(album_id: str, db: Session = Depends(get_db)):
         "year": album.year,
         "cover_art_path": album.cover_art_path,
         "custom_cover_art_path": album.custom_cover_art_path,
+        "various_artists": album.various_artists,
         "archived": album.archived,
         "genre": genre_list,
         "tracks": tracks,
@@ -209,6 +215,8 @@ def update_track(track_id: str, request: UpdateTrackRequest, db: Session = Depen
     
     if request.title is not None:
         track.title = request.title
+    if request.artist is not None:
+        track.artist = request.artist
     if request.enabled is not None:
         track.enabled = request.enabled
     if request.archived is not None:

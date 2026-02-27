@@ -137,9 +137,16 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [x] Add Playback display to control bar, and move Queue Display above this. 
 - [x] Add Green LCD effect to mini playback display and album image 
 - [x] Make sure playblack and Queue use Database track data, not metadata 
-- [ ] Add better handling of Compilations or albums with "Various" artists: 
-  - [ ] Display Artist next to Tracks for Compilations and Playlists
-  - [ ] Add an Artist input to the Edit Track Row for Comps and Playlists
+- [x] Add better handling of Compilations or albums with "Various" artists: 
+  - [x] Display Artist next to Tracks for Compilations and Playlists
+  - [x] Add an Artist input to the Edit Track Row for Comps and Playlists
+- [x] Add a Various Artists Checkbox.  
+
+### Auth and Login
+- [ ] create User table and connect to collection (maybe albums)
+- [ ] Create User roles -> admin / listener
+- [ ] Create Auth and Login 
+- [ ] Explore OAuth Options (Spotify / Tidal / Apple Music / Google)
 
 ### Playback Features
 - [x] Implement random play feature that are triggered by "H" button on keypad. 
@@ -149,9 +156,9 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [x] Add functionality to "Hit" button, so that in section view, favorites from selected Section are added first.
 - [ ] Add 'play random after queue ends' feature to be toggled in settings
 - [ ] Add functionality in Edit Album Modal to be able to edit Start and End points for a track (only used on play single track mode)  
-- [ ] Add feature for creating custom queue lists (basically a playlist) per collection. 
-- [ ] Add a "+" Icon to Edit Album Modal next to each song that allows the user to add to a song to a Custom Queue (Only Available when in a collection specific view)
-- [ ] Add a Queue Log to backend, that can be viewed on Frontend (tied to user id)
+- [ ] Add feature for creating custom queue lists (basically a playlist) per collection (also tied to admin user ID). 
+- [ ] Add a "+" Icon to Edit Album Modal next to each song that allows the user to add to a song to a Custom Queue (Only Available when in a collection specific view (tied admin user id))
+- [ ] Add a Queue Log to backend, that can be viewed on Frontend (tied to admin user id)
 - [ ] From the Queue Log view, add ability to select songs from list and save selected as queue collection
 - [ ] Add a song list view to search by song and add songs to Custom Queue
 - [ ] Add Support for mp3 file playback

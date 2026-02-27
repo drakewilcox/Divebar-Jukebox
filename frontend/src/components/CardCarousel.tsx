@@ -1662,7 +1662,11 @@ function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, qu
                     )}
                   </span>
                   <TrackTitle
-                    title={track.title}
+                    title={
+                      album.various_artists
+                        ? `${(track.artist || '').toUpperCase()} - ${track.title}`
+                        : track.title
+                    }
                     isFavorite={!!track.is_favorite}
                     isRecommended={!!track.is_recommended}
                   />

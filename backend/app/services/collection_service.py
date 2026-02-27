@@ -329,6 +329,7 @@ class CollectionService:
                 'year': ca.album.year,
                 'total_tracks': ca.album.total_tracks,
                 'has_multi_disc': ca.album.has_multi_disc,
+                'various_artists': ca.album.various_artists,
             }
             
             if include_tracks:

@@ -42,6 +42,7 @@ export interface Album {
   year: number | null;
   total_tracks: number;
   has_multi_disc: boolean;
+  various_artists?: boolean;
 }
 
 export interface Track {
