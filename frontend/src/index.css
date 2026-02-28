@@ -1,3 +1,11 @@
+@font-face {
+  font-family: 'Commando';
+  src: url('/fonts/commando.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --primary-color: #ff6b35;
   --vintage-cream: #f5f0e8;

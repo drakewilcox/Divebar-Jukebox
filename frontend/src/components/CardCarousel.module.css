@@ -13,6 +13,12 @@
   min-width: 1300px;
 }
 
+@media (max-width: 1400px) {
+  .card-carousel {
+    min-width: 0;
+  }
+}
+
 /* Same gray-black as carousel-controls so carousel and controls feel connected */
 .card-carousel::before {
   content: '';

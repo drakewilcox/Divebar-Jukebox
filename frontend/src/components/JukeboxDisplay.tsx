@@ -82,8 +82,9 @@ export default function JukeboxDisplay({ collection, collections, onCollectionCh
   const albumsToShow = albums ?? [];
 
   return (
-    <div className={styles['jukebox-display']}>
-      {isLoading && albumsToShow.length === 0 && (
+    <div className={styles['jukebox-display-wrapper']}>
+      <div className={styles['jukebox-display']}>
+        {isLoading && albumsToShow.length === 0 && (
         <div className={styles['jukebox-loading']}>Loading albums...</div>
       )}
       <div className={styles['jukebox-main']}>
@@ -130,6 +131,7 @@ export default function JukeboxDisplay({ collection, collections, onCollectionCh
           <p>Use the admin panel to add albums.</p>
         </div>
       )}
+      </div>
     </div>
   );
 }
