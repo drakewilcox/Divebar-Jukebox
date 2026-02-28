@@ -3,20 +3,125 @@
   flex-direction: column;
   position: relative;
   width: 100%;
+  max-width: 1600px;
   height: 100%;
+  max-height: 1100px;
   min-height: 0;
+  min-width: 0;
+  margin: 0 auto;
 }
 
 .jukebox-main {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
   flex: 1;
   min-height: 0;
+  min-width: 0;
   width: 100%;
-  padding: 0.5rem;
+  padding: 0.75rem;
   box-sizing: border-box;
+  overflow-x: hidden;
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%);
+  border: 8px solid transparent;
+  border-image: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 50%, #1a1a1a 100%) 1;
+  border-radius: 8px;
+}
+
+/* Row: same gray-black as carousel-controls – same base (background-card) + 30% black overlay */
+.jukebox-carousel-row {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  flex: 1 1 0;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  overflow-x: hidden;
+  position: relative;
+  border-radius: 6px;
+  background-color: var(--background-card);
+}
+
+.jukebox-carousel-row::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Wrap: same gray-black as carousel-controls (background-card + 30% black) so strip and controls feel connected */
+.jukebox-carousel-wrap {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  background-color: var(--background-card);
+  overflow-x: auto;
+  position: relative;
+  z-index: 1;
+}
+
+.jukebox-carousel-wrap::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Strip: lights + carousel in a row; translated on small screens so only carousel is visible */
+.jukebox-carousel-strip {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 1rem;
+  min-width: min-content;
+  min-height: 0;
+  height: 100%;
+}
+
+/* Min-width matches card-carousel so the right light never overlaps the carousel content */
+.jukebox-carousel-inner {
+  flex: 1 0 0;
+  min-width: 1300px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+/* Video light panels: 80% of row height, centered; 75px wide, circular ends; scroll with carousel */
+.jukebox-light-panel {
+  width: 75px;
+  flex-shrink: 0;
+  height: 80%;
+  max-height: 80%;
+  align-self: center;
+  min-height: 120px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+}
+
+.jukebox-light-video {
+  height: 100%;
+  width: auto;
+  max-width: none;
+  object-fit: cover;
+  object-position: center;
 }
 
 .queue-toggle {
@@ -82,10 +187,23 @@
   margin: 0.5rem 0;
 }
 
-/* Jukebox fills viewport; width clamped in CardCarousel */
+/* Medium viewports (e.g. 1366×1024): no horizontal scroll; lights off-screen, only carousel in view */
+@media (max-width: 1600px) and (min-width: 1300px) {
+  .jukebox-carousel-wrap {
+    overflow-x: hidden;
+    max-width: 1300px;
+    margin: 0 auto;
+  }
+
+  .jukebox-carousel-strip {
+    transform: translateX(calc(-75px - 1rem));
+  }
+}
+
+/* Jukebox fills viewport; no horizontal padding so carousel + lights go edge-to-edge */
 @media (max-width: 1024px) and (min-width: 769px) {
   .jukebox-main {
-    padding: 0.25rem;
+    padding: 0.25rem 0;
   }
 }
 
@@ -93,7 +211,7 @@
   .jukebox-display {
     max-height: none;
   }
-  
+
   .queue-toggle.open {
     right: 90%;
   }

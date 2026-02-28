@@ -118,7 +118,8 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [x] Add track duration to Edit Modal
 - [x] Add an apply leveling toggle to settings modal. 
 - [x] Add an archive track button in addition to Hide. Hide means it is hidden from display, but will still play during Full Album Play. Archive means it will not play or display.
-- [ ] Add ability to upload Playlists as albums. 
+- [x] Add Upload new custom image feature to edit album modal. 
+- [x] Add ability to upload Playlists as albums. 
 
 
 ### Database Updates

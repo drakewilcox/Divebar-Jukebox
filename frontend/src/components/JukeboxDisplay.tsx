@@ -87,12 +87,42 @@ export default function JukeboxDisplay({ collection, collections, onCollectionCh
         <div className={styles['jukebox-loading']}>Loading albums...</div>
       )}
       <div className={styles['jukebox-main']}>
-        <CardCarousel 
-          albums={albumsToShow} 
-          collection={effectiveCollection}
-          collections={collections}
-          onCollectionChange={onCollectionChange}
-        />
+        <div className={styles['jukebox-carousel-row']}>
+          <div className={styles['jukebox-carousel-wrap']}>
+            <div className={styles['jukebox-carousel-strip']}>
+              <div className={styles['jukebox-light-panel']} aria-hidden>
+                <video
+                  src="/images/LightEffect02.mp4"
+                  muted
+                  loop
+                  autoPlay
+                  playsInline
+                  className={styles['jukebox-light-video']}
+                  aria-hidden
+                />
+              </div>
+              <div className={styles['jukebox-carousel-inner']}>
+                <CardCarousel 
+                  albums={albumsToShow} 
+                  collection={effectiveCollection}
+                  collections={collections}
+                  onCollectionChange={onCollectionChange}
+                />
+              </div>
+              <div className={styles['jukebox-light-panel']} aria-hidden>
+                <video
+                  src="/images/LightEffect02.mp4"
+                  muted
+                  loop
+                  autoPlay
+                  playsInline
+                  className={styles['jukebox-light-video']}
+                  aria-hidden
+                />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
       {!isLoading && albumsToShow.length === 0 && (
         <div className={styles['jukebox-empty']}>
