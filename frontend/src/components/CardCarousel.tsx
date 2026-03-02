@@ -914,7 +914,10 @@ export default function CardCarousel({ albums, collection, collections, onCollec
         useStaplesPaper={useStaplesPaper}
       />
     ) : (
-      <div key={`${keyPrefix}-${idx}`} className={clsx(styles['album-row'], styles['album-row-empty'])}></div>
+      <div key={`${keyPrefix}-${idx}`} className={clsx(styles['album-row'], styles['album-row-empty'])}>
+        <div className={styles['album-row-holder-cover']} aria-hidden="true" />
+        <div className={styles['album-row-holder-info']} aria-hidden="true" />
+      </div>
     );
   };
 
@@ -1472,6 +1475,7 @@ function TrackTitle({
 
 function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, queueTrackIds, sectionBackgroundColor, useCardBackgroundOverlay = true, cardDisplayNumber, tapeImages, useStaplesPaper }: AlbumRowProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const [coverImageFailed, setCoverImageFailed] = useState(false);
   const tracksContainerRef = useRef<HTMLDivElement>(null);
   const albumRowRef = useRef<HTMLDivElement>(null);
   const coverRef = useRef<HTMLDivElement>(null);
@@ -1589,35 +1593,51 @@ function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, qu
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        <div className={styles['album-row-cover-image-wrap']}>
-          {album.cover_art_path && getMediaUrl(album.cover_art_path, album.is_playlist) ? (
-            <div className={styles['album-row-cover-img-wrap']}>
-              <img
-                src={getMediaUrl(album.cover_art_path, album.is_playlist)!}
-                alt={`${album.title} cover`}
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                  e.currentTarget.closest(`.${styles['album-row-cover-image-wrap']}`)?.querySelector(`.${styles['album-row-cover-placeholder']}`)?.classList.remove('hidden');
-                }}
-              />
+        {album.cover_art_path && getMediaUrl(album.cover_art_path, album.is_playlist) && !coverImageFailed ? (
+          <>
+            <div className={styles['album-row-cover-image-wrap']}>
+              <div className={styles['album-row-cover-img-wrap']}>
+                <img
+                  src={getMediaUrl(album.cover_art_path, album.is_playlist)!}
+                  alt={`${album.title} cover`}
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    setCoverImageFailed(true);
+                  }}
+                />
+              </div>
             </div>
-          ) : null}
-          <div className={clsx(styles['album-row-cover-placeholder'], album.cover_art_path && getMediaUrl(album.cover_art_path, album.is_playlist) && styles['hidden'])}>
-            🎵
-          </div>
-        </div>
-        {editMode && isHovered && (
-          <button
-            className={styles['album-edit-overlay-button']}
-            onClick={(e) => {
-              e.stopPropagation();
-              onEditClick(album.id);
-            }}
-            title="Edit Album"
-            aria-label="Edit Album"
-          >
-            <MdEdit size={24} />
-          </button>
+            {editMode && isHovered && (
+              <button
+                className={styles['album-edit-overlay-button']}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEditClick(album.id);
+                }}
+                title="Edit Album"
+                aria-label="Edit Album"
+              >
+                <MdEdit size={24} />
+              </button>
+            )}
+          </>
+        ) : (
+          <>
+            <div className={styles['album-row-holder-cover']} aria-hidden="true" />
+            {editMode && isHovered && (
+              <button
+                className={styles['album-edit-overlay-button']}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEditClick(album.id);
+                }}
+                title="Edit Album"
+                aria-label="Edit Album"
+              >
+                <MdEdit size={24} />
+              </button>
+            )}
+          </>
         )}
       </div>
 

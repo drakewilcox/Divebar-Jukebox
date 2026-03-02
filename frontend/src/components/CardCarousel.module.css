@@ -1059,10 +1059,57 @@
   display: none;
 }
 
+/* Empty slot (e.g. last slot when uneven count): plastic holder for cover + info areas */
 .album-row-empty {
   background-color: transparent;
   border: none;
-  visibility: hidden;
+  display: flex;
+}
+
+.album-row-empty::after {
+  display: none;
+}
+
+/* Plastic holder – same proportions as album-row-cover (square), 20px black frame, inner edge curved */
+/* Plastic holder – black rectangle (square corners), ::before is rounded “window” on top so inner only is curved */
+.album-row-holder-cover {
+  height: 100%;
+  aspect-ratio: 1 / 1;
+  flex-shrink: 0;
+  position: relative;
+  background: #000;
+  border: none;
+  border-radius: 0;
+  box-sizing: border-box;
+}
+
+.album-row-holder-cover::before {
+  content: '';
+  position: absolute;
+  inset: 18.75%;
+  border-radius: 50px;
+  background: var(--background-card);
+  z-index: 1;
+}
+
+/* Plastic holder – same idea: black rect, rounded window on top */
+.album-row-holder-info {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  background: #000;
+  border: none;
+  border-radius: 0;
+  box-sizing: border-box;
+}
+
+.album-row-holder-info::before {
+  content: '';
+  position: absolute;
+  inset: 18.75%;
+  border-radius: 50px;
+  background: var(--background-card);
+  z-index: 1;
 }
 
 /* Vintage jukebox plastic slider tabs: small black quarter-circles in each corner */
@@ -1285,6 +1332,19 @@
   height: 100%;
   object-fit: cover;
   aspect-ratio: 1 / 1;
+}
+
+/* Plastic CD-holder look when cover is missing: 20px black frame (no radius), rounded 50px “window” */
+.album-row-cover-is-placeholder {
+  background: #000;
+  border: none;
+  border-radius: 0;
+  box-sizing: border-box;
+}
+
+.album-row-cover-is-placeholder .album-row-cover-image-wrap {
+  inset: 18.75%;
+  border-radius: 50px;
 }
 
 .album-row-cover-placeholder {
