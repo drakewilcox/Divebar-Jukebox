@@ -1623,7 +1623,9 @@ function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, qu
           </>
         ) : (
           <>
-            <div className={styles['album-row-holder-cover']} aria-hidden="true" />
+            <div className={styles['album-row-cover-crumpled']} aria-hidden="true">
+              <span className={styles['album-row-cover-crumpled-title']}>{album.title}</span>
+            </div>
             {editMode && isHovered && (
               <button
                 className={styles['album-edit-overlay-button']}

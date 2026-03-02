@@ -1092,6 +1092,32 @@
   z-index: 1;
 }
 
+/* When album has no cover, show crumpled paper in the whole cover area (no holder) */
+.album-row-cover-crumpled {
+  position: absolute;
+  inset: 0;
+  background: url(/images/Crumpled01.jpg) center/cover;
+  border-radius: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 15px;
+  box-sizing: border-box;
+}
+
+.album-row-cover-crumpled-title {
+  font-family: var(--font-mono);
+  font-size: clamp(0.95rem, 3.2vw, 1.35rem);
+  font-weight: 600;
+  text-align: center;
+  color: #000;
+  text-transform: uppercase;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+  line-height: 1.2;
+  word-break: break-word;
+  max-width: 100%;
+}
+
 /* Plastic holder – same idea: black rect, rounded window on top */
 .album-row-holder-info {
   flex: 1;
