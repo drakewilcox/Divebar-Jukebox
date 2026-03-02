@@ -1,4 +1,4 @@
-/* Wrapper: constrains size; same background as carousel controls (gray-black) */
+/* Wrapper: metal texture background; darkening overlay with same radius so corners match */
 .jukebox-display-wrapper {
   max-width: 1650px;
   max-height: 1200px;
@@ -10,7 +10,11 @@
   height: 100%;
   margin: 0 auto;
   position: relative;
-  background-color: var(--background-card);
+  background-color: transparent;
+  background-image: var(--metal-texture-url);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   border-radius: 50px;
 }
 
@@ -18,7 +22,8 @@
   content: '';
   position: absolute;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: inherit;
+  background-color: rgba(0, 0, 0, 0.5);
   pointer-events: none;
   z-index: 0;
 }
@@ -35,16 +40,7 @@
   min-height: 0;
   min-width: 0;
   z-index: 1;
-  background-color: var(--background-card);
-}
-
-.jukebox-display::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.3);
-  pointer-events: none;
-  z-index: 0;
+  background-color: transparent;
 }
 
 .jukebox-main {
@@ -59,13 +55,13 @@
   /* padding: 0.75rem; */
   box-sizing: border-box;
   overflow-x: hidden;
-  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%);
+  background: transparent;
   /* border: 8px solid transparent; */
   /* border-image: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 50%, #1a1a1a 100%) 1; */
   border-radius: 8px;
 }
 
-/* Row: same gray-black as carousel-controls – same base (background-card) + 30% black overlay */
+/* Row: transparent so wrapper metal shows through */
 .jukebox-carousel-row {
   display: flex;
   flex-direction: row;
@@ -77,20 +73,10 @@
   overflow-x: hidden;
   position: relative;
   border-radius: 6px;
-  background-color: var(--background-card);
+  background-color: transparent;
 }
 
-.jukebox-carousel-row::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.3);
-  border-radius: inherit;
-  pointer-events: none;
-  z-index: 0;
-}
-
-/* Wrap: same gray-black as carousel-controls (background-card + 30% black) so strip and controls feel connected */
+/* Wrap: transparent so wrapper metal shows through */
 .jukebox-carousel-wrap {
   flex: 1 1 0;
   min-width: 0;
@@ -99,19 +85,10 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  background-color: var(--background-card);
+  background-color: transparent;
   overflow-x: auto;
   position: relative;
   z-index: 1;
-}
-
-.jukebox-carousel-wrap::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.3);
-  pointer-events: none;
-  z-index: 0;
 }
 
 /* Strip: lights + carousel in a row; translated on small screens so only carousel is visible */
@@ -135,9 +112,9 @@
   align-items: stretch;
 }
 
-/* Video light panels: 80% of row height, centered; 75px wide, circular ends; scroll with carousel */
+/* Video light panels: 80% of row height, centered; 75px wide, circular ends; scroll with carousel; transparent so metal shows behind */
 .jukebox-light-panel {
-  width: 75px;
+  width: 25px;
   flex-shrink: 0;
   height: 80%;
   max-height: 80%;
@@ -149,7 +126,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #000;
+  background: transparent;
 }
 
 .jukebox-light-video {
@@ -158,6 +135,7 @@
   max-width: none;
   object-fit: cover;
   object-position: center;
+  display: none;
 }
 
 .queue-toggle {

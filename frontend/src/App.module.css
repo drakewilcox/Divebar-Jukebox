@@ -4,7 +4,7 @@
   width: 100%;
   height: 100vh;
   height: 100dvh;
-  background: linear-gradient(135deg, var(--background-dark) 0%, #0f0f0f 100%);
+  background: var(--background-app);
 }
 
 .app-header {

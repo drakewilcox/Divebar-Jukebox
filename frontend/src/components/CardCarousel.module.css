@@ -1,9 +1,10 @@
+/* Transparent so wrapper metal shows through behind carousel */
 .card-carousel {
   display: flex;
   flex-direction: column;
   gap: 0;
   padding: 0 0;
-  background-color: var(--background-card);
+  background-color: transparent;
   flex: 1 0 0;
   min-height: 0;
   min-width: 1024px;
@@ -17,16 +18,6 @@
   .card-carousel {
     min-width: 0;
   }
-}
-
-/* Same gray-black as carousel-controls so carousel and controls feel connected */
-.card-carousel::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.3);
-  pointer-events: none;
-  z-index: 0;
 }
 
 /* Glass display: subtle frame border + inset shadow so it reads as recessed */
@@ -460,25 +451,16 @@
   z-index: 6000; /* Above carousel screen overlays (5000–5002) so keypad shows on top */
 }
 
-/* Match strip/wrap background (background-card + 30% black) so controls match the light column areas */
+/* Transparent so wrapper metal shows through behind controls */
 .carousel-controls {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
   padding: .5rem 1rem;
-  background-color: var(--background-card);
+  background-color: transparent;
   position: relative;
   z-index: 100;
-}
-
-.carousel-controls::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.3);
-  pointer-events: none;
-  z-index: 0;
 }
 
 .controls-left {

@@ -80,9 +80,13 @@ export default function JukeboxDisplay({ collection, collections, onCollectionCh
   // Always render CardCarousel when we have a collection so the settings modal stays
   // mounted when switching collections (otherwise the loading div would unmount it).
   const albumsToShow = albums ?? [];
+  const base = import.meta.env.BASE_URL;
+  const wrapperStyle = {
+    ['--metal-texture-url' as string]: `url("${base}images/MetalTexture.png")`,
+  };
 
   return (
-    <div className={styles['jukebox-display-wrapper']}>
+    <div className={styles['jukebox-display-wrapper']} style={wrapperStyle}>
       <div className={styles['jukebox-display']}>
         {isLoading && albumsToShow.length === 0 && (
         <div className={styles['jukebox-loading']}>Loading albums...</div>
