@@ -76,7 +76,7 @@
   background-color: transparent;
 }
 
-/* Wrap: transparent so wrapper metal shows through */
+/* Wrap: transparent so wrapper metal shows through; centers carousel on small screens */
 .jukebox-carousel-wrap {
   flex: 1 1 0;
   min-width: 0;
@@ -84,58 +84,23 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  align-items: stretch;
+  align-items: center;
+  justify-content: center;
   background-color: transparent;
   overflow-x: auto;
   position: relative;
   z-index: 1;
 }
 
-/* Strip: lights + carousel in a row; translated on small screens so only carousel is visible */
-.jukebox-carousel-strip {
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
-  gap: 1rem;
-  min-width: min-content;
-  min-height: 0;
-  height: 100%;
-}
-
-/* Min-width matches card-carousel so the right light never overlaps the carousel content */
+/* Carousel inner: direct child of wrap; centered on all viewports */
 .jukebox-carousel-inner {
   flex: 1 0 0;
   min-width: 1300px;
   min-height: 0;
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: stretch;
-}
-
-/* Video light panels: 80% of row height, centered; 75px wide, circular ends; scroll with carousel; transparent so metal shows behind */
-.jukebox-light-panel {
-  width: 25px;
-  flex-shrink: 0;
-  height: 80%;
-  max-height: 80%;
-  align-self: center;
-  min-height: 120px;
-  position: relative;
-  overflow: hidden;
-  border-radius: 9999px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-}
-
-.jukebox-light-video {
-  height: 100%;
-  width: auto;
-  max-width: none;
-  object-fit: cover;
-  object-position: center;
-  display: none;
 }
 
 .queue-toggle {
@@ -201,28 +166,26 @@
   margin: 0.5rem 0;
 }
 
-/* Medium viewports (e.g. 1366×1024): carousel full width of window; lights off-screen */
+/* Medium viewports: constrain wrap and center carousel */
 @media (max-width: 1600px) and (min-width: 1300px) {
   .jukebox-carousel-wrap {
     overflow-x: hidden;
     max-width: 1300px;
     margin: 0 auto;
   }
-
-  .jukebox-carousel-strip {
-    transform: translateX(calc(-75px - 1rem));
-  }
 }
 
-/* Smaller viewports (e.g. 1366×1024): carousel uses full window width; inner = 100vw so it doesn't collapse and strip translate still hides both lights */
+/* Smaller viewports: carousel uses full width; inner fills wrap so layout stays centered */
 @media (max-width: 1400px) {
   .jukebox-carousel-wrap {
     max-width: 100%;
+    margin: 0 auto;
   }
 
   .jukebox-carousel-inner {
     min-width: 0;
-    width: 100vw;
+    width: 100%;
+    max-width: 100%;
   }
 }
 

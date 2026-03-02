@@ -986,6 +986,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
               </div>
             </div>
             <div className={styles['glass-overlay']}></div>
+            <div className={styles['carousel-frame-overlay']} aria-hidden="true" />
           </>
         ) : (
           <>
@@ -1014,6 +1015,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
               </div>
             )}
             <div className={styles['glass-overlay']}></div>
+            <div className={styles['carousel-frame-overlay']} aria-hidden="true" />
           </>
         )}
       </div>
