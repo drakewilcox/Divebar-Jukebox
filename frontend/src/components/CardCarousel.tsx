@@ -76,6 +76,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
   const [displayFlash, setDisplayFlash] = useState<string | null>(null);
   const [nowPlayingPositionMs, setNowPlayingPositionMs] = useState(0);
   const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
+  const [justRevealedSide, setJustRevealedSide] = useState<'left' | 'right' | null>(null);
   const [jumpTargetIndex, setJumpTargetIndex] = useState<number | null>(null);
   type NavSettings = {
     sortOrder: 'alphabetical' | 'curated';
@@ -121,6 +122,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
   const nowPlayingProgressBarRef = useRef<HTMLDivElement>(null);
   const handleAddToQueueRef = useRef<() => void>(() => {});
   const lastSubmittedRef = useRef<string | null>(null);
+  const slideDirectionRef = useRef<'left' | 'right' | null>(null);
   const [jumpLineStyle, setJumpLineStyle] = useState({ left: 0, width: 0 });
   const [lightAndGlassEffect, setLightAndGlassEffect] = useState<boolean>(() =>
     typeof localStorage !== 'undefined' ? localStorage.getItem('lightAndGlassEffect') !== 'false' : true
@@ -356,30 +358,39 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     });
   }, [currentIndex, paddedAlbums, collection.slug, queryClient]);
   
+  const handleSlideAnimationEnd = (e: React.AnimationEvent<HTMLDivElement>) => {
+    const name = e.animationName ?? '';
+    if (!name.includes('slideFrom')) return;
+    const dir = slideDirectionRef.current;
+    slideDirectionRef.current = null;
+    if (dir === 'left') {
+      setCurrentIndex((prev) => Math.min(paddedAlbums.length - 4, prev + 2));
+      setJustRevealedSide('right');
+    } else if (dir === 'right') {
+      setCurrentIndex((prev) => Math.max(0, prev - 2));
+      setJustRevealedSide('left');
+    }
+    setSlideDirection(null);
+    setIsSliding(false);
+    setTimeout(() => setJustRevealedSide(null), 300);
+  };
+
   const handlePrevious = () => {
     if (isSliding || currentIndex === 0) return;
     setPressedButton('prev');
     setTimeout(() => setPressedButton(null), 150);
+    slideDirectionRef.current = 'right';
     setSlideDirection('right');
     setIsSliding(true);
-    setTimeout(() => {
-      setCurrentIndex((prev) => Math.max(0, prev - 2));
-      setSlideDirection(null);
-      setIsSliding(false);
-    }, 500);
   };
 
   const handleNext = () => {
     if (isSliding || currentIndex >= paddedAlbums.length - 4) return;
     setPressedButton('next');
     setTimeout(() => setPressedButton(null), 150);
+    slideDirectionRef.current = 'left';
     setSlideDirection('left');
     setIsSliding(true);
-    setTimeout(() => {
-      setCurrentIndex((prev) => Math.min(paddedAlbums.length - 4, prev + 2));
-      setSlideDirection(null);
-      setIsSliding(false);
-    }, 500);
   };
   
   const canGoPrevious = currentIndex > 0;
@@ -994,26 +1005,68 @@ export default function CardCarousel({ albums, collection, collections, onCollec
         ) : (
           <>
             <div className={clsx(styles['card-slot'], styles['card-slot-left'])}>
-              <div className={styles['slider-card']}>
-                {slideDirection === 'right' && prevLeftCard.length === 2
-                  ? prevLeftCard.map((album, idx) => renderAlbumRow(album, 'prev-left', idx, currentIndex - 2 + idx))
-                  : leftCard.map((album, idx) => renderAlbumRow(album, 'left', idx, currentIndex + idx))}
+              <div
+                className={clsx(
+                  styles['slider-card'],
+                  slideDirection === 'left' && styles['slider-card-getting-covered']
+                )}
+              >
+                {(slideDirection === 'right' && prevLeftCard.length === 2) || justRevealedSide === 'left' ? (
+                  <div
+                    className={clsx(
+                      styles['slider-card-revealed-wrap'],
+                      slideDirection === 'right' && styles['slider-card-revealed-growing'],
+                    )}
+                  >
+                    {slideDirection === 'right' && prevLeftCard.length === 2
+                      ? prevLeftCard.map((album, idx) => renderAlbumRow(album, 'prev-left', idx, currentIndex - 2 + idx))
+                      : leftCard.map((album, idx) => renderAlbumRow(album, 'left', idx, currentIndex + idx))}
+                  </div>
+                ) : (
+                  <>
+                    {leftCard.map((album, idx) => renderAlbumRow(album, 'left', idx, currentIndex + idx))}
+                  </>
+                )}
               </div>
             </div>
             <div className={clsx(styles['card-slot'], styles['card-slot-right'])}>
-              <div className={styles['slider-card']}>
-                {slideDirection === 'left' && nextRightCard.length === 2
-                  ? nextRightCard.map((album, idx) => renderAlbumRow(album, 'next-right', idx, currentIndex + 4 + idx))
-                  : rightCard.map((album, idx) => renderAlbumRow(album, 'right', idx, currentIndex + 2 + idx))}
+              <div
+                className={clsx(
+                  styles['slider-card'],
+                  slideDirection === 'right' && styles['slider-card-getting-covered']
+                )}
+              >
+                {(slideDirection === 'left' && nextRightCard.length === 2) || justRevealedSide === 'right' ? (
+                  <div
+                    className={clsx(
+                      styles['slider-card-revealed-wrap'],
+                      slideDirection === 'left' && styles['slider-card-revealed-growing'],
+                    )}
+                  >
+                    {slideDirection === 'left' && nextRightCard.length === 2
+                      ? nextRightCard.map((album, idx) => renderAlbumRow(album, 'next-right', idx, currentIndex + 4 + idx))
+                      : rightCard.map((album, idx) => renderAlbumRow(album, 'right', idx, currentIndex + 2 + idx))}
+                  </div>
+                ) : (
+                  <>
+                    {rightCard.map((album, idx) => renderAlbumRow(album, 'right', idx, currentIndex + 2 + idx))}
+                  </>
+                )}
               </div>
             </div>
             {slideDirection === 'left' && (
-              <div className={clsx(styles['slider-card-animated'], styles['animate-slide-right-to-left'])}>
+              <div
+                className={clsx(styles['slider-card-animated'], styles['animate-slide-right-to-left'])}
+                onAnimationEnd={handleSlideAnimationEnd}
+              >
                 {rightCard.map((album, idx) => renderAlbumRow(album, 'slide', idx, currentIndex + 2 + idx))}
               </div>
             )}
             {slideDirection === 'right' && (
-              <div className={clsx(styles['slider-card-animated'], styles['animate-slide-left-to-right'])}>
+              <div
+                className={clsx(styles['slider-card-animated'], styles['animate-slide-left-to-right'])}
+                onAnimationEnd={handleSlideAnimationEnd}
+              >
                 {leftCard.map((album, idx) => renderAlbumRow(album, 'slide-left', idx, currentIndex + idx))}
               </div>
             )}

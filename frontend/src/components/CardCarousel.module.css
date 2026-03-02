@@ -904,56 +904,97 @@
   gap: 0.15rem;
   background-color: var(--background-dark);
   border: 2px solid var(--background-dark);
+  box-sizing: border-box;
+  transform-origin: center center;
   /* Promote to compositor layer so background images don’t cause repaint during slide */
   will-change: transform;
 }
 
+.slider-card-getting-covered {
+  transform: scale(0.99);
+  transition: transform 0.1s cubic-bezier(0.25, 0.1, 0.25, 1);
+  backface-visibility: hidden;
+}
+
+.slider-card-revealed-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-height: 0;
+  transform-origin: center center;
+}
+
+.slider-card-revealed-wrap.slider-card-revealed-start {
+  transform: scale(0.99);
+  transition: none;
+  backface-visibility: hidden;
+}
+
+/* Scale-up runs in parallel with slide (0.52s) so it starts when slide starts */
+.slider-card-revealed-wrap.slider-card-revealed-growing {
+  animation: slider-card-reveal-scale 0.52s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  backface-visibility: hidden;
+}
+
+.slider-card-revealed-wrap.slider-card-just-revealed {
+  animation: slider-card-reveal-scale 0.28s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+  backface-visibility: hidden;
+}
+
+@keyframes slider-card-reveal-scale {
+  from { transform: scale(0.99); }
+}
+
+
 /* Animated sliding cards */
 .slider-card-animated {
   position: absolute;
-  top: 0;
-  width: calc(50% - 0.125rem);
-  height: 100%;
+  top: 6px;
+  bottom: 6px;
+  width: calc((100% - 12px - 0.25rem) / 2);
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
   background-color: var(--background-dark);
   border: 2px solid var(--background-dark);
+  box-sizing: border-box;
   z-index: 100;
-  /* Promote to compositor layer so slide animation is GPU-only (no repaint of Paper bg images) */
   will-change: transform;
 }
 
 /* Right card sliding left to cover left card (clicking right arrow) */
 /* Uses transform (compositor-only) instead of animating right/left to avoid layout recalculations */
 .animate-slide-right-to-left {
-  right: 0;
-  animation: slideFromRightToLeft 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  right: 6px;
+  backface-visibility: hidden;
+  contain: layout style paint;
+  animation: slideFromRightToLeft 0.52s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 @keyframes slideFromRightToLeft {
   0% {
-    transform: translateX(0);
+    transform: translate3d(0, 0, 0);
   }
   100% {
-    /* Move left by own width + gap to land on left slot position */
-    transform: translateX(calc(-100% - 0.25rem));
+    transform: translate3d(calc(-100% - 0.25rem), 0, 0);
   }
 }
 
 /* Left card sliding right to cover right card (clicking left arrow) */
 .animate-slide-left-to-right {
-  left: 0;
-  animation: slideFromLeftToRight 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  left: 6px;
+  backface-visibility: hidden;
+  contain: layout style paint;
+  animation: slideFromLeftToRight 0.52s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 @keyframes slideFromLeftToRight {
   0% {
-    transform: translateX(0);
+    transform: translate3d(0, 0, 0);
   }
   100% {
-    /* Move right by own width + gap to land on right slot position */
-    transform: translateX(calc(100% + 0.25rem));
+    transform: translate3d(calc(100% + 0.25rem), 0, 0);
   }
 }
 
