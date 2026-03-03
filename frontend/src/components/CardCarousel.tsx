@@ -847,6 +847,9 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     const rawIndex = rangeIndex * jumpRangeSize;
     const newIndex = Math.max(0, Math.min(alignJumpIndex(rawIndex), paddedAlbums.length - 4));
     if (newIndex === currentIndex) return;
+    setSlideDirection(null);
+    setJustRevealedSide(null);
+    slideDirectionRef.current = null;
     setJumpTargetIndex(newIndex);
     setIsSliding(true);
   };
@@ -857,6 +860,9 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     const startIndex0 = section.start_slot - 1;
     const newIndex = Math.max(0, Math.min(alignJumpIndex(startIndex0), paddedAlbums.length - 4));
     if (newIndex === currentIndex) return;
+    setSlideDirection(null);
+    setJustRevealedSide(null);
+    slideDirectionRef.current = null;
     setJumpTargetIndex(newIndex);
     setIsSliding(true);
   };
@@ -881,6 +887,9 @@ export default function CardCarousel({ albums, collection, collections, onCollec
       Math.min(alignJumpIndex(rawIndex), paddedAlbums.length - 4)
     );
     if (newIndex === currentIndex) return;
+    setSlideDirection(null);
+    setJustRevealedSide(null);
+    slideDirectionRef.current = null;
     setJumpTargetIndex(newIndex);
     setIsSliding(true);
   };
@@ -889,11 +898,13 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     if (jumpTargetIndex != null) {
       setCurrentIndex(jumpTargetIndex);
       setJumpTargetIndex(null);
+      setSlideDirection(null);
+      setJustRevealedSide(null);
+      slideDirectionRef.current = null;
       setIsSliding(false);
     }
   };
 
-  // Full-page strip only for Jump To: current vs target, slide direction by whether target is ahead or behind.
   const targetLeftCard = jumpTargetIndex != null ? paddedAlbums.slice(jumpTargetIndex, jumpTargetIndex + 2) : [];
   const targetRightCard = jumpTargetIndex != null ? paddedAlbums.slice(jumpTargetIndex + 2, jumpTargetIndex + 4) : [];
   const jumpSlideLeft = jumpTargetIndex != null && jumpTargetIndex > currentIndex;
@@ -938,65 +949,67 @@ export default function CardCarousel({ albums, collection, collections, onCollec
         {jumpTargetIndex != null ? (
           <>
             <div className={styles['carousel-full-slide-wrap']}>
-              <div
-                className={clsx(styles['carousel-full-slide-strip'], jumpSlideLeft ? styles['animate-full-slide-left'] : styles['animate-full-slide-right'])}
-                onAnimationEnd={handleFullSlideEnd}
-              >
-                {jumpSlideLeft ? (
-                  <>
-                    <div className={styles['carousel-full-slide-page']}>
-                      <div className={clsx(styles['card-slot'], styles['card-slot-left'])}>
-                        <div className={styles['slider-card']}>
-                          {leftCard.map((album, idx) => renderAlbumRow(album, 'jump-left', idx, currentIndex + idx))}
+              <div className={styles['carousel-full-slide-clip']}>
+                <div
+                  className={clsx(styles['carousel-full-slide-strip'], jumpSlideLeft ? styles['animate-full-slide-left'] : styles['animate-full-slide-right'])}
+                  onAnimationEnd={handleFullSlideEnd}
+                >
+                  {jumpSlideLeft ? (
+                    <>
+                      <div className={styles['carousel-full-slide-page']}>
+                        <div className={clsx(styles['card-slot'], styles['card-slot-left'])}>
+                          <div className={styles['slider-card']}>
+                            {leftCard.map((album, idx) => renderAlbumRow(album, 'jump-left', idx, currentIndex + idx))}
+                          </div>
+                        </div>
+                        <div className={clsx(styles['card-slot'], styles['card-slot-right'])}>
+                          <div className={styles['slider-card']}>
+                            {rightCard.map((album, idx) => renderAlbumRow(album, 'jump-right', idx, currentIndex + 2 + idx))}
+                          </div>
                         </div>
                       </div>
-                      <div className={clsx(styles['card-slot'], styles['card-slot-right'])}>
-                        <div className={styles['slider-card']}>
-                          {rightCard.map((album, idx) => renderAlbumRow(album, 'jump-right', idx, currentIndex + 2 + idx))}
+                      <div className={styles['carousel-full-slide-page']}>
+                        <div className={clsx(styles['card-slot'], styles['card-slot-left'])}>
+                          <div className={styles['slider-card']}>
+                            {targetLeftCard.map((album, idx) => renderAlbumRow(album, 'target-left', idx, jumpTargetIndex! + idx))}
+                          </div>
+                        </div>
+                        <div className={clsx(styles['card-slot'], styles['card-slot-right'])}>
+                          <div className={styles['slider-card']}>
+                            {targetRightCard.map((album, idx) => renderAlbumRow(album, 'target-right', idx, jumpTargetIndex! + 2 + idx))}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <div className={styles['carousel-full-slide-page']}>
-                      <div className={clsx(styles['card-slot'], styles['card-slot-left'])}>
-                        <div className={styles['slider-card']}>
-                          {targetLeftCard.map((album, idx) => renderAlbumRow(album, 'target-left', idx, jumpTargetIndex! + idx))}
+                    </>
+                  ) : (
+                    <>
+                      <div className={styles['carousel-full-slide-page']}>
+                        <div className={clsx(styles['card-slot'], styles['card-slot-left'])}>
+                          <div className={styles['slider-card']}>
+                            {targetLeftCard.map((album, idx) => renderAlbumRow(album, 'target-left', idx, jumpTargetIndex! + idx))}
+                          </div>
+                        </div>
+                        <div className={clsx(styles['card-slot'], styles['card-slot-right'])}>
+                          <div className={styles['slider-card']}>
+                            {targetRightCard.map((album, idx) => renderAlbumRow(album, 'target-right', idx, jumpTargetIndex! + 2 + idx))}
+                          </div>
                         </div>
                       </div>
-                      <div className={clsx(styles['card-slot'], styles['card-slot-right'])}>
-                        <div className={styles['slider-card']}>
-                          {targetRightCard.map((album, idx) => renderAlbumRow(album, 'target-right', idx, jumpTargetIndex! + 2 + idx))}
+                      <div className={styles['carousel-full-slide-page']}>
+                        <div className={clsx(styles['card-slot'], styles['card-slot-left'])}>
+                          <div className={styles['slider-card']}>
+                            {leftCard.map((album, idx) => renderAlbumRow(album, 'jump-left', idx, currentIndex + idx))}
+                          </div>
+                        </div>
+                        <div className={clsx(styles['card-slot'], styles['card-slot-right'])}>
+                          <div className={styles['slider-card']}>
+                            {rightCard.map((album, idx) => renderAlbumRow(album, 'jump-right', idx, currentIndex + 2 + idx))}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className={styles['carousel-full-slide-page']}>
-                      <div className={clsx(styles['card-slot'], styles['card-slot-left'])}>
-                        <div className={styles['slider-card']}>
-                          {targetLeftCard.map((album, idx) => renderAlbumRow(album, 'target-left', idx, jumpTargetIndex! + idx))}
-                        </div>
-                      </div>
-                      <div className={clsx(styles['card-slot'], styles['card-slot-right'])}>
-                        <div className={styles['slider-card']}>
-                          {targetRightCard.map((album, idx) => renderAlbumRow(album, 'target-right', idx, jumpTargetIndex! + 2 + idx))}
-                        </div>
-                      </div>
-                    </div>
-                    <div className={styles['carousel-full-slide-page']}>
-                      <div className={clsx(styles['card-slot'], styles['card-slot-left'])}>
-                        <div className={styles['slider-card']}>
-                          {leftCard.map((album, idx) => renderAlbumRow(album, 'jump-left', idx, currentIndex + idx))}
-                        </div>
-                      </div>
-                      <div className={clsx(styles['card-slot'], styles['card-slot-right'])}>
-                        <div className={styles['slider-card']}>
-                          {rightCard.map((album, idx) => renderAlbumRow(album, 'jump-right', idx, currentIndex + 2 + idx))}
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                )}
+                    </>
+                  )}
+                </div>
               </div>
             </div>
             <div className={styles['glass-overlay']}></div>

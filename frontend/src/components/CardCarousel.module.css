@@ -1043,13 +1043,23 @@
   }
 }
 
-/* Full-page slide for Jump To: whole view slides left to reveal target range */
+/* Full-page slide for Jump To: wrap inset by frame width so content area matches normal view (no size pop). */
 .carousel-full-slide-wrap {
   position: absolute;
-  inset: 0;
-  overflow: hidden;
+  top: var(--carousel-frame-width);
+  right: var(--carousel-frame-width);
+  bottom: var(--carousel-frame-width);
+  left: var(--carousel-frame-width);
   display: flex;
+  flex-direction: column;
   z-index: 1;
+}
+
+.carousel-full-slide-clip {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
 }
 
 .carousel-full-slide-strip {
@@ -1057,6 +1067,7 @@
   width: 200%;
   flex: 0 0 auto;
   min-height: 0;
+  height: 100%;
 }
 
 .carousel-full-slide-strip.animate-full-slide-left {
@@ -1068,28 +1079,21 @@
 }
 
 @keyframes fullSlideStripLeft {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(-50%);
-  }
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
 }
 
 @keyframes fullSlideStripRight {
-  0% {
-    transform: translateX(-50%);
-  }
-  100% {
-    transform: translateX(0);
-  }
+  0% { transform: translateX(-50%); }
+  100% { transform: translateX(0); }
 }
 
 .carousel-full-slide-page {
   flex: 0 0 50%;
   width: 50%;
+  height: 100%;
   display: flex;
-  gap: 0.25rem;
+  gap: var(--carousel-slot-gap);
   min-height: 0;
   min-width: 0;
 }
@@ -1097,8 +1101,9 @@
 .carousel-full-slide-page .card-slot {
   flex: 1;
   min-width: 0;
+  min-height: 0;
 }
-
+/* Slightly scale down so jump-to cards match normal “resting” size and don’t appear to shrink when we switch DOM */
 .album-row {
   display: flex;
   background-color: var(--background-card);
