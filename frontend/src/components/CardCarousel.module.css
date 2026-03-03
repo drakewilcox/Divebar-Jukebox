@@ -14,9 +14,15 @@
   min-width: 1300px;
 }
 
-@media (max-width: 1400px) {
+/* Tablets/smaller: keep carousel at a slightly wider aspect ratio; fit by height, space on left/right is fine */
+@media (max-width: 1600px) {
   .card-carousel {
     min-width: 0;
+    flex: 0 0 auto;
+    align-self: center;   /* override base stretch so carousel can be narrower and centered */
+    height: 100%;
+    width: auto;
+    aspect-ratio: 3 / 2;   /* 1.5 – a little wider */
   }
 }
 
