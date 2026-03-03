@@ -64,17 +64,51 @@
   -webkit-mask-repeat: no-repeat;
   -webkit-mask-composite: xor;
   pointer-events: none;
-  z-index: 200;
+  z-index: 5010; /* Above jukebox lights / glass / gradient (5000–5003) so border stays in front */
 }
 
-/* Center line above the frame: four straight segments (one per side) that stop short of corners so they don't curve */
-/* To update: change the rgba() color/opacity in each gradient, or the 1px thickness (e.g. 2px in gradient stops) */
+/* Reflection on the frame at 25% and 75% (same x as jukebox lights). Separate layer above the frame so it always shows on top. */
+.carousel-container.light-and-glass-effect .carousel-frame-reflection {
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  pointer-events: none;
+  z-index: 5011; /* Above frame (5010), below center line (5012) */
+  mask-image: linear-gradient(#fff, #fff), linear-gradient(#fff, #fff);
+  mask-size: 100% 100%, calc(100% - 2 * var(--carousel-frame-width)) calc(100% - 2 * var(--carousel-frame-width));
+  mask-position: 0 0, var(--carousel-frame-width) var(--carousel-frame-width);
+  mask-repeat: no-repeat;
+  mask-composite: exclude;
+  -webkit-mask-image: linear-gradient(#fff, #fff), linear-gradient(#fff, #fff);
+  -webkit-mask-size: 100% 100%, calc(100% - 2 * var(--carousel-frame-width)) calc(100% - 2 * var(--carousel-frame-width));
+  -webkit-mask-position: 0 0, var(--carousel-frame-width) var(--carousel-frame-width);
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-composite: xor;
+  background:
+    radial-gradient(ellipse 28% 90% at 25% 50%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.6) 25%, rgba(255, 255, 255, 0.25) 50%, transparent 75%),
+    radial-gradient(ellipse 28% 90% at 75% 50%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.6) 25%, rgba(255, 255, 255, 0.25) 50%, transparent 75%);
+}
+
+/* Hide reflection div when lights are off (no class = no reflection) */
+.carousel-container:not(.light-and-glass-effect) .carousel-frame-reflection {
+  display: none;
+}
+
+/* Base ::after is unused (lights use it when .light-and-glass-effect is on). Center line is its own div so it’s always visible. */
 .carousel-container::after {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
-  z-index: 201;
+  z-index: 0;
+}
+
+/* Center line above the frame: four straight segments (one per side) that stop short of corners. Always visible, including when jukebox lights are on. */
+.carousel-center-line {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5012; /* Above frame reflection (5011) */
   --_line: .5px;
   --_gap: calc(var(--carousel-frame-width) + 15px);
   --_center: calc(var(--carousel-frame-width) / 2);
@@ -94,15 +128,12 @@
   display: none;
 }
 
-/* Darkening gradient behind lights – vignette at top/bottom for depth */
+/* Darkening gradient behind lights – vignette at top/bottom for depth. Inset so it never covers the frame. */
 .carousel-container.light-and-glass-effect::before {
   /* display: none; */
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: var(--carousel-frame-width);
   background: 
     /* Top darkening shadow */
     radial-gradient(
@@ -123,14 +154,12 @@
   opacity: 0.15;
 }
 
-/* Four rainbow gradient light sources - 2 top, 2 bottom */
+/* Four rainbow gradient light sources - 2 top, 2 bottom. Inset so they never cover the frame. */
 .carousel-container.light-and-glass-effect::after {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: var(--carousel-frame-width);
+  border-radius: inherit;
   background: 
     /* Top left light - bright white center to rainbow gradient (warm spectrum) */
     radial-gradient(
@@ -184,10 +213,8 @@
 /* Glass overlay – diagonal streaks. Only visible when “Jukebox Lights” is ON in Settings. */
 .carousel-container.light-and-glass-effect .glass-overlay {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: var(--carousel-frame-width);
+  border-radius: 0;
   background:
     /* Main streak: top-right toward bottom-left */
     linear-gradient(
