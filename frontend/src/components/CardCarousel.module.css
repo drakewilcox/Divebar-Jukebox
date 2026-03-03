@@ -1129,9 +1129,8 @@
   aspect-ratio: 1 / 1;
   flex-shrink: 0;
   position: relative;
-  background: #000;
-  border: none;
-  border-radius: 0;
+  background: linear-gradient(200deg, #141414 23%, #252525 75%, #373636 100%);
+  background-color: #0a0a0a; /* fallback */
   box-sizing: border-box;
 }
 
@@ -1142,6 +1141,7 @@
   border-radius: 50px;
   background: var(--background-card);
   z-index: 1;
+  box-shadow: 0 0 14px rgba(255, 255, 255, 0.25);
 }
 
 /* When album has no cover, show crumpled paper in the whole cover area (no holder) */
@@ -1170,14 +1170,14 @@
   max-width: 100%;
 }
 
-/* Plastic holder – same idea: black rect, rounded window on top */
+/* Plastic holder – same idea: dark frame with outer shadow for realism, rounded window on top */
 .album-row-holder-info {
   flex: 1;
   min-width: 0;
   position: relative;
-  background: #000;
-  border: none;
-  border-radius: 0;
+  background: linear-gradient(145deg, #141414 0%, #252525 75%, #373636 100%);
+  background-color: #0a0a0a; /* fallback */
+  /* border: 2px solid #0a0a0a; */
   box-sizing: border-box;
 }
 
@@ -1188,6 +1188,7 @@
   border-radius: 50px;
   background: var(--background-card);
   z-index: 1;
+  box-shadow: 0 0 14px rgba(255, 255, 255, 0.2);
 }
 
 /* Vintage jukebox plastic slider tabs: small black quarter-circles in each corner */

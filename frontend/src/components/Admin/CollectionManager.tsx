@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { MdEdit } from 'react-icons/md';
+import { MdEdit, MdAdd, MdDelete } from 'react-icons/md';
 import { collectionsApi, adminApi, getMediaUrl } from '../../services/api';
 import { filterAndSortAlbums, type AlbumSortOption } from '../../utils/albumListFilter';
 import type { Collection } from '../../types';
@@ -22,6 +22,7 @@ export default function CollectionManager() {
   const [sortBy, setSortBy] = useState<AlbumSortOption>('artist_asc');
   const [showOnlyInCollection, setShowOnlyInCollection] = useState(false);
   const [editingCollection, setEditingCollection] = useState<CollectionToEdit | null>(null);
+  const [collectionToDelete, setCollectionToDelete] = useState<Collection | null>(null);
   const [editingAlbumId, setEditingAlbumId] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -70,6 +71,17 @@ export default function CollectionManager() {
     },
   });
 
+  const deleteCollectionMutation = useMutation({
+    mutationFn: (id: string) => adminApi.deleteCollection(id),
+    onSuccess: (_, deletedId) => {
+      queryClient.invalidateQueries({ queryKey: ['collections'] });
+      setCollectionToDelete(null);
+      if (selectedCollection?.id === deletedId) {
+        setSelectedCollection(null);
+      }
+    },
+  });
+
   const activeAlbums = useMemo(
     () => (allAlbums ?? []).filter((a: { archived?: boolean }) => !a.archived),
     [allAlbums]
@@ -100,7 +112,17 @@ export default function CollectionManager() {
   return (
     <div className={styles['collection-manager']}>
       <div className={styles['manager-section']}>
-        <h2>Collections</h2>
+        <div className={styles['collections-section-header']}>
+          <h2>Collections</h2>
+          <button
+            type="button"
+            className={styles['collection-add-button']}
+            onClick={() => setEditingCollection({ id: '', name: '', slug: '', description: '' })}
+            aria-label="Add collection"
+          >
+            <MdAdd size={24} />
+          </button>
+        </div>
         <p>Select a collection to manage its albums, sections, and display settings.</p>
 
         <div className={styles['collections-list']}>
@@ -134,6 +156,17 @@ export default function CollectionManager() {
                       aria-label="Edit collection"
                     >
                       <MdEdit size={20} />
+                    </button>
+                    <button
+                      type="button"
+                      className={styles['collection-delete-icon']}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCollectionToDelete(c);
+                      }}
+                      aria-label="Delete collection"
+                    >
+                      <MdDelete size={20} />
                     </button>
                   </div>
                 </div>
@@ -296,14 +329,56 @@ export default function CollectionManager() {
         <CollectionEditModal
           collection={editingCollection}
           onClose={() => {
+            const wasEdit = !!editingCollection.id;
             setEditingCollection(null);
             queryClient.invalidateQueries({ queryKey: ['collections'] });
-            const updated = editableCollections.find((c: Collection) => c.id === editingCollection.id);
-            if (updated && selectedCollection?.id === editingCollection.id) {
-              setSelectedCollection(updated);
+            if (wasEdit) {
+              const updated = editableCollections.find((c: Collection) => c.id === editingCollection.id);
+              if (updated && selectedCollection?.id === editingCollection.id) {
+                setSelectedCollection(updated);
+              }
             }
           }}
         />
+      )}
+
+      {collectionToDelete && (
+        <div
+          className={styles['delete-confirm-overlay']}
+          onClick={() => setCollectionToDelete(null)}
+          role="presentation"
+        >
+          <div
+            className={styles['delete-confirm-modal']}
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-labelledby="delete-confirm-title"
+          >
+            <h2 id="delete-confirm-title" className={styles['delete-confirm-title']}>
+              Are you sure you want to delete the collection {collectionToDelete.name}?
+            </h2>
+            <p className={styles['delete-confirm-warning']}>
+              Deleting a collection will remove all of its settings, sections, and slot configurations
+            </p>
+            <div className={styles['delete-confirm-actions']}>
+              <button
+                type="button"
+                className={styles['delete-confirm-cancel']}
+                onClick={() => setCollectionToDelete(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={styles['delete-confirm-submit']}
+                onClick={() => deleteCollectionMutation.mutate(collectionToDelete.id)}
+                disabled={deleteCollectionMutation.isPending}
+              >
+                {deleteCollectionMutation.isPending ? 'Deleting…' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {editingAlbumId && (
