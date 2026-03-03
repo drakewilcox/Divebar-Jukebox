@@ -177,7 +177,8 @@
     min-width: 0;
     width: 100%;
     max-width: 100%;
-    align-items: center; /* center carousel so space on left and right */
+    align-items: center;
+    justify-content: center; /* center carousel vertically when it's shorter than viewport */
   }
 }
 

@@ -14,15 +14,28 @@
   min-width: 1300px;
 }
 
-/* Tablets/smaller: keep carousel at a slightly wider aspect ratio; fit by height, space on left/right is fine */
-@media (max-width: 1600px) {
+/* Tablets/smaller, viewport wider than 3:2 (e.g. iPad): fit by height, 3:2 ratio, space on left/right */
+@media (max-width: 1600px) and (min-aspect-ratio: 3/2) {
   .card-carousel {
     min-width: 0;
     flex: 0 0 auto;
-    align-self: center;   /* override base stretch so carousel can be narrower and centered */
+    align-self: center;
     height: 100%;
     width: auto;
-    aspect-ratio: 3 / 2;   /* 1.5 – a little wider */
+    aspect-ratio: 3 / 2;
+  }
+}
+
+/* Tablets/smaller, viewport 3:2 or narrower (e.g. desktop 1366×1024): fit by width so no overflow, space above/below */
+@media (max-width: 1600px) and (max-aspect-ratio: 3/2) {
+  .card-carousel {
+    min-width: 0;
+    flex: 0 0 auto;
+    align-self: center;
+    width: 100%;
+    height: auto;
+    max-height: 100%;
+    aspect-ratio: 3 / 2;
   }
 }
 
