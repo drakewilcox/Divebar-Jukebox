@@ -25,18 +25,19 @@
 .carousel-container {
   --carousel-slot-gap: 0rem;
   --carousel-row-gap: 0rem;
+  --carousel-frame-width: 10px;
   display: flex;
   gap: var(--carousel-slot-gap);
   flex: 1;
   min-height: 0;
   overflow: hidden;
   position: relative;
-  padding: 6px;
+  padding: var(--carousel-frame-width);
   border-radius: 10px;
   background-color: #3c3e36;
   background-image: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%);
-  background-size: calc(100% - 12px) calc(100% - 12px);
-  background-position: 6px 6px;
+  background-size: calc(100% - 2 * var(--carousel-frame-width)) calc(100% - 2 * var(--carousel-frame-width));
+  background-position: var(--carousel-frame-width) var(--carousel-frame-width);
   background-repeat: no-repeat;
   box-shadow:
     1px 1px 0 rgba(255, 255, 255, 0.1),
@@ -53,28 +54,39 @@
   border-radius: 10px;
   background: linear-gradient(145deg, #5a5c54 0%, #4a4c44 25%, #3c3e36 50%, #44463e 75%, #505248 100%);
   mask-image: linear-gradient(#fff, #fff), linear-gradient(#fff, #fff);
-  mask-size: 100% 100%, calc(100% - 12px) calc(100% - 12px);
-  mask-position: 0 0, 6px 6px;
+  mask-size: 100% 100%, calc(100% - 2 * var(--carousel-frame-width)) calc(100% - 2 * var(--carousel-frame-width));
+  mask-position: 0 0, var(--carousel-frame-width) var(--carousel-frame-width);
   mask-repeat: no-repeat;
   mask-composite: exclude;
   -webkit-mask-image: linear-gradient(#fff, #fff), linear-gradient(#fff, #fff);
-  -webkit-mask-size: 100% 100%, calc(100% - 12px) calc(100% - 12px);
-  -webkit-mask-position: 0 0, 6px 6px;
+  -webkit-mask-size: 100% 100%, calc(100% - 2 * var(--carousel-frame-width)) calc(100% - 2 * var(--carousel-frame-width));
+  -webkit-mask-position: 0 0, var(--carousel-frame-width) var(--carousel-frame-width);
   -webkit-mask-repeat: no-repeat;
   -webkit-mask-composite: xor;
   pointer-events: none;
   z-index: 200;
 }
 
-/* Center line above the frame */
+/* Center line above the frame: four straight segments (one per side) that stop short of corners so they don't curve */
+/* To update: change the rgba() color/opacity in each gradient, or the 1px thickness (e.g. 2px in gradient stops) */
 .carousel-container::after {
   content: '';
   position: absolute;
-  inset: 3px;
-  border: 1px solid rgba(255, 255, 255, 0.45);
-  border-radius: 4px;
+  inset: 0;
   pointer-events: none;
   z-index: 201;
+  --_line: .5px;
+  --_gap: calc(var(--carousel-frame-width) + 15px);
+  --_center: calc(var(--carousel-frame-width) / 2);
+  --_seg: calc(100% - 2 * var(--_gap));
+  background-image:
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.3) 0, rgba(255, 255, 255, 0.3) var(--_line), transparent var(--_line)),
+    linear-gradient(to left, rgba(255, 255, 255, 0.3) 0, rgba(255, 255, 255, 0.3) var(--_line), transparent var(--_line)),
+    linear-gradient(to top, rgba(255, 255, 255, 0.3) 0, rgba(255, 255, 255, 0.3) var(--_line), transparent var(--_line)),
+    linear-gradient(to right, rgba(255, 255, 255, 0.3) 0, rgba(255, 255, 255, 0.3) var(--_line), transparent var(--_line));
+  background-size: var(--_seg) var(--_line), var(--_line) var(--_seg), var(--_seg) var(--_line), var(--_line) var(--_seg);
+  background-position: var(--_gap) var(--_center), calc(100% - var(--_center)) var(--_gap), var(--_gap) calc(100% - var(--_center)), var(--_center) var(--_gap);
+  background-repeat: no-repeat;
 }
 
 /* Light and glass effect: only when enabled via settings */
@@ -525,14 +537,15 @@
   justify-content: flex-end;
 }
 
-/* Match height to LCD display: digits 42px + label + padding ≈ 79px; extra for progress bar */
+/* Fixed height so layout doesn’t jump when nothing is playing (row + progress + padding ≈ 97px) */
 .now-playing-mini {
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 0;
   padding: 0 0.75rem 0.4rem;
-  min-height: 81px;
+  min-height: 97px;
+  height: 97px;
   width: 320px;
   flex-shrink: 0;
   box-sizing: border-box;
@@ -955,9 +968,9 @@
 /* Moving card: no border so size matches slot's .slider-card; scale locked to 1 */
 .slider-card-animated {
   position: absolute;
-  top: 6px;
-  bottom: 6px;
-  width: calc((100% - 12px - var(--carousel-slot-gap)) / 2);
+  top: var(--carousel-frame-width);
+  bottom: var(--carousel-frame-width);
+  width: calc((100% - 2 * var(--carousel-frame-width) - var(--carousel-slot-gap)) / 2);
   display: flex;
   flex-direction: column;
   gap: var(--carousel-row-gap);
@@ -971,7 +984,7 @@
 /* Right card sliding left to cover left card (clicking right arrow) */
 /* Uses transform (compositor-only) instead of animating right/left to avoid layout recalculations */
 .animate-slide-right-to-left {
-  right: 6px;
+  right: var(--carousel-frame-width);
   backface-visibility: hidden;
   contain: layout style paint;
   animation: slideFromRightToLeft 0.52s cubic-bezier(0.4, 0, 0.2, 1) forwards;
@@ -988,7 +1001,7 @@
 
 /* Left card sliding right to cover right card (clicking left arrow) */
 .animate-slide-left-to-right {
-  left: 6px;
+  left: var(--carousel-frame-width);
   backface-visibility: hidden;
   contain: layout style paint;
   animation: slideFromLeftToRight 0.52s cubic-bezier(0.4, 0, 0.2, 1) forwards;
