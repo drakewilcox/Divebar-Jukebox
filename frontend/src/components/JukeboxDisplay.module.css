@@ -166,19 +166,26 @@
   margin: 0.5rem 0;
 }
 
-/* Viewports up to 1600px: carousel keeps 1366×1024 aspect ratio, fit by height; space on left/right is fine */
-@media (max-width: 1600px) {
+/* Laptops/tablets: 25px space all around carousel; carousel fits (no fixed AR); keep max dimensions */
+@media (max-width: 2000px) {
+  .jukebox-main {
+    padding: 25px;
+    box-sizing: border-box;
+  }
+
   .jukebox-carousel-wrap {
     max-width: 100%;
+    max-height: 100%;
     margin: 0;
+    min-width: 0;
+    min-height: 0;
   }
 
   .jukebox-carousel-inner {
     min-width: 0;
     width: 100%;
     max-width: 100%;
-    align-items: center;
-    justify-content: center; /* center carousel vertically when it's shorter than viewport */
+    max-height: 100%;
   }
 }
 

@@ -1,0 +1,10 @@
+{
+  "name": "Dive Bar Jukebox",
+  "short_name": "Jukebox",
+  "description": "Dive Bar Jukebox",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#1a1a1a",
+  "theme_color": "#1a1a1a"
+}

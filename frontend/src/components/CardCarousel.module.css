@@ -14,28 +14,10 @@
   min-width: 1300px;
 }
 
-/* Tablets/smaller, viewport wider than 3:2 (e.g. iPad): fit by height, 3:2 ratio, space on left/right */
-@media (max-width: 1600px) and (min-aspect-ratio: 3/2) {
+/* Laptops/tablets: no fixed AR; carousel fills available space (with 25px gutter from JukeboxDisplay) */
+@media (max-width: 2000px) {
   .card-carousel {
     min-width: 0;
-    flex: 0 0 auto;
-    align-self: center;
-    height: 100%;
-    width: auto;
-    aspect-ratio: 3 / 2;
-  }
-}
-
-/* Tablets/smaller, viewport 3:2 or narrower (e.g. desktop 1366×1024): fit by width so no overflow, space above/below */
-@media (max-width: 1600px) and (max-aspect-ratio: 3/2) {
-  .card-carousel {
-    min-width: 0;
-    flex: 0 0 auto;
-    align-self: center;
-    width: 100%;
-    height: auto;
-    max-height: 100%;
-    aspect-ratio: 3 / 2;
   }
 }
 
@@ -278,7 +260,7 @@
 .jump-to-bar {
   display: flex;
   gap: 0.35rem;
-  padding: 0.5rem 10px;
+  padding: .5rem 0px;
   flex-shrink: 0;
   width: 100%;
   position: relative;
@@ -552,7 +534,7 @@
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
-  padding: .5rem 1rem;
+  padding: .5rem 0rem .5rem 0rem;
   background-color: transparent;
   position: relative;
   z-index: 100;
@@ -590,8 +572,8 @@
   justify-content: center;
   gap: 0;
   padding: 0 0.75rem 0.4rem;
-  min-height: 97px;
-  height: 97px;
+  min-height: 85px;
+  height: 85px;
   width: 320px;
   flex-shrink: 0;
   box-sizing: border-box;

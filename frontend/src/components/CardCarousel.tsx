@@ -1302,11 +1302,6 @@ export default function CardCarousel({ albums, collection, collections, onCollec
                       {playbackState.current_track.album_title}
                       {playbackState.current_track.album_year != null && ` (${playbackState.current_track.album_year})`}
                     </div>
-                    {(getSelectionDisplayForTrack(playbackState.current_track.album_id, playbackState.current_track.track_number) ?? playbackState.current_track.selection_display) && (
-                      <div className={styles['now-playing-selection']}>
-                        {getSelectionDisplayForTrack(playbackState.current_track.album_id, playbackState.current_track.track_number) ?? playbackState.current_track.selection_display}
-                      </div>
-                    )}
                   </div>
                   <div className={styles['now-playing-time']}>
                     {formatTimeRemaining(playbackState.current_track.duration_ms, nowPlayingPositionMs)}
