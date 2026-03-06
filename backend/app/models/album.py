@@ -1,5 +1,5 @@
 """Album model"""
-from sqlalchemy import Column, String, Integer, Boolean, JSON, DateTime
+from sqlalchemy import Column, String, Integer, Boolean, JSON, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from datetime import datetime
@@ -14,6 +14,7 @@ class Album(Base):
     __tablename__ = "albums"
     
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)  # Nullable for migration; backfill to seed user
     file_path = Column(String, nullable=False, unique=True, index=True)  # Relative path: Artist/Album
     title = Column(String, nullable=False)
     artist = Column(String, nullable=False)
@@ -26,11 +27,17 @@ class Album(Base):
     archived = Column(Boolean, default=False)  # Hide from jukebox when archived
     description = Column(String, nullable=True)  # Optional description (shown in edit modal when various_artists)
     is_playlist = Column(Boolean, default=False)  # True if album was imported from Playlists folder (paths under playlists_path)
+    spotify_id = Column(String, nullable=True, index=True)
+    spotify_url = Column(String, nullable=True)
+    spotify_image_url = Column(String, nullable=True)  # Spotify CDN cover image URL
+    tidal_id = Column(String, nullable=True)
+    tidal_url = Column(String, nullable=True)
     extra_metadata = Column(JSON, default=dict)  # Additional metadata from FLAC tags
     created_at = Column(DateTime, default=datetime.utcnow, server_default=func.now())
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, server_default=func.now())
     
     # Relationships
+    user = relationship("User", back_populates="albums")
     tracks = relationship("Track", back_populates="album", cascade="all, delete-orphan")
     collection_albums = relationship("CollectionAlbum", back_populates="album", cascade="all, delete-orphan")
     

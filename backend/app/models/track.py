@@ -25,6 +25,7 @@ class Track(Base):
     archived = Column(Boolean, default=False)  # Same as hidden, but excluded when adding whole album to queue
     is_favorite = Column(Boolean, default=False)  # User-marked favorite
     is_recommended = Column(Boolean, default=False)  # User-marked recommended
+    spotify_id = Column(String, nullable=True, index=True)
     extra_metadata = Column(JSON, default=dict)  # Additional metadata
     created_at = Column(DateTime, default=datetime.utcnow, server_default=func.now())
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, server_default=func.now())
