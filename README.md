@@ -47,6 +47,24 @@ cp ../.env.example .env
 uvicorn app.main:app --reload --port 8000
 ```
 
+### Creating the first admin user (owner of existing collections)
+
+The first user is the one who “owns” all collections and albums that were created before multi-user support (or that the ownership migration assigned).
+
+**Option 1 – Seed from environment (recommended)**  
+1. Run migrations so the DB has the `users` table and ownership columns:  
+   `cd backend && alembic upgrade head`  
+2. In `.env` (or environment), set:  
+   `ADMIN_SEED_EMAIL=your@email.com`  
+   `ADMIN_SEED_PASSWORD=your-secure-password`  
+3. Start the backend:  
+   `uvicorn app.main:app --reload --port 8000`  
+4. On first startup the app will either create that user or, if the migration left a placeholder user (id `00000000-0000-0000-0000-000000000001`), **update that placeholder** to your email and password so that one user owns all existing collections/albums.  
+5. Log in at `/login` with that email and password. You can remove or leave the env vars; they only create/update the user once.
+
+**Option 2 – Register in the UI**  
+If you prefer not to use env: go to `/register`, create an account, then in the DB assign your new user’s `id` to all existing `collections.user_id` and `albums.user_id` (or run a one-off script that does that). Option 1 avoids that by reusing the migration’s placeholder user.
+
 ### Frontend Setup
 
 ```bash
@@ -56,6 +74,25 @@ npm run dev
 ```
 
 Access the application at `http://localhost:5173`
+
+### Backfilling Spotify IDs (for existing DB albums)
+
+If you already have albums in the database (e.g. from a library scan) and want to add `spotify_id` / `spotify_url` so they can be played when `ENABLE_LOCAL_LIBRARY` is false, run the backfill script. It matches DB albums to `tools/tidal-dl-helper-scripts/albums_to_download.json` by **normalized (album title, artist name)** and copies Spotify (and Tidal) data from the JSON into the DB.
+
+1. Ensure `backend/.env` has `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET` (so the script can also backfill track-level Spotify IDs).
+2. From the **backend** directory, run:
+   ```bash
+   cd backend
+   python -m scripts.backfill_spotify_from_json
+   ```
+   Use `--dry-run` to see how many albums would be updated without writing. Use `--json PATH` if your JSON is elsewhere.
+
+If your DB albums don’t match the JSON (e.g. different title/artist spelling), no rows will be updated. In that case add albums via Admin → **Sync from Spotify** or **Add by URL**; those flows create albums with Spotify data set.
+
+### Environment toggles (deployment)
+
+- **Backend** `ENABLE_LOCAL_LIBRARY`: Set to `false` in deployed/cloud mode to disable library scan endpoints; playback then uses Spotify only where available. Default: `true`.
+- **Frontend** `VITE_ENABLE_LOCAL_FILES`: Set to `false` when building for deployed-only mode so the admin UI hides "Scan library" / "Scan playlists" until the API responds. The app also reads `enable_local_library` from `GET /api/config` at runtime.
 
 ## Music Library Structure
 
@@ -110,6 +147,7 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [x] Default Jump Button Type not persisting to Jump to Buttons or Settings Modal
 - [x] Jump button LCD not updating correctly when Jump Button Type changes
 - [x] Fix Color coding toggle option not persisting. 
+- [x] Fix Jump-To Button slide animation glitch
 
 ### Admin Features
 - [x] Add ability to filter by active in collection list
@@ -120,6 +158,9 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [x] Add an archive track button in addition to Hide. Hide means it is hidden from display, but will still play during Full Album Play. Archive means it will not play or display.
 - [x] Add Upload new custom image feature to edit album modal. 
 - [x] Add ability to upload Playlists as albums. 
+- [x] Add back ability to create a new Collection 
+- [x] Add ability to edit a collection 
+
 
 
 ### Database Updates
@@ -144,10 +185,9 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [x] Add a Various Artists Checkbox.  
 
 ### Auth and Login
-- [ ] create User table and connect to collection (maybe albums)
-- [ ] Create User roles -> admin / listener
-- [ ] Create Auth and Login 
-- [ ] Explore OAuth Options (Spotify / Tidal / Apple Music / Google)
+- [x] create User table and connect to collection (maybe albums)
+- [x] Create User roles -> admin / listener
+- [x] Create Auth and Login 
 
 ### Playback Features
 - [x] Implement random play feature that are triggered by "H" button on keypad. 
@@ -178,7 +218,7 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [x] Update Card Sliders to make them look like "Card Holders" seen on NSM Jukeboxes
 - [x] Add a "scotch-tape" overlay to random cards. 
 - [x] Add Label Maker effect to Section Jump-To buttons
-- [ ] Enhance carousel slider animations for smoother transitions
+- [x] Enhance carousel slider animations for smoother transitions
 
 ### UI Features
 - [x] Setup edit mode in the carousel for quick album management
@@ -196,15 +236,16 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [ ] Put Admin content behind protected routes. 
 
 ### Integration & Infrastructure
-- [ ] Add ability to add playlist folders as albums
+- [x] Add ability to add playlist folders as albums
 - [ ] Move music library to network harddrive and ensure compatibility.
 
 ## Spotify Integration
-- [ ] Implement Spotify integration for playback, syncing database and cover art metadata. 
-- [ ] Write Python script for matching spotify URLS or ids with Albums in Database
-- [ ] Add feature in Admin UI for adding albums and Playlists to Database. 
-- [ ] Add basic Spotify Authorization for Jukebox playblack. 
-- [ ] And then add Spotify Authorization for Admin account creation, for accessing
+- [x] Admin: Connect Spotify, store tokens; Sync saved albums modal; Add by URL for album/playlist
+- [x] Add feature in Admin UI for adding albums and Playlists to Database (Sync from Spotify, Add by URL)
+- [x] Spotify Authorization for Admin (Connect Spotify, tokens stored per user)
+- [x] Add basic Spotify Authorization for Jukebox playback (listener OAuth + Web Playback SDK)
+- [x] Implement full Spotify integration for syncing database and cover art metadata (beyond Add by URL / saved albums)
+- [x] Write Python script for matching spotify URLS or ids with Albums in Database
 
 ### Tidal-dl-ng Helpers
 - [ ] Add ability write to cfg of tidal-ng-dl to make sure that file configs and download settings get set properly. 
@@ -238,8 +279,8 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 ### Phase 4: Hosted Demo
 - [ ] Multi-user support
 - [ ] Cloud deployment
-- [ ] Spotify/Tidal/Apple-Music integration
-- [ ] Admin user signup for creating a custom Jukebox
+- [x] Spotify integration
+- [x] Admin user signup for creating a custom Jukebox
 
 ## Disclaimer
 
