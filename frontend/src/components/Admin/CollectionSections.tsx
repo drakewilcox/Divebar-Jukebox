@@ -13,6 +13,7 @@ type AlbumInOrder = {
   title: string;
   artist: string;
   cover_art_path?: string | null;
+  spotify_image_url?: string | null;
   is_playlist?: boolean;
   display_number?: number;
 };
@@ -113,7 +114,7 @@ export default function CollectionSections({ collection, albums = [] }: Props) {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['collections'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-collections'] });
     },
   });
 
@@ -218,26 +219,29 @@ export default function CollectionSections({ collection, albums = [] }: Props) {
     [sortedSections, albumCount]
   );
 
+  const moveBoundaryRef = useRef(moveBoundary);
+  moveBoundaryRef.current = moveBoundary;
+
   useEffect(() => {
     if (draggingBoundary === null) return;
+    const albumRowClass = styles['collection-sections-album-row'];
     const onMove = (e: MouseEvent) => {
       const tbody = tableBodyRef.current;
       if (!tbody) return;
-      const rows = tbody.querySelectorAll<HTMLTableRowElement>('tr.collection-sections-album-row');
+      const rows = tbody.querySelectorAll<HTMLTableRowElement>(`tr.${albumRowClass}`);
       const y = e.clientY;
       for (let i = 0; i < rows.length; i++) {
         const rect = rows[i].getBoundingClientRect();
         if (y >= rect.top && y <= rect.bottom) {
           const slot = parseInt(rows[i].getAttribute('data-slot') ?? '1', 10);
-          moveBoundary(draggingBoundary, slot);
+          moveBoundaryRef.current(draggingBoundary, slot);
           return;
         }
       }
-      // clamp to first or last slot if above/below table
       const first = rows[0];
       const last = rows[rows.length - 1];
-      if (first && y < first.getBoundingClientRect().top) moveBoundary(draggingBoundary, 1);
-      else if (last && y > last.getBoundingClientRect().bottom) moveBoundary(draggingBoundary, albumCount);
+      if (first && y < first.getBoundingClientRect().top) moveBoundaryRef.current(draggingBoundary, 1);
+      else if (last && y > last.getBoundingClientRect().bottom) moveBoundaryRef.current(draggingBoundary, albumCount);
     };
     const onUp = () => setDraggingBoundary(null);
     document.addEventListener('mousemove', onMove);
@@ -248,7 +252,7 @@ export default function CollectionSections({ collection, albums = [] }: Props) {
       document.removeEventListener('mouseup', onUp);
       document.removeEventListener('mouseleave', onUp);
     };
-  }, [draggingBoundary, albumCount, moveBoundary]);
+  }, [draggingBoundary, albumCount]);
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -410,9 +414,9 @@ export default function CollectionSections({ collection, albums = [] }: Props) {
                             ) : null}
                             <td className={styles['collection-sections-slot-cell']}>{slot}</td>
                             <td className={styles['collection-sections-cover-cell']}>
-                              {album.cover_art_path && getMediaUrl(album.cover_art_path, album.is_playlist) ? (
+                              {(getMediaUrl(album.cover_art_path, album.is_playlist) ?? album.spotify_image_url) ? (
                                 <img
-                                  src={getMediaUrl(album.cover_art_path, album.is_playlist)!}
+                                  src={getMediaUrl(album.cover_art_path, album.is_playlist) ?? album.spotify_image_url ?? ''}
                                   alt=""
                                   className={styles['collection-sections-cover-img']}
                                 />
@@ -443,7 +447,14 @@ export default function CollectionSections({ collection, albums = [] }: Props) {
                                   
                                   </span>
                                 </td>
-                                <td colSpan={3} className={styles['collection-sections-divider-spacer']}>
+                                <td
+                                  colSpan={3}
+                                  className={styles['collection-sections-divider-spacer']}
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    setDraggingBoundary(sectionIndex);
+                                  }}
+                                >
                                   <div className={styles['collection-sections-divider-spacer-inner']}>
                                     <div
                                       className={styles['collection-sections-divider-spacer-top']}

@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { MdOutlineSync, MdOutlineCleaningServices, MdOutlineQueueMusic, MdEdit, MdArchive, MdUnarchive, MdMusicNote } from 'react-icons/md';
-import { adminApi, getMediaUrl } from '../../services/api';
+import { MdOutlineSync, MdOutlineCleaningServices, MdOutlineQueueMusic, MdEdit, MdArchive, MdUnarchive, MdDelete, MdMusicNote } from 'react-icons/md';
+import { adminApi, configApi, getMediaUrl } from '../../services/api';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { filterAndSortAlbums, type AlbumSortOption } from '../../utils/albumListFilter';
 import AlbumEditModal from './AlbumEditModal';
+import ConfirmModal from '../ConfirmModal';
+import SpotifySync from './SpotifySync';
 import styles from './LibraryScanner.module.css'
 import clsx from 'clsx';
 
@@ -16,8 +18,23 @@ export default function LibraryScanner() {
   const [displayLimit, setDisplayLimit] = useState(INFINITE_SCROLL_PAGE_SIZE);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<AlbumSortOption>('artist_asc');
+  const [sanitizeConfirmOpen, setSanitizeConfirmOpen] = useState(false);
+  const [sanitizeSuccessOpen, setSanitizeSuccessOpen] = useState(false);
+  const [sanitizeSuccessMessage, setSanitizeSuccessMessage] = useState('');
+  const [deleteAlbumId, setDeleteAlbumId] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
+
+  const { data: config } = useQuery({
+    queryKey: ['config'],
+    queryFn: async () => {
+      const res = await configApi.getConfig();
+      return res.data;
+    },
+    retry: false,
+  });
+  const enableLocalLibrary =
+    config?.enable_local_library ?? (import.meta.env.VITE_ENABLE_LOCAL_FILES === 'false' ? false : true);
 
   const { data: albums } = useQuery({
     queryKey: ['admin-albums'],
@@ -46,7 +63,13 @@ export default function LibraryScanner() {
   const sanitizeMutation = useMutation({
     mutationFn: () => adminApi.sanitizeTracks(),
     onSuccess: (response) => {
-      alert(`Sanitized ${response.data.updated_count} of ${response.data.total_tracks} track titles`);
+      const albumsMsg = response.data.updated_albums != null
+        ? `${response.data.updated_albums} album(s) and `
+        : '';
+      setSanitizeSuccessMessage(
+        `Sanitized ${albumsMsg}${response.data.updated_count} of ${response.data.total_tracks} track titles.`
+      );
+      setSanitizeSuccessOpen(true);
       queryClient.invalidateQueries({ queryKey: ['admin-albums'] });
     },
   });
@@ -59,10 +82,22 @@ export default function LibraryScanner() {
     },
   });
 
-  const filteredSortedAlbums = useMemo(
-    () => (albums ? filterAndSortAlbums(albums, searchQuery, sortBy) : []),
-    [albums, searchQuery, sortBy]
-  );
+  const deleteAlbumMutation = useMutation({
+    mutationFn: (id: string) => adminApi.deleteAlbum(id),
+    onSuccess: () => {
+      setDeleteAlbumId(null);
+      queryClient.invalidateQueries({ queryKey: ['admin-albums'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-collections'] });
+    },
+  });
+
+  const filteredSortedAlbums = useMemo(() => {
+    const sourceFiltered = (albums ?? []).filter((a: any) => {
+      const isSpotify = String(a.file_path ?? '').startsWith('spotify/');
+      return enableLocalLibrary ? !isSpotify : isSpotify;
+    });
+    return filterAndSortAlbums(sourceFiltered, searchQuery, sortBy);
+  }, [albums, searchQuery, sortBy, enableLocalLibrary]);
 
   useEffect(() => {
     setDisplayLimit(INFINITE_SCROLL_PAGE_SIZE);
@@ -88,6 +123,8 @@ export default function LibraryScanner() {
 
   return (
     <div className={styles['library-scanner']}>
+      {!enableLocalLibrary && <SpotifySync />}
+      {enableLocalLibrary && (
       <div className={styles['scanner-section']}>
         <h2>Library Scanner</h2>
         <p>Scan your music library to import new albums. Albums already in the database (matched by folder path) are skipped so your edits and custom track settings are not overwritten.</p>
@@ -112,20 +149,6 @@ export default function LibraryScanner() {
               title="Scan Playlists"
             >
               <MdOutlineQueueMusic size={22} />
-            </button>
-          </span>
-          <span className={styles['admin-tooltip-wrap']} data-tooltip="Clean Track Titles">
-            <button
-              className={styles['sanitize-button']}
-              onClick={() => {
-                if (confirm('This will remove remaster annotations like "(2014 Remaster)" from all track titles. Continue?')) {
-                  sanitizeMutation.mutate();
-                }
-              }}
-              disabled={sanitizeMutation.isPending}
-              aria-label="Clean Track Titles"
-            >
-              <MdOutlineCleaningServices size={22} />
             </button>
           </span>
         </div>
@@ -171,10 +194,27 @@ export default function LibraryScanner() {
           </div>
         )}
       </div>
+      )}
       
       <div className={styles['scanner-section']}>
-        <h2>Albums in Database</h2>
-        <p>Total albums: {albums?.length || 0} {albums && albums.filter((a: any) => !a.archived).length !== albums.length && `(${albums.filter((a: any) => !a.archived).length} active)`}</p>
+        <div className={styles['albums-section-header']}>
+          <div className={styles['albums-section-title-block']}>
+            <h2>Albums in Database</h2>
+            <p className={styles['albums-section-total']}>Total albums: {albums?.length || 0} {albums && albums.filter((a: any) => !a.archived).length !== albums.length && `(${albums.filter((a: any) => !a.archived).length} active)`}</p>
+          </div>
+          <span className={styles['albums-section-sanitize-wrap']}>
+            <span className={styles['admin-tooltip-wrap']} data-tooltip="Clean album and track titles">
+              <button
+                className={styles['sanitize-button']}
+                onClick={() => setSanitizeConfirmOpen(true)}
+                disabled={sanitizeMutation.isPending}
+                aria-label="Clean titles"
+              >
+                <MdOutlineCleaningServices size={22} />
+              </button>
+            </span>
+          </span>
+        </div>
 
         {albums && albums.length > 0 && (
           <>
@@ -211,16 +251,16 @@ export default function LibraryScanner() {
               {filteredSortedAlbums.slice(0, displayLimit).map((album: any) => (
                 <div key={album.id} className={clsx(styles['album-item'], album.archived && styles['archived'])}>
                   <div className={styles['album-item-cover']}>
-                    {album.cover_art_path && getMediaUrl(album.cover_art_path, album.is_playlist) ? (
-                      <img
-                        src={getMediaUrl(album.cover_art_path, album.is_playlist)!}
-                        alt={`${album.title} cover`}
-                      />
-                    ) : (
-                      <div className={styles['album-item-cover-placeholder']} aria-hidden>
-                        <MdMusicNote size={28} />
-                      </div>
-                    )}
+                    {(() => {
+                      const src = getMediaUrl(album.cover_art_path, album.is_playlist) ?? album.spotify_image_url ?? null;
+                      return src ? (
+                        <img src={src} alt={`${album.title} cover`} />
+                      ) : (
+                        <div className={styles['album-item-cover-placeholder']} aria-hidden>
+                          <MdMusicNote size={28} />
+                        </div>
+                      );
+                    })()}
                   </div>
                   <div className={styles['album-item-info']}>
                     <div className={styles['album-item-title']}>
@@ -228,7 +268,9 @@ export default function LibraryScanner() {
                       {album.archived && <span className={styles['archived-badge']}>Archived</span>}
                     </div>
                     <div className={styles['album-item-artist']}>{album.artist}</div>
-                    <div className={styles['album-item-path']}>{album.file_path}</div>
+                    {!String(album.file_path ?? '').startsWith('spotify/') && (
+                      <div className={styles['album-item-path']}>{album.file_path}</div>
+                    )}
                   </div>
                   <div className={styles['album-item-stats']}>
                     <span>{album.total_tracks} tracks</span>
@@ -254,6 +296,16 @@ export default function LibraryScanner() {
                         {album.archived ? <MdUnarchive size={20} /> : <MdArchive size={20} />}
                       </button>
                     </span>
+                    <span className={styles['admin-tooltip-wrap']} data-tooltip="Delete">
+                      <button
+                        className={styles['delete-button']}
+                        onClick={() => setDeleteAlbumId(album.id)}
+                        disabled={deleteAlbumMutation.isPending}
+                        aria-label="Delete album from database"
+                      >
+                        <MdDelete size={20} />
+                      </button>
+                    </span>
                   </div>
                 </div>
               ))}
@@ -271,6 +323,65 @@ export default function LibraryScanner() {
             albumId={editingAlbumId}
             onClose={() => setEditingAlbumId(null)}
           />
+        )}
+
+        <ConfirmModal
+          isOpen={sanitizeConfirmOpen}
+          message="This will remove remaster annotations (e.g. &quot;(2014 Remaster)&quot;) from all album and track titles. Continue?"
+          cancelButtonText="Cancel"
+          confirmButtonText="Continue"
+          onCancel={() => setSanitizeConfirmOpen(false)}
+          onConfirm={() => {
+            setSanitizeConfirmOpen(false);
+            sanitizeMutation.mutate();
+          }}
+        />
+
+        {deleteAlbumId && (() => {
+          const album = filteredSortedAlbums.find((a: { id: string }) => a.id === deleteAlbumId);
+          const label = album ? `${album.artist} – ${album.title}` : 'this album';
+          return (
+            <ConfirmModal
+              isOpen={true}
+              message={`Permanently delete ${label} from the database? This will remove the album and all its tracks from every collection. This cannot be undone.`}
+              cancelButtonText="Cancel"
+              confirmButtonText="Delete"
+              confirmVariant="danger"
+              onCancel={() => setDeleteAlbumId(null)}
+              onConfirm={() => {
+                if (deleteAlbumMutation.isPending) return;
+                deleteAlbumMutation.mutate(deleteAlbumId);
+              }}
+            />
+          );
+        })()}
+
+        {sanitizeSuccessOpen && (
+          <div
+            className={styles['result-modal-overlay']}
+            onClick={() => setSanitizeSuccessOpen(false)}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="sanitize-result-message"
+          >
+            <div
+              className={styles['result-modal']}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <p id="sanitize-result-message" className={styles['result-modal-message']}>
+                {sanitizeSuccessMessage}
+              </p>
+              <div className={styles['result-modal-actions']}>
+                <button
+                  type="button"
+                  className={styles['result-modal-ok']}
+                  onClick={() => setSanitizeSuccessOpen(false)}
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>

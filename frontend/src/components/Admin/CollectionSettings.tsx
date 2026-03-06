@@ -7,9 +7,10 @@ import JukeboxSettingsPanel from '../JukeboxSettingsPanel';
 
 type Props = {
   collection: Collection | null;
+  enableLocalLibrary?: boolean;
 };
 
-export default function CollectionSettings({ collection }: Props) {
+export default function CollectionSettings({ collection, enableLocalLibrary = true }: Props) {
   const queryClient = useQueryClient();
   const [sortOrder, setSortOrder] = useState<'alphabetical' | 'curated'>('curated');
   const [showJumpToBar, setShowJumpToBar] = useState(true);
@@ -160,6 +161,7 @@ export default function CollectionSettings({ collection }: Props) {
         hitButtonMode={hitButtonMode}
         onHitButtonModeChange={setHitButtonMode}
         sectionsEnabledForCollection={sectionsEnabledForCollection}
+        enableLocalLibrary={enableLocalLibrary}
         namePrefix="collection-"
       />
 

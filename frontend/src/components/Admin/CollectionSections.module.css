@@ -381,6 +381,8 @@
   border-bottom: 2px dashed var(--border-color);
   background-color: var(--background-dark);
   vertical-align: middle;
+  cursor: ns-resize;
+  user-select: none;
 }
 
 .collection-sections-divider-spacer-inner {

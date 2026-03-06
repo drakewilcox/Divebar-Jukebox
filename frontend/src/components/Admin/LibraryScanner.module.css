@@ -78,6 +78,13 @@
   transform: translateX(0) translateY(6px);
 }
 
+/* Single button (e.g. Clean titles): show tooltip extending to the right */
+.scanner-buttons .admin-tooltip-wrap:only-child::after {
+  left: 0;
+  right: auto;
+  transform: translateX(0) translateY(6px);
+}
+
 /* In album list, show tooltip below so it isn't clipped by overflow */
 .album-item-actions .admin-tooltip-wrap::after {
   bottom: auto;
@@ -205,6 +212,36 @@
   border-left: 3px solid #ff0000;
   font-size: 0.9rem;
   color: var(--text-secondary);
+}
+
+.albums-section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.albums-section-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.albums-section-sanitize-wrap {
+  margin-left: auto;
+}
+
+.albums-section-header h2 {
+  margin: 0;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.albums-section-total {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
 }
 
 .albums-list-toolbar {
@@ -432,5 +469,85 @@
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
+}
+
+.delete-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  font-size: 0.9rem;
+  border-radius: 6px;
+  transition: all 0.2s;
+  background-color: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+.delete-button:hover:not(:disabled) {
+  background-color: rgba(220, 53, 69, 0.15);
+  border-color: #dc3545;
+  color: #dc3545;
+  transform: translateY(-1px);
+}
+
+.delete-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Sanitize success / result modal (matches other warning modals) */
+.result-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.result-modal {
+  background-color: var(--background-card);
+  border-radius: 12px;
+  max-width: 440px;
+  width: 90%;
+  padding: 1.5rem 1.75rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+}
+
+.result-modal-message {
+  margin: 0 0 1.5rem 0;
+  color: var(--text-primary);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.result-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.result-modal-ok {
+  padding: 0.6rem 1.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #000;
+  background-color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.result-modal-ok:hover {
+  background-color: #e8e8e8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
