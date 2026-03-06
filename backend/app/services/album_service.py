@@ -7,6 +7,7 @@ from app.models.album import Album
 from app.models.track import Track
 from app.utils.metadata_extractor import MetadataExtractor
 from app.utils.playlist_scanner import scan_playlists
+from app.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -24,10 +25,9 @@ class AlbumService:
         self.db = db
         self.metadata_extractor = MetadataExtractor()
     
-    def scan_and_import_library(self) -> dict:
+    def scan_and_import_library(self, user_id: str = None) -> dict:
         """
-        Scan music library and import all albums
-        
+        Scan music library and import all albums. If user_id is set, new albums are assigned to that user.
         Returns:
             Dictionary with scan results (counts, errors, etc.)
         """
@@ -61,7 +61,7 @@ class AlbumService:
                         logger.debug(f"Refreshed file metadata: {album_data['file_path']}")
                     else:
                         # New album: import
-                        self._create_album_from_data(album_data)
+                        self._create_album_from_data(album_data, user_id=user_id)
                         results['albums_imported'] += 1
                         results['tracks_imported'] += len(album_data.get('tracks', []))
                         logger.info(f"Imported album: {album_data['artist']} - {album_data['title']}")
@@ -83,10 +83,10 @@ class AlbumService:
         
         return results
 
-    def scan_and_import_playlists(self) -> dict:
+    def scan_and_import_playlists(self, user_id: str = None) -> dict:
         """
         Scan Playlists folder and import each subfolder as an album (various_artists, is_playlist).
-        Uses same result shape as scan_and_import_library. Existing playlist albums matched by file_path are updated (refresh only); new ones are imported.
+        If user_id is set, new albums are assigned to that user.
         """
         logger.info("Starting playlist scan...")
         results = {
@@ -112,7 +112,7 @@ class AlbumService:
                         results['albums_updated'] += 1
                         logger.debug("Refreshed playlist: %s", album_data['file_path'])
                     else:
-                        self._create_album_from_data(album_data)
+                        self._create_album_from_data(album_data, user_id=user_id)
                         results['albums_imported'] += 1
                         results['tracks_imported'] += len(album_data.get('tracks', []))
                         logger.info("Imported playlist: %s", album_data['title'])
@@ -130,18 +130,17 @@ class AlbumService:
             results['errors'].append(error_msg)
         return results
     
-    def _create_album_from_data(self, album_data: dict) -> Album:
+    def _create_album_from_data(self, album_data: dict, user_id: str = None) -> Album:
         """
-        Create a new album from metadata
-        
+        Create a new album from metadata.
         Args:
             album_data: Album metadata dictionary
-            
+            user_id: Optional owner user ID
         Returns:
             Created Album instance
         """
-        # Create album
         album = Album(
+            user_id=user_id,
             file_path=album_data['file_path'],
             title=album_data['title'],
             artist=album_data['artist'],
@@ -273,18 +272,20 @@ class AlbumService:
         """
         return self.db.query(Album).filter(Album.file_path == file_path).first()
     
-    def get_all_albums(self, limit: int = 1000, offset: int = 0) -> List[Album]:
+    def get_all_albums(self, limit: int = 1000, offset: int = 0, user_id: str = None) -> List[Album]:
         """
-        Get all albums with pagination
-        
-        Args:
-            limit: Maximum number of albums to return
-            offset: Number of albums to skip
-            
-        Returns:
-            List of Album instances
+        Get all albums with pagination, filtered by source mode.
+        Local mode (enable_local_library=True): only albums whose file_path does NOT start with 'spotify/'.
+        Spotify mode (enable_local_library=False): only albums whose file_path starts with 'spotify/'.
         """
-        return self.db.query(Album).order_by(Album.artist, Album.title).limit(limit).offset(offset).all()
+        q = self.db.query(Album).order_by(Album.artist, Album.title)
+        if user_id is not None:
+            q = q.filter(Album.user_id == user_id)
+        if settings.enable_local_library:
+            q = q.filter(~Album.file_path.startswith('spotify/'))
+        else:
+            q = q.filter(Album.file_path.startswith('spotify/'))
+        return q.limit(limit).offset(offset).all()
     
     def delete_album(self, album_id: str) -> bool:
         """

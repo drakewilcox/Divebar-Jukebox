@@ -28,44 +28,64 @@ class CollectionService:
         self.db = db
         self.config_dir = Path(settings.collections_config_dir)
     
-    def create_collection(self, name: str, slug: str, description: str = None) -> Collection:
+    def create_collection(self, name: str, slug: str, description: str = None, user_id: str = None, source: str = 'local') -> Collection:
         """
-        Create a new collection
-        
+        Create a new collection.
+
         Args:
             name: Collection display name
-            slug: URL-safe slug
+            slug: URL-safe slug (unique per user)
             description: Optional description
-            
+            user_id: Owner user ID (required)
+
         Returns:
             Created Collection instance
         """
-        # Check if slug already exists
-        existing = self.db.query(Collection).filter(Collection.slug == slug).first()
+        if not user_id:
+            raise ValueError("user_id is required")
+
+        if source not in ('local', 'spotify'):
+            raise ValueError("source must be 'local' or 'spotify'")
+
+        existing = self.db.query(Collection).filter(
+            Collection.user_id == user_id,
+            Collection.slug == slug,
+            Collection.source == source,
+        ).first()
         if existing:
-            raise ValueError(f"Collection with slug '{slug}' already exists")
-        
+            raise ValueError(f"A {source} collection with slug '{slug}' already exists for this user")
+
         collection = Collection(
+            user_id=user_id,
             name=name,
             slug=slug,
             description=description,
-            is_active=True
+            is_active=True,
+            published=False,
+            source=source,
         )
-        
         self.db.add(collection)
         self.db.commit()
-        
-        logger.info(f"Created collection: {name} ({slug})")
+        logger.info(f"Created collection: {name} ({slug}) for user {user_id}")
         return collection
     
-    def update_collection(self, collection_id: str, name: str = None, slug: str = None, description: str = None, is_active: bool = None) -> Optional[Collection]:
+    def update_collection(
+        self,
+        collection_id: str,
+        name: str = None,
+        slug: str = None,
+        description: str = None,
+        is_active: bool = None,
+        published: bool = None,
+        source: str = None,
+    ) -> Optional[Collection]:
         """
-        Update a collection
+        Update a collection.
 
         Args:
             collection_id: Collection UUID
             name: New name (optional)
-            slug: New URL-safe slug (optional)
+            slug: New URL-safe slug (optional; unique per user)
             description: New description (optional)
             is_active: Active status (optional)
 
@@ -79,15 +99,26 @@ class CollectionService:
         if name is not None:
             collection.name = name
         if slug is not None:
+            effective_source = source if source is not None else collection.source
             if slug != collection.slug:
-                existing = self.db.query(Collection).filter(Collection.slug == slug).first()
+                existing = self.db.query(Collection).filter(
+                    Collection.user_id == collection.user_id,
+                    Collection.slug == slug,
+                    Collection.source == effective_source,
+                ).first()
                 if existing:
-                    raise ValueError(f"Collection with slug '{slug}' already exists")
+                    raise ValueError(f"A {effective_source} collection with slug '{slug}' already exists for this user")
             collection.slug = slug
         if description is not None:
             collection.description = description
         if is_active is not None:
             collection.is_active = is_active
+        if published is not None and hasattr(collection, "published"):
+            collection.published = bool(published)
+        if source is not None:
+            if source not in ('local', 'spotify'):
+                raise ValueError("source must be 'local' or 'spotify'")
+            collection.source = source
 
         self.db.commit()
         logger.info(f"Updated collection: {collection.name}")
@@ -279,34 +310,77 @@ class CollectionService:
         
         logger.info(f"Recalculated display numbers for collection {collection_id}: {len(collection_albums)} albums")
     
-    def get_collection_by_slug(self, slug: str) -> Optional[Collection]:
+    def get_collection_by_slug(self, slug: str, user_id: str = None) -> Optional[Collection]:
         """
-        Get collection by slug
-        
-        Args:
-            slug: Collection slug
-            
-        Returns:
-            Collection instance or None
+        Get collection by slug filtered by the active source mode.
+        If user_id given, match by (user_id, slug, source); else legacy global slug (single owner).
         """
-        return self.db.query(Collection).filter(Collection.slug == slug).first()
+        active_source = 'local' if settings.enable_local_library else 'spotify'
+        if user_id is not None:
+            return self.db.query(Collection).filter(
+                Collection.user_id == user_id,
+                Collection.slug == slug,
+                Collection.source == active_source,
+            ).first()
+        return self.db.query(Collection).filter(
+            Collection.slug == slug,
+            Collection.source == active_source,
+        ).first()
+
+    def get_collection_by_user_slug_and_collection_slug(self, user_slug: str, collection_slug: str) -> Optional[Collection]:
+        """Get collection by owner's user slug and collection slug, filtered by active source mode."""
+        from app.models.user import User
+        active_source = 'local' if settings.enable_local_library else 'spotify'
+        user = self.db.query(User).filter(User.slug == user_slug).first()
+        if not user:
+            return None
+        return self.db.query(Collection).filter(
+            Collection.user_id == user.id,
+            Collection.slug == collection_slug,
+            Collection.source == active_source,
+        ).first()
+
+    def get_all_collections(self, user_id: str = None) -> List[Collection]:
+        """
+        Get collections filtered by active source mode (local vs spotify).
+        The virtual 'all' collection (slug='all') is excluded — it is handled specially by the API layer.
+        """
+        active_source = 'local' if settings.enable_local_library else 'spotify'
+        q = self.db.query(Collection).filter(
+            Collection.is_active == True,
+            Collection.slug != 'all',
+            Collection.source == active_source,
+        )
+        if user_id is not None:
+            q = q.filter(Collection.user_id == user_id)
+        return q.all()
+
+    def get_collections_for_user_slug(self, user_slug: str, include_private: bool = False) -> List[Collection]:
+        """Get collections for public jukebox listing, filtered by active source mode.
+        The virtual 'all' collection is excluded — callers that need it handle it separately."""
+        from app.models.user import User
+        active_source = 'local' if settings.enable_local_library else 'spotify'
+        user = self.db.query(User).filter(User.slug == user_slug).first()
+        if not user:
+            return []
+        q = self.db.query(Collection).filter(
+            Collection.user_id == user.id,
+            Collection.is_active == True,
+            Collection.slug != 'all',
+            Collection.source == active_source,
+        )
+        if not include_private:
+            q = q.filter(Collection.published == True)
+        return q.order_by(Collection.name).all()
     
-    def get_all_collections(self) -> List[Collection]:
+    def get_collection_albums(self, collection_id: str, include_tracks: bool = False, only_spotify: bool = False) -> List[dict]:
         """
-        Get all active collections
-        
-        Returns:
-            List of Collection instances
-        """
-        return self.db.query(Collection).filter(Collection.is_active == True).all()
-    
-    def get_collection_albums(self, collection_id: str, include_tracks: bool = False) -> List[dict]:
-        """
-        Get all albums in a collection with display numbers
+        Get all albums in a collection with display numbers.
         
         Args:
             collection_id: Collection UUID
             include_tracks: Whether to include track information
+            only_spotify: When True, only include albums that have spotify_id (for cloud-only mode)
             
         Returns:
             List of album dictionaries with display numbers
@@ -319,6 +393,8 @@ class CollectionService:
         for ca in collection_albums:
             if not ca.album or ca.album.archived:
                 continue
+            if only_spotify and not getattr(ca.album, "spotify_id", None):
+                continue
             
             album_dict = {
                 'id': ca.album.id,
@@ -326,6 +402,7 @@ class CollectionService:
                 'title': ca.album.title,
                 'artist': ca.album.artist,
                 'cover_art_path': ca.album.custom_cover_art_path or ca.album.cover_art_path,
+                'spotify_image_url': getattr(ca.album, 'spotify_image_url', None),
                 'year': ca.album.year,
                 'total_tracks': ca.album.total_tracks,
                 'has_multi_disc': ca.album.has_multi_disc,
