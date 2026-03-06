@@ -9,24 +9,25 @@ A retro-style digital jukebox application that replicates the look and feel of 9
 ### Admin Features
 - **Local FLAC File Support**: Play high-quality FLAC files from a local library
 - **Spotify Sync**: Includes tools and scripts for building JSON files and scripts of your Saved Music on Spotify and Tidal to be easily used with solutions like tital-dl-ng and SpotiFLAC if desired. 
+- **Spotify Integration**: Syncs database with album and track data from Spotify for optional playback through Spotify web api (for deployed version only).
 - **Library Scan**: Scans and updates local music library and updates SQL database, so that all Display data for Albums and Tracks can be edited while file metadata goes unchanged. 
 - **Multi-Collection Management**: Create multiple jukebox Collections, that can feature a different set of Albums
 - **Flexible Album Numbering**: Dynamic display numbers (001-999) based on sort order
-- **Selective Track Inclusion**: Each album shown in the Jukbox can be edited so that only selected tracks display.
+- **Customizable Ordering, and Color Coded Sections**: Albums in a collection can be put in a custom order, and given specific slot placement. Albums can also be put into sections for easy jump-to navigation with custom color coding. 
+- **Selective Track Inclusion**: Each album shown in the Jukebox can be edited so that only selected tracks display, and individual tracks can be archived to prevent playback during full album play. 
 - **Favorites and Recommendations**: Songs can be marked as "Favorite" or "Recommended", to be displayed to the user on info cards while searching for songs. Songs marked as "Favorite" will also be included in Autoplay feature. 
 - **Edit Modal Track Player**: Admin users can listen to individual tracks and use progress bar to preview different sections of songs while choosing favorites and selecting songs. 
 
 ### User Interface / Jukebox View
 - **Jukebox View**: The main jukebox view is built to be used on Horizontal iPad Screens, Desktops, or touch screen interfaces. 
-- **Controls** The UX is intended to replicate the simplicity, and primitive controls of a vintage jukebox. With left/right arrow keys for flipping through Cards, and a pop out number pad for selecting songs for the Queue. 
+- **Controls** The UX is intended to replicate the simplicity, and primitive controls of a vintage jukebox. With left/right arrow keys for flipping through Cards, and a pop out number pad for selecting songs for the Queue on touch screen devices. 
 
 
 ## Architecture
 - **Backend**: Python FastAPI with SQLite database
 - **Frontend**: React + TypeScript + Vite
 - **Music Sources**: Local FLAC files (Spotify/Tidal support planned)
-- **Deployment**: Local web app, Raspberry Pi standalone (future), hosted demo (future)
-
+- **Deployment**: Local web app for at home use with iPad, hosted demo (in development), Raspberry Pi standalone (future)
 
 ## Getting Started
 
