@@ -20,6 +20,9 @@ export interface Collection {
   slug: string;
   description: string | null;
   is_active: boolean;
+  published?: boolean;
+  source?: 'local' | 'spotify';
+  user_slug?: string | null;
   sections_enabled?: boolean;
   sections?: CollectionSection[] | null;
   /** Default display settings when viewing this collection in the jukebox */
@@ -39,6 +42,8 @@ export interface Album {
   title: string;
   artist: string;
   cover_art_path: string | null;
+  /** Spotify CDN image URL — present for albums added via Spotify sync; fallback when no local cover */
+  spotify_image_url?: string | null;
   year: number | null;
   total_tracks: number;
   has_multi_disc: boolean;
@@ -78,6 +83,7 @@ export interface QueueItem {
     album_title: string;
     album_artist: string;
     cover_art_path: string | null;
+    spotify_image_url?: string | null;
     is_playlist?: boolean;
     selection_display?: string | null;
     album_id?: string | null;
@@ -100,12 +106,15 @@ export interface PlaybackState {
     album_artist: string;
     album_year: number | null;
     cover_art_path: string | null;
+    spotify_image_url?: string | null;
     is_playlist?: boolean;
     selection_display: string | null;
     album_id?: string | null;
     track_number?: number | null; // 1-based
     /** ReplayGain in dB (e.g. -5.23); null if not present. Applied to normalize loudness. */
     replaygain_track_gain: number | null;
+    /** Spotify track ID when track is linked; used for Web Playback SDK. */
+    spotify_id?: string | null;
   } | null;
 }
 
