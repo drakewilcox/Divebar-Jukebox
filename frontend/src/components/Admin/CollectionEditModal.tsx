@@ -9,6 +9,8 @@ export type CollectionToEdit = {
   name: string;
   slug: string;
   description: string | null;
+  published?: boolean;
+  source?: 'local' | 'spotify';
 };
 
 type Props = {
@@ -25,12 +27,16 @@ export default function CollectionEditModal({ collection, onClose }: Props) {
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [description, setDescription] = useState('');
+  const [published, setPublished] = useState(false);
+  const [source, setSource] = useState<'local' | 'spotify'>('local');
 
   useEffect(() => {
     if (collection) {
       setName(collection.name);
       setSlug(collection.slug);
       setDescription(collection.description ?? '');
+      setPublished(collection.published ?? false);
+      setSource(collection.source ?? 'local');
     }
   }, [collection]);
 
@@ -42,13 +48,24 @@ export default function CollectionEditModal({ collection, onClose }: Props) {
     };
   }, []);
 
+  const isCreate = !collection?.id;
+
+  const createMutation = useMutation({
+    mutationFn: () => adminApi.createCollection(name.trim(), slug.trim(), description.trim() || undefined, source),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['collections'] });
+      onClose();
+    },
+  });
+
   const updateMutation = useMutation({
     mutationFn: () => {
-      if (!collection) return Promise.reject(new Error('No collection'));
-      return adminApi.updateCollection(collection.id, { name, slug, description: description || undefined });
+      if (!collection?.id) return Promise.reject(new Error('No collection'));
+      return adminApi.updateCollection(collection.id, { name, slug, description: description || undefined, published, source });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['collections'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-collections'] });
       onClose();
     },
   });
@@ -56,13 +73,15 @@ export default function CollectionEditModal({ collection, onClose }: Props) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !slug.trim()) return;
-    updateMutation.mutate();
+    if (isCreate) createMutation.mutate();
+    else updateMutation.mutate();
   };
 
   if (!collection) return null;
 
-  const err = updateMutation.error as { response?: { data?: { detail?: string } }; message?: string } | undefined;
-  const errorMessage = updateMutation.isError
+  const mutation = isCreate ? createMutation : updateMutation;
+  const err = mutation.error as { response?: { data?: { detail?: string } }; message?: string } | undefined;
+  const errorMessage = mutation.isError
     ? (err?.response?.data?.detail ?? err?.message ?? 'Failed to save')
     : null;
 
@@ -75,7 +94,7 @@ export default function CollectionEditModal({ collection, onClose }: Props) {
         aria-labelledby="collection-edit-modal-title"
       >
         <div className={styles['collection-edit-modal-header']}>
-          <h2 id="collection-edit-modal-title">Edit Collection</h2>
+          <h2 id="collection-edit-modal-title">{isCreate ? 'Add Collection' : 'Edit Collection'}</h2>
           <button
             type="button"
             className={styles['collection-edit-modal-close']}
@@ -96,7 +115,7 @@ export default function CollectionEditModal({ collection, onClose }: Props) {
                 setName(e.target.value);
                 setSlug(generateSlug(e.target.value));
               }}
-              placeholder="e.g., Dad Rock Jukebox"
+              placeholder="Name your collection..."
               autoFocus
             />
           </div>
@@ -107,7 +126,7 @@ export default function CollectionEditModal({ collection, onClose }: Props) {
               type="text"
               value={slug}
               onChange={(e) => setSlug(e.target.value)}
-              placeholder="e.g., dad-rock"
+              placeholder="Url Slug for Collection..."
             />
           </div>
           <div className={styles['collection-edit-form-group']}>
@@ -117,9 +136,22 @@ export default function CollectionEditModal({ collection, onClose }: Props) {
               type="text"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="e.g., Classic rock for dads"
+              placeholder="Optional Description..."
             />
           </div>
+          {!isCreate && (
+            <div className={styles['collection-edit-form-group']}>
+              <label className={styles['collection-edit-checkbox-label']}>
+                <input
+                  type="checkbox"
+                  checked={published}
+                  onChange={(e) => setPublished(e.target.checked)}
+                  className={styles['collection-edit-checkbox']}
+                />
+                Published
+              </label>
+            </div>
+          )}
           {errorMessage && (
             <p className={styles['collection-edit-error']}>{errorMessage}</p>
           )}
@@ -130,9 +162,9 @@ export default function CollectionEditModal({ collection, onClose }: Props) {
             <button
               type="submit"
               className={styles['collection-edit-submit']}
-              disabled={!name.trim() || !slug.trim() || updateMutation.isPending}
+              disabled={!name.trim() || !slug.trim() || mutation.isPending}
             >
-              {updateMutation.isPending ? 'Saving…' : 'Save'}
+              {mutation.isPending ? (isCreate ? 'Creating…' : 'Saving…') : (isCreate ? 'Create' : 'Save')}
             </button>
           </div>
         </form>

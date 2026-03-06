@@ -29,6 +29,7 @@ class AudioService {
   private currentReplaygainDb: number | null = null;
   private baseVolume = 100;
   private collectionSlug: string | null = null;
+  private userSlug: string | null = null;
   private crossfadeSeconds = 0;
   private crossfadeTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private scheduleFallbackId: ReturnType<typeof setTimeout> | null = null;
@@ -97,9 +98,10 @@ class AudioService {
   /**
    * @param durationMs Optional track duration in ms; used to schedule crossfade when the audio element doesn't report duration (e.g. some streams).
    */
-  loadTrack(trackId: string, replaygainDb?: number | null, collectionSlug?: string | null, durationMs?: number | null) {
+  loadTrack(trackId: string, replaygainDb?: number | null, collectionSlug?: string | null, durationMs?: number | null, userSlug?: string | null) {
     if (this.currentTrackId === trackId && this.currentAudio.src) {
       if (collectionSlug != null) this.collectionSlug = collectionSlug;
+      if (userSlug !== undefined) this.userSlug = userSlug ?? null;
       // After a crossfade we don't reload; reschedule for this track's duration so seek uses the right length
       if (durationMs != null && durationMs > 0) {
         this.scheduledDurationSec = durationMs / 1000;
@@ -116,6 +118,7 @@ class AudioService {
     this.currentTrackId = trackId;
     this.currentReplaygainDb = replaygainDb ?? null;
     if (collectionSlug != null) this.collectionSlug = collectionSlug;
+    if (userSlug !== undefined) this.userSlug = userSlug ?? null;
     if (DEBUG_CROSSFADE) {
       console.log('[crossfade] loadTrack:', { trackId, collectionSlug: this.collectionSlug, durationMs: durationMs ?? 'none' });
     }
@@ -218,7 +221,7 @@ class AudioService {
   private async tryPreloadGapless() {
     if (!this.collectionSlug || this.crossfadeTimeoutId != null) return;
     try {
-      const res = await playbackApi.getNextTransition(this.collectionSlug);
+      const res = await playbackApi.getNextTransition(this.collectionSlug, this.userSlug ?? undefined);
       const data = res.data;
       if (data.apply_crossfade || !data.next_track_id) return;
       if (DEBUG_CROSSFADE) {
@@ -253,7 +256,7 @@ class AudioService {
     this.currentAudio.play().catch((e) => console.error('Gapless play failed:', e));
     if (this.collectionSlug) {
       try {
-        await playbackApi.skip(this.collectionSlug);
+        await playbackApi.skip(this.collectionSlug, this.userSlug ?? undefined);
       } catch (e) {
         console.error('Skip after gapless failed:', e);
       }
@@ -311,7 +314,7 @@ class AudioService {
     if (DEBUG_CROSSFADE) console.log('[crossfade] startCrossfade called, slug=', this.collectionSlug);
     if (!this.collectionSlug) return;
     try {
-      const res = await playbackApi.getNextTransition(this.collectionSlug);
+      const res = await playbackApi.getNextTransition(this.collectionSlug, this.userSlug ?? undefined);
       const data = res.data;
       if (DEBUG_CROSSFADE) {
         console.log('[crossfade] API response:', { next_track_id: data.next_track_id, apply_crossfade: data.apply_crossfade });
@@ -366,7 +369,7 @@ class AudioService {
     this.isCrossfading = false;
     if (this.collectionSlug) {
       try {
-        await playbackApi.skip(this.collectionSlug);
+        await playbackApi.skip(this.collectionSlug, this.userSlug ?? undefined);
       } catch (e) {
         console.error('Skip after crossfade failed:', e);
       }

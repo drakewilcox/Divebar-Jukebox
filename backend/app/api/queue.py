@@ -1,11 +1,26 @@
 """Queue API endpoints"""
+import logging
 import random
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from pydantic import BaseModel
 
 from app.database import get_db
+
+logger = logging.getLogger(__name__)
+
+
+def _safe_selection_display(sel: tuple) -> str | None:
+    """Format (album_display_number, track_number_1based) for display; return None if invalid."""
+    if not sel or len(sel) < 2:
+        return None
+    try:
+        a, b = int(sel[0]), int(sel[1])
+        return f"{a:03d}-{b:02d}"
+    except (TypeError, ValueError):
+        return None
 from app.services.queue_service import QueueService
 from app.services.collection_service import CollectionService
 from app.services.album_service import AlbumService
@@ -22,6 +37,8 @@ class TrackInfo(BaseModel):
     album_title: str
     album_artist: str
     cover_art_path: str | None
+    spotify_image_url: str | None = None  # Spotify album art when no local cover (Spotify mode)
+    is_playlist: bool = False
     selection_display: str | None = None
     album_id: str | None = None  # for frontend to compute selection_display in current sort
     track_number: int | None = None  # 1-based track index in album
@@ -37,6 +54,7 @@ class QueueItemResponse(BaseModel):
 
 class AddToQueueRequest(BaseModel):
     collection: str
+    user_slug: Optional[str] = None  # When set, resolve collection by (user_slug, collection)
     album_number: int
     track_number: int = 0  # 0 means entire album
 
@@ -47,6 +65,7 @@ class ReorderQueueRequest(BaseModel):
 
 class AddFavoritesRandomRequest(BaseModel):
     collection: str
+    user_slug: Optional[str] = None
     count: int = 10
     # 'favorites' | 'favorites-and-recommended' | 'any'
     mode: str = 'favorites'
@@ -56,70 +75,100 @@ class AddFavoritesRandomRequest(BaseModel):
     section_end_slot: Optional[int] = None  # None means "to end of collection"
 
 
-@router.get("", response_model=List[QueueItemResponse])
-def get_queue(collection: str = Query(..., description="Collection slug"), db: Session = Depends(get_db)):
-    """Get current queue for a collection"""
-    collection_service = CollectionService(db)
-    queue_service = QueueService(db)
-    track_service = TrackService(db)
-    album_service = AlbumService(db)
-    
-    # Handle "all" collection
-    if collection == 'all':
-        all_collection_id = '00000000-0000-0000-0000-000000000000'
-        queue_items = queue_service.get_queue(all_collection_id, include_played=False)
-    else:
-        collection_obj = collection_service.get_collection_by_slug(collection)
-        if not collection_obj:
+def _resolve_collection_id(collection_service: CollectionService, collection: str, user_slug: str | None) -> str:
+    """Resolve collection slug (and optional user_slug) to collection_id."""
+    if user_slug:
+        obj = collection_service.get_collection_by_user_slug_and_collection_slug(user_slug, collection)
+        if not obj:
             raise HTTPException(status_code=404, detail=f"Collection '{collection}' not found")
-        
-        queue_items = queue_service.get_queue(collection_obj.id, include_played=False)
-    
-    # Build response with track info: use only database-saved values (track/album rows), not file metadata
-    collection_id = all_collection_id if collection == 'all' else collection_obj.id
-    response = []
-    for item in queue_items:
-        if item.track and item.track.album:
-            album = item.track.album
-            cover = album.custom_cover_art_path or album.cover_art_path
-            selection_display = None
-            track_number_1based = None
-            if collection_id == '00000000-0000-0000-0000-000000000000':
-                all_albums = album_service.get_all_albums(limit=10000)
-                for idx, a in enumerate(all_albums):
-                    if a.id == album.id:
-                        tracks = track_service.get_tracks_by_album(album.id)
-                        for ti, t in enumerate(tracks):
-                            if t.id == item.track.id:
-                                track_number_1based = ti + 1
-                                selection_display = f"{(idx + 1):03d}-{(ti + 1):02d}"
-                                break
-                        break
-            else:
-                sel = collection_service.get_selection_for_track(collection_id, item.track.id)
-                if sel:
-                    track_number_1based = sel[1]
-                    selection_display = f"{sel[0]:03d}-{sel[1]:02d}"
-            response.append({
-                "id": item.id,
-                "position": item.position,
-                "status": item.status.value,
-                "queued_at": item.queued_at.isoformat(),
-                "track": {
-                    "id": item.track.id,
-                    "title": item.track.title,
-                    "artist": item.track.artist,
-                    "duration_ms": item.track.duration_ms,
-                    "album_title": album.title,
-                    "album_artist": album.artist,
-                    "cover_art_path": cover,
-                    "selection_display": selection_display,
-                    "album_id": str(album.id),
-                    "track_number": track_number_1based,
-                }
-            })
-    
-    return response
+        return obj.id
+    if collection == "all":
+        return "00000000-0000-0000-0000-000000000000"
+    obj = collection_service.get_collection_by_slug(collection)
+    if not obj:
+        raise HTTPException(status_code=404, detail=f"Collection '{collection}' not found")
+    return obj.id
+
+
+@router.get("", response_model=List[QueueItemResponse])
+def get_queue(
+    collection: str = Query(..., description="Collection slug"),
+    user_slug: str | None = Query(None, description="Owner user slug (for /:user_slug/:collection_slug)"),
+    db: Session = Depends(get_db),
+):
+    """Get current queue for a collection"""
+    try:
+        collection_service = CollectionService(db)
+        queue_service = QueueService(db)
+        track_service = TrackService(db)
+        album_service = AlbumService(db)
+
+        collection_id = _resolve_collection_id(collection_service, collection, user_slug)
+        queue_items = queue_service.get_queue(collection_id, include_played=False)
+        response = []
+        for item in queue_items:
+            try:
+                if not getattr(item, "track", None) or not getattr(item.track, "album", None):
+                    continue
+                album = item.track.album
+                cover = album.custom_cover_art_path or album.cover_art_path
+                selection_display = None
+                track_number_1based = None
+                if collection_id == '00000000-0000-0000-0000-000000000000':
+                    all_albums = album_service.get_all_albums(limit=10000)
+                    for idx, a in enumerate(all_albums):
+                        if a.id == album.id:
+                            tracks = track_service.get_tracks_by_album(album.id)
+                            for ti, t in enumerate(tracks):
+                                if t.id == item.track.id:
+                                    track_number_1based = ti + 1
+                                    selection_display = f"{(idx + 1):03d}-{(ti + 1):02d}"
+                                    break
+                            break
+                else:
+                    sel = collection_service.get_selection_for_track(collection_id, str(item.track.id))
+                    if sel:
+                        try:
+                            track_number_1based = int(sel[1])
+                        except (TypeError, ValueError):
+                            track_number_1based = None
+                        selection_display = _safe_selection_display(sel)
+                queued_at = getattr(item, "queued_at", None)
+                queued_at_str = queued_at.isoformat() if isinstance(queued_at, datetime) else (str(queued_at) if queued_at else "")
+                try:
+                    position_val = int(item.position) if item.position is not None else 0
+                except (TypeError, ValueError):
+                    position_val = 0
+                response.append({
+                    "id": str(item.id),
+                    "position": position_val,
+                    "status": str(getattr(item.status, "value", item.status)),
+                    "queued_at": queued_at_str,
+                    "track": {
+                        "id": str(item.track.id),
+                        "title": str(item.track.title) if getattr(item.track, "title", None) is not None else "",
+                        "artist": str(item.track.artist) if getattr(item.track, "artist", None) is not None else "",
+                        "duration_ms": int(item.track.duration_ms) if getattr(item.track, "duration_ms", None) is not None else 0,
+                        "album_title": str(album.title) if getattr(album, "title", None) is not None else "",
+                        "album_artist": str(album.artist) if getattr(album, "artist", None) is not None else "",
+                        "cover_art_path": str(cover) if cover is not None else None,
+                        "spotify_image_url": None if getattr(album, "spotify_image_url", None) is None else str(album.spotify_image_url),
+                        "is_playlist": bool(getattr(album, "is_playlist", False)),
+                        "selection_display": str(selection_display) if selection_display is not None else None,
+                        "album_id": str(album.id),
+                        "track_number": int(track_number_1based) if track_number_1based is not None else None,
+                    }
+                })
+            except Exception as item_err:
+                logger.warning("Skipping queue item %s: %s", getattr(item, "id", None), item_err, exc_info=True)
+                continue
+
+        return response
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("get_queue failed")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("")
@@ -129,50 +178,32 @@ def add_to_queue(request: AddToQueueRequest, db: Session = Depends(get_db)):
     queue_service = QueueService(db)
     album_service = AlbumService(db)
     track_service = TrackService(db)
-    
-    # Handle "all" collection differently
-    if request.collection == 'all':
-        # Get all albums, ordered by artist/title
+
+    collection_id = _resolve_collection_id(collection_service, request.collection, request.user_slug)
+    all_collection_id = "00000000-0000-0000-0000-000000000000"
+
+    # When "all" collection: albums come from get_all_albums (no per-user filter for now)
+    if collection_id == all_collection_id:
         all_albums = album_service.get_all_albums(limit=10000)
-        
-        # Find album by display number (1-indexed)
         if request.album_number < 1 or request.album_number > len(all_albums):
-            raise HTTPException(
-                status_code=404,
-                detail=f"Album number {request.album_number} not found in 'All Albums'"
-            )
-        
+            raise HTTPException(status_code=404, detail=f"Album number {request.album_number} not found in 'All Albums'")
         album = all_albums[request.album_number - 1]
-        all_collection_id = '00000000-0000-0000-0000-000000000000'
-        
-        # If track_number is 0, add all tracks from album (including hidden, excluding archived)
         if request.track_number == 0:
             tracks_all = track_service.get_tracks_by_album(album.id, enabled_only=False)
-            track_ids = [t.id for t in tracks_all if not getattr(t, 'archived', False)]
-            count = queue_service.add_album_to_queue(all_collection_id, track_ids)
+            track_ids = [t.id for t in tracks_all if not getattr(t, "archived", False)]
+            count = queue_service.add_album_to_queue(collection_id, track_ids)
             return {"message": f"Added {count} tracks to queue", "count": count}
-        
-        # Otherwise, add specific track by display position (1-indexed)
         tracks = track_service.get_tracks_by_album(album.id)
         if request.track_number < 1 or request.track_number > len(tracks):
-            raise HTTPException(
-                status_code=404,
-                detail=f"Track {request.track_number} not found in album {request.album_number} (album has {len(tracks)} visible tracks)"
-            )
-        
+            raise HTTPException(status_code=404, detail=f"Track {request.track_number} not found in album {request.album_number}")
         track = tracks[request.track_number - 1]
-        queue_item = queue_service.add_to_queue(all_collection_id, track.id)
+        queue_item = queue_service.add_to_queue(collection_id, track.id)
         if not queue_item:
             return {"message": "Already in queue", "already_queued": True}
         return {"message": "Track added to queue", "queue_id": queue_item.id}
-    
-    # Get collection
-    collection_obj = collection_service.get_collection_by_slug(request.collection)
-    if not collection_obj:
-        raise HTTPException(status_code=404, detail=f"Collection '{request.collection}' not found")
-    
-    # Get albums in collection
-    albums = collection_service.get_collection_albums(collection_obj.id, include_tracks=True)
+
+    # Get albums in collection (collection_id already resolved above)
+    albums = collection_service.get_collection_albums(collection_id, include_tracks=True)
     
     # Find album by display number
     album = next((a for a in albums if a['display_number'] == request.album_number), None)
@@ -186,7 +217,7 @@ def add_to_queue(request: AddToQueueRequest, db: Session = Depends(get_db)):
     if request.track_number == 0:
         tracks_all = track_service.get_tracks_by_album(album['id'], enabled_only=False)
         track_ids = [t.id for t in tracks_all if not getattr(t, 'archived', False)]
-        count = queue_service.add_album_to_queue(collection_obj.id, track_ids)
+        count = queue_service.add_album_to_queue(collection_id, track_ids)
         return {"message": f"Added {count} tracks to queue", "count": count}
     
     # Otherwise, add specific track by display position (1-indexed)
@@ -198,7 +229,7 @@ def add_to_queue(request: AddToQueueRequest, db: Session = Depends(get_db)):
         )
     
     track = tracks[request.track_number - 1]
-    queue_item = queue_service.add_to_queue(collection_obj.id, track['id'])
+    queue_item = queue_service.add_to_queue(collection_id, track['id'])
     if not queue_item:
         return {"message": "Already in queue", "already_queued": True}
     return {"message": "Track added to queue", "queue_id": queue_item.id}
@@ -249,7 +280,8 @@ def add_favorites_random(request: AddFavoritesRandomRequest, db: Session = Depen
     section_track_ids: list = []
     other_track_ids: list = []
 
-    if request.collection == "all":
+    collection_id_for_queue = _resolve_collection_id(collection_service, request.collection, request.user_slug)
+    if collection_id_for_queue == all_collection_id:
         # "all" virtual collection has no section concept – gather from every album
         all_albums = album_service.get_all_albums(limit=10000)
         for album in all_albums:
@@ -257,13 +289,8 @@ def add_favorites_random(request: AddFavoritesRandomRequest, db: Session = Depen
             for t in tracks:
                 if track_matches_obj(t):
                     other_track_ids.append(t.id)
-        collection_id_for_queue = all_collection_id
     else:
-        collection_obj = collection_service.get_collection_by_slug(request.collection)
-        if not collection_obj:
-            raise HTTPException(status_code=404, detail=f"Collection '{request.collection}' not found")
-        albums = collection_service.get_collection_albums(collection_obj.id, include_tracks=True)
-        collection_id_for_queue = collection_obj.id
+        albums = collection_service.get_collection_albums(collection_id_for_queue, include_tracks=True)
 
         use_section = request.section_start_slot is not None
         end_slot = request.section_end_slot  # None → to end of collection
@@ -361,20 +388,14 @@ def add_favorites_random(request: AddFavoritesRandomRequest, db: Session = Depen
 @router.put("/order")
 def reorder_queue(
     collection: str = Query(..., description="Collection slug"),
+    user_slug: str | None = Query(None),
     body: ReorderQueueRequest = ...,
     db: Session = Depends(get_db),
 ):
     """Reorder queue by providing queue item IDs in the desired order (including currently playing)."""
     collection_service = CollectionService(db)
     queue_service = QueueService(db)
-
-    if collection == "all":
-        collection_id = "00000000-0000-0000-0000-000000000000"
-    else:
-        collection_obj = collection_service.get_collection_by_slug(collection)
-        if not collection_obj:
-            raise HTTPException(status_code=404, detail=f"Collection '{collection}' not found")
-        collection_id = collection_obj.id
+    collection_id = _resolve_collection_id(collection_service, collection, user_slug)
 
     if not queue_service.reorder_queue(collection_id, body.queue_ids):
         raise HTTPException(
@@ -396,20 +417,14 @@ def remove_from_queue(queue_id: str, db: Session = Depends(get_db)):
 
 
 @router.delete("")
-def clear_queue(collection: str = Query(..., description="Collection slug"), db: Session = Depends(get_db)):
+def clear_queue(
+    collection: str = Query(..., description="Collection slug"),
+    user_slug: str | None = Query(None),
+    db: Session = Depends(get_db),
+):
     """Clear the queue for a collection"""
     collection_service = CollectionService(db)
     queue_service = QueueService(db)
-    
-    # Handle "all" collection
-    if collection == 'all':
-        all_collection_id = '00000000-0000-0000-0000-000000000000'
-        count = queue_service.clear_queue(all_collection_id, clear_played=True)
-    else:
-        collection_obj = collection_service.get_collection_by_slug(collection)
-        if not collection_obj:
-            raise HTTPException(status_code=404, detail=f"Collection '{collection}' not found")
-        
-        count = queue_service.clear_queue(collection_obj.id, clear_played=True)
-    
+    collection_id = _resolve_collection_id(collection_service, collection, user_slug)
+    count = queue_service.clear_queue(collection_id, clear_played=True)
     return {"message": f"Cleared {count} items from queue", "count": count}

@@ -1,0 +1,33 @@
+.wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--background-app, #1a1a1a);
+  padding: 1rem;
+}
+
+.card {
+  text-align: center;
+  color: var(--text-secondary, #aaa);
+}
+
+.card h1 {
+  color: var(--primary-color, #e0e0e0);
+  margin-bottom: 1rem;
+}
+
+.card code {
+  background: #333;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.95rem;
+}
+
+.links {
+  margin-top: 1.5rem;
+}
+
+.links a {
+  color: var(--primary-color, #888);
+}

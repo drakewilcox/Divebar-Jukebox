@@ -2,6 +2,16 @@
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+  width: 100%;
+  padding: 0 3rem;
+}
+
+.collection-manager::-webkit-scrollbar {
+  display: none;
 }
 
 .manager-section {
@@ -9,6 +19,22 @@
   padding: 1.5rem;
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  flex-shrink: 0;
+  max-width: 90%;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+  box-sizing: border-box;
+  max-width: 1450px;
+}
+
+/* Second section (tabs): fixed height so when scrolled to top it fills viewport; inner tab content scrolls */
+.manager-section-tabs {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .section-header {
@@ -28,6 +54,36 @@
   margin: 0 0 0.5rem 0;
   font-size: 1.5rem;
   color: var(--vintage-cream);
+}
+
+.collections-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.collections-section-header h2 {
+  margin: 0;
+}
+
+.collection-add-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem;
+  background-color: var(--lcd-green);
+  color: var(--background-dark);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.collection-add-button:hover {
+  background-color: var(--lcd-green-dim);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(149, 194, 149, 0.35);
 }
 
 .create-button {
@@ -60,18 +116,12 @@
   color: var(--text-secondary);
 }
 
-/* Sub-tabs: Selections, Slots, Sections */
-.manager-section-tabs {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
 .collection-manager-sub-tabs {
   display: flex;
   gap: 0.25rem;
   margin-bottom: 1rem;
   border-bottom: 2px solid var(--border-color);
+  flex-shrink: 0;
 }
 
 .collection-manager-sub-tab {
@@ -102,14 +152,19 @@
   margin: 1rem 0;
 }
 
-/* Stable height only when a collection is selected (avoids scroll jump when switching Selections <-> Slots) */
-.collection-manager-tab-content.collection-manager-tab-content-has-selection {
-  min-height: 600px;
+/* Tab content area: fills remaining space in second section; pane (or list inside) scrolls */
+.collection-manager-tab-content {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Tab pane: scrollable area below the sub-tabs (Slots, Sections, Settings use this) */
+/* Tab pane: scrollable area below the sub-tabs */
 .collection-manager-tab-pane {
-  max-height: 600px;
+  flex: 1;
+  min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
   scrollbar-width: thin;
@@ -241,12 +296,14 @@
 }
 
 .no-collections {
+  width: 100%;
   padding: 2rem;
   text-align: center;
   color: var(--text-secondary);
   background-color: var(--background-dark);
   border-radius: 8px;
   margin-top: 1rem;
+  box-sizing: border-box;
 }
 
 .collection-header {
@@ -260,6 +317,20 @@
   display: flex;
   gap: 0.75rem;
   align-items: center;
+}
+
+.collection-link-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem;
+  color: white;
+  transition: opacity 0.2s;
+  text-decoration: none;
+}
+
+.collection-link-icon:hover {
+  opacity: 0.85;
 }
 
 .collection-edit-icon,
@@ -285,10 +356,50 @@
   cursor: not-allowed;
 }
 
+.collection-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.collection-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.collection-badge-published {
+  background: rgba(149, 194, 149, 0.25);
+  color: var(--lcd-green);
+}
+
+.collection-badge-private {
+  background: rgba(180, 160, 120, 0.25);
+  color: var(--text-secondary);
+}
+
+.collection-badge-local {
+  background: rgba(100, 160, 220, 0.2);
+  color: #7ab4e0;
+}
+
+.collection-badge-spotify {
+  background: rgba(30, 215, 96, 0.2);
+  color: #1ed760;
+}
+
 .collection-header h3 {
   margin: 0;
   font-size: 1.2rem;
   color: var(--text-primary);
+}
+
+.collection-meta .collection-slug {
+  margin-bottom: 0;
 }
 
 .collection-slug {
@@ -572,6 +683,19 @@
   font-family: var(--font-mono);
 }
 
+.album-item-source-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #1ed760;
+  background: rgba(30, 215, 96, 0.1);
+  border: 1px solid rgba(30, 215, 96, 0.3);
+  border-radius: 4px;
+  padding: 0.1em 0.45em;
+}
+
 .album-item-stats {
   display: flex;
   flex-direction: column;
@@ -667,6 +791,90 @@
 
 .archive-button:disabled {
   opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Delete collection confirmation modal */
+.delete-confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.delete-confirm-modal {
+  background-color: var(--background-card);
+  border-radius: 12px;
+  max-width: 440px;
+  width: 90%;
+  padding: 1.5rem 1.75rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+}
+
+.delete-confirm-title {
+  margin: 0 0 1rem 0;
+  font-size: 1.25rem;
+  color: var(--vintage-cream);
+  font-weight: 600;
+}
+
+.delete-confirm-warning {
+  margin: 0 0 1.5rem 0;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.delete-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.delete-confirm-cancel {
+  padding: 0.6rem 1.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  background-color: transparent;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.delete-confirm-cancel:hover {
+  border-color: var(--text-secondary);
+  background-color: color-mix(in srgb, var(--vintage-cream) 10%, transparent);
+}
+
+.delete-confirm-submit {
+  padding: 0.6rem 1.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #000;
+  background-color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.delete-confirm-submit:hover:not(:disabled) {
+  background-color: #e8e8e8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.delete-confirm-submit:disabled {
+  opacity: 0.7;
   cursor: not-allowed;
   transform: none;
 }

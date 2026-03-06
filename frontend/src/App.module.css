@@ -1,9 +1,10 @@
 .app {
   display: flex;
   flex-direction: column;
+  width: 100%;
   height: 100vh;
   height: 100dvh;
-  background: linear-gradient(135deg, var(--background-dark) 0%, #0f0f0f 100%);
+  background: var(--background-app);
 }
 
 .app-header {
@@ -25,16 +26,20 @@
 .app-main {
   flex: 1;
   min-height: 0;
+  min-width: 0;
+  width: 100%;
   padding: 0;
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  align-items: center;
   overflow: hidden;
 }
 
 /* Optimize for iPad 1024x768 */
 @media (max-width: 1024px) and (min-width: 769px) {
   .app-main {
-    padding: 1rem;
+    padding: 1rem 0;
     gap: 1rem;
   }
   

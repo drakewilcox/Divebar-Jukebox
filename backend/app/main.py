@@ -6,7 +6,7 @@ import logging
 
 from app.config import settings
 from app.database import init_db
-from app.api import collections, albums, queue, playback, admin, media, settings as settings_api
+from app.api import collections, albums, queue, playback, admin, media, settings as settings_api, auth as auth_api, users as users_api, spotify_listener as spotify_listener_api, config as config_api
 from app.services.collection_service import CollectionService
 from app.database import SessionLocal
 
@@ -28,31 +28,43 @@ async def lifespan(app: FastAPI):
     init_db()
     logger.info("Database initialized")
     
-    # Ensure the special "all" collection exists
-    db = SessionLocal()
-    try:
-        from app.models.collection import Collection
-        all_collection = db.query(Collection).filter(Collection.slug == 'all').first()
-        if not all_collection:
-            all_collection = Collection(
-                id='00000000-0000-0000-0000-000000000000',  # Special UUID for "all"
-                name='All Albums',
-                slug='all',
-                description='Virtual collection containing all albums',
-                is_active=True
-            )
-            db.add(all_collection)
-            db.commit()
-            logger.info("Created special 'all' collection")
-        else:
-            logger.info("Special 'all' collection already exists")
-    except Exception as e:
-        logger.error(f"Failed to create 'all' collection: {e}")
-        db.rollback()
-    finally:
-        db.close()
-    
     logger.info("Collections ready (managed in database)")
+
+    # Seed initial admin user if configured (creates new or upgrades migration placeholder)
+    SEED_USER_ID = "00000000-0000-0000-0000-000000000001"
+    if settings.admin_seed_email and settings.admin_seed_password:
+        from app.models.user import User
+        from app.auth import hash_password, slug_from_email
+        db = SessionLocal()
+        try:
+            existing_by_email = db.query(User).filter(User.email == settings.admin_seed_email).first()
+            if existing_by_email:
+                logger.info("Seed admin user already exists: %s", settings.admin_seed_email)
+            else:
+                placeholder = db.query(User).filter(User.id == SEED_USER_ID).first()
+                slug = slug_from_email(settings.admin_seed_email)
+                if db.query(User).filter(User.slug == slug).first():
+                    slug = slug + "-1"
+                if placeholder:
+                    placeholder.email = settings.admin_seed_email
+                    placeholder.slug = slug
+                    placeholder.password_hash = hash_password(settings.admin_seed_password)
+                    db.commit()
+                    logger.info("Updated placeholder seed user to: %s (owns existing collections/albums)", settings.admin_seed_email)
+                else:
+                    seed_user = User(
+                        email=settings.admin_seed_email,
+                        slug=slug,
+                        password_hash=hash_password(settings.admin_seed_password),
+                    )
+                    db.add(seed_user)
+                    db.commit()
+                    logger.info("Created seed admin user: %s", settings.admin_seed_email)
+        except Exception as e:
+            logger.error("Failed to create seed admin user: %s", e)
+            db.rollback()
+        finally:
+            db.close()
     
     logger.info("Application startup complete")
     
@@ -80,6 +92,7 @@ app.add_middleware(
 )
 
 # Register routers
+app.include_router(auth_api.router)
 app.include_router(collections.router)
 app.include_router(albums.router)
 app.include_router(queue.router)
@@ -87,6 +100,9 @@ app.include_router(playback.router)
 app.include_router(admin.router)
 app.include_router(media.router)
 app.include_router(settings_api.router)
+app.include_router(users_api.router)
+app.include_router(spotify_listener_api.router)
+app.include_router(config_api.router)
 
 
 @app.get("/")

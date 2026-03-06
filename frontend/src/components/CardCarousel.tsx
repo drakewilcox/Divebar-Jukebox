@@ -3,13 +3,17 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MdStar, MdFiberManualRecord, MdSettings, MdEdit, MdVolumeUp, MdOutlineQueueMusic } from 'react-icons/md';
 import { Album, Collection } from '../types';
 import type { HitButtonMode } from '../types';
-import { albumsApi, queueApi, playbackApi } from '../services/api';
+import { albumsApi, queueApi, playbackApi, getMediaUrl } from '../services/api';
 import audioService from '../services/audio';
+import { useSpotifyStore } from '../stores/spotifyStore';
+import { useAuthStore } from '../stores/authStore';
+import { getSpotifyPlayer, spotifySeek } from '../services/spotifyPlayer';
 import SettingsModal from './SettingsModal';
 import AlbumEditModal from './Admin/AlbumEditModal';
 import LCDDisplay from './LCDDisplay';
 import LCDKeypad from './LCDKeypad';
 import QueueDisplay from './QueueDisplay';
+import SpotifyConnectPrompt from './SpotifyConnectPrompt';
 import styles from './CardCarousel.module.css'
 import clsx from 'clsx';
 
@@ -20,6 +24,12 @@ const SECTION_BUTTON_CREAM = '#f5f0e8';
 const LETTERS_LEFT = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K'];
 const LETTERS_RIGHT = ['L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'U', 'V'];
 const LETTERS = [...LETTERS_LEFT, ...LETTERS_RIGHT];
+
+const SECTION_TAPE_ANGLES = [-1.2, 0.8, -0.5, 1.1];
+const SECTION_TAPE_IMAGES = [
+  '/images/ElectricalTape-01.png',
+  '/images/ElectricalTape-04.png',
+];
 
 function parseHex(hex: string): [number, number, number] | null {
   const m = hex.match(/^#?([0-9a-f]{3}|[0-9a-f]{6})$/i);
@@ -54,9 +64,16 @@ interface Props {
   collection: Collection;
   collections: Collection[];
   onCollectionChange: (collection: Collection) => void;
+  userSlug?: string;
+  /** When false (deployed/cloud mode), playback uses Spotify only; local stream is not used */
+  enableLocalLibrary?: boolean;
+  /** Called when user clicks Stop so parent can suppress auto-start / Spotify sync for a short window */
+  onStopped?: () => void;
+  /** Show "no albums" message centered in the carousel frame */
+  isEmpty?: boolean;
 }
 
-export default function CardCarousel({ albums, collection, collections, onCollectionChange }: Props) {
+export default function CardCarousel({ albums, collection, collections, onCollectionChange, userSlug, enableLocalLibrary = true, onStopped, isEmpty = false }: Props) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isSliding, setIsSliding] = useState(false);
   const [numberInput, setNumberInput] = useState('');
@@ -70,12 +87,14 @@ export default function CardCarousel({ albums, collection, collections, onCollec
   const [displayFlash, setDisplayFlash] = useState<string | null>(null);
   const [nowPlayingPositionMs, setNowPlayingPositionMs] = useState(0);
   const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
+  const [justRevealedSide, setJustRevealedSide] = useState<'left' | 'right' | null>(null);
   const [jumpTargetIndex, setJumpTargetIndex] = useState<number | null>(null);
   type NavSettings = {
     sortOrder: 'alphabetical' | 'curated';
     showJumpToBar: boolean;
     jumpButtonType: 'letter-ranges' | 'number-ranges' | 'sections';
     showColorCoding: boolean;
+    showCardBackground: boolean;
     hitButtonMode: HitButtonMode;
   };
   const [navSettings, setNavSettings] = useState<NavSettings>(() => {
@@ -83,6 +102,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     const showJumpToBar = localStorage.getItem('showJumpToBar');
     const jumpButtonType = localStorage.getItem('jumpButtonType');
     const showColorCoding = localStorage.getItem('showColorCoding');
+    const showCardBackground = localStorage.getItem('showCardBackground');
     const legacy = localStorage.getItem('navBarMode');
     const hitButtonMode = localStorage.getItem('hitButtonMode');
     return {
@@ -95,6 +115,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
             ? 'sections'
             : 'number-ranges',
       showColorCoding: showColorCoding !== null ? showColorCoding === 'true' : true,
+      showCardBackground: showCardBackground !== null ? showCardBackground === 'true' : true,
       hitButtonMode:
         hitButtonMode === 'prioritize-section' ||
         hitButtonMode === 'favorites-and-recommended' ||
@@ -112,42 +133,82 @@ export default function CardCarousel({ albums, collection, collections, onCollec
   const nowPlayingProgressBarRef = useRef<HTMLDivElement>(null);
   const handleAddToQueueRef = useRef<() => void>(() => {});
   const lastSubmittedRef = useRef<string | null>(null);
+  const slideDirectionRef = useRef<'left' | 'right' | null>(null);
   const [jumpLineStyle, setJumpLineStyle] = useState({ left: 0, width: 0 });
-  
+  const [lightAndGlassEffect, setLightAndGlassEffect] = useState<boolean>(() =>
+    typeof localStorage !== 'undefined' ? localStorage.getItem('lightAndGlassEffect') !== 'false' : true
+  );
+
+  useEffect(() => {
+    const handler = () =>
+      setLightAndGlassEffect(typeof localStorage !== 'undefined' ? localStorage.getItem('lightAndGlassEffect') !== 'false' : true);
+    window.addEventListener('light-and-glass-effect-changed', handler);
+    return () => window.removeEventListener('light-and-glass-effect-changed', handler);
+  }, []);
+
   // Fetch queue and playback state
   const { data: queue } = useQuery({
-    queryKey: ['queue', collection.slug],
+    queryKey: ['queue', collection.slug, userSlug],
     queryFn: async () => {
-      const response = await queueApi.get(collection.slug);
+      const response = await queueApi.get(collection.slug, userSlug);
       return response.data;
     },
     refetchInterval: 2000,
   });
   
   const { data: playbackState } = useQuery({
-    queryKey: ['playback-state', collection.slug],
+    queryKey: ['playback-state', collection.slug, userSlug],
     queryFn: async () => {
-      const response = await playbackApi.getState(collection.slug);
+      const response = await playbackApi.getState(collection.slug, userSlug);
       return response.data;
     },
     refetchInterval: 1000,
   });
-  
-  // Live position for now-playing (updates from audio service so progress bar and seek stay in sync)
+
+  const spotifyToken = useSpotifyStore((s) => s.getAccessToken());
+  const useSpotifyForTrack =
+    !!spotifyToken && !!(playbackState?.current_track as { spotify_id?: string } | undefined)?.spotify_id;
+
+  const authUser = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated());
+  // Edit button is only visible to the signed-in owner of this collection
+  const canEdit = isAuthenticated && !!authUser && authUser.slug === userSlug;
+
+  // Timestamp of last track change — used to suppress stale Spotify SDK position reports
+  const trackChangedAtRef = useRef<number>(0);
+
+  // Live position for now-playing (Spotify: getCurrentState position is in ms; local: audio service)
   useEffect(() => {
-    const interval = setInterval(() => {
-      setNowPlayingPositionMs(audioService.getCurrentTime() * 1000);
+    const interval = setInterval(async () => {
+      if (useSpotifyForTrack) {
+        // Skip SDK poll briefly after a track change to avoid showing the previous track's position
+        if (Date.now() - trackChangedAtRef.current < 1200) return;
+        const player = getSpotifyPlayer();
+        const state = player ? await player.getCurrentState() : null;
+        if (state != null) {
+          setNowPlayingPositionMs(state.position);
+        }
+      } else {
+        setNowPlayingPositionMs(audioService.getCurrentTime() * 1000);
+      }
     }, 100);
     return () => clearInterval(interval);
-  }, []);
+  }, [useSpotifyForTrack]);
 
   useEffect(() => {
     if (playbackState?.current_track_id) {
-      setNowPlayingPositionMs(playbackState.current_position_ms ?? 0);
+      if (!useSpotifyForTrack) {
+        setNowPlayingPositionMs(playbackState.current_position_ms ?? 0);
+      } else {
+        // Reset to 0 on track change; polling will resume after the grace period
+        setNowPlayingPositionMs(0);
+        trackChangedAtRef.current = Date.now();
+      }
     } else {
       setNowPlayingPositionMs(0);
+      trackChangedAtRef.current = Date.now();
     }
-  }, [playbackState?.current_track_id, playbackState?.current_position_ms]);
+  }, [playbackState?.current_track_id, playbackState?.current_position_ms, useSpotifyForTrack]);
 
   const formatTimeRemaining = (durationMs: number, currentMs: number) => {
     const remainingMs = Math.max(0, durationMs - currentMs);
@@ -163,9 +224,14 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     if (!bar || durationMs == null || durationMs <= 0) return;
     const rect = bar.getBoundingClientRect();
     const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    const seekMs = ratio * durationMs;
-    audioService.seek(seekMs / 1000);
-    setNowPlayingPositionMs(seekMs);
+    const seekMs = Math.floor(ratio * durationMs);
+    if (useSpotifyForTrack) {
+      spotifySeek(seekMs);
+      setNowPlayingPositionMs(seekMs);
+    } else {
+      audioService.seek(seekMs / 1000);
+      setNowPlayingPositionMs(seekMs);
+    }
   };
 
   // Edit mode: use collection.default_edit_mode when available, otherwise localStorage fallback
@@ -214,6 +280,13 @@ export default function CardCarousel({ albums, collection, collections, onCollec
         : lc != null
           ? lc === 'true'
           : true;
+    const lcb = localStorage.getItem('showCardBackground');
+    const showCardBackground =
+      collection.default_show_card_background != null
+        ? collection.default_show_card_background
+        : lcb != null
+          ? lcb === 'true'
+          : true;
     const lhb = localStorage.getItem('hitButtonMode');
     const dhb = collection.default_hit_button_mode;
     const hitButtonMode: HitButtonMode =
@@ -222,12 +295,13 @@ export default function CardCarousel({ albums, collection, collections, onCollec
         : lhb === 'prioritize-section' || lhb === 'favorites-and-recommended' || lhb === 'any'
           ? (lhb as HitButtonMode)
           : 'favorites';
-    const next: NavSettings = { sortOrder, showJumpToBar, jumpButtonType, showColorCoding, hitButtonMode };
+    const next: NavSettings = { sortOrder, showJumpToBar, jumpButtonType, showColorCoding, showCardBackground, hitButtonMode };
     setNavSettings(next);
     localStorage.setItem('sortOrder', next.sortOrder);
     localStorage.setItem('showJumpToBar', String(next.showJumpToBar));
     localStorage.setItem('jumpButtonType', next.jumpButtonType);
     localStorage.setItem('showColorCoding', String(next.showColorCoding));
+    localStorage.setItem('showCardBackground', String(next.showCardBackground));
     localStorage.setItem('hitButtonMode', next.hitButtonMode);
     window.dispatchEvent(new CustomEvent('navigation-settings-changed', { detail: next }));
     const cf =
@@ -249,6 +323,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     collection.default_show_jump_to_bar,
     collection.default_jump_button_type,
     collection.default_show_color_coding,
+    collection.default_show_card_background,
     collection.default_crossfade_seconds,
     collection.default_hit_button_mode,
   ]);
@@ -320,37 +395,47 @@ export default function CardCarousel({ albums, collection, collections, onCollec
         },
         staleTime: 5 * 60 * 1000,
       });
-      if (album.cover_art_path) {
+      const coverSrc = getMediaUrl(album.cover_art_path, album.is_playlist) ?? album.spotify_image_url ?? null;
+      if (coverSrc) {
         const img = new Image();
-        img.src = `/api/media/${album.cover_art_path}`;
+        img.src = coverSrc;
       }
     });
   }, [currentIndex, paddedAlbums, collection.slug, queryClient]);
   
+  const handleSlideAnimationEnd = (e: React.AnimationEvent<HTMLDivElement>) => {
+    const name = e.animationName ?? '';
+    if (!name.includes('slideFrom')) return;
+    const dir = slideDirectionRef.current;
+    slideDirectionRef.current = null;
+    if (dir === 'left') {
+      setCurrentIndex((prev) => Math.min(paddedAlbums.length - 4, prev + 2));
+      setJustRevealedSide('right');
+    } else if (dir === 'right') {
+      setCurrentIndex((prev) => Math.max(0, prev - 2));
+      setJustRevealedSide('left');
+    }
+    setSlideDirection(null);
+    setIsSliding(false);
+    setTimeout(() => setJustRevealedSide(null), 300);
+  };
+
   const handlePrevious = () => {
     if (isSliding || currentIndex === 0) return;
     setPressedButton('prev');
     setTimeout(() => setPressedButton(null), 150);
+    slideDirectionRef.current = 'right';
     setSlideDirection('right');
     setIsSliding(true);
-    setTimeout(() => {
-      setCurrentIndex((prev) => Math.max(0, prev - 2));
-      setSlideDirection(null);
-      setIsSliding(false);
-    }, 500);
   };
 
   const handleNext = () => {
     if (isSliding || currentIndex >= paddedAlbums.length - 4) return;
     setPressedButton('next');
     setTimeout(() => setPressedButton(null), 150);
+    slideDirectionRef.current = 'left';
     setSlideDirection('left');
     setIsSliding(true);
-    setTimeout(() => {
-      setCurrentIndex((prev) => Math.min(paddedAlbums.length - 4, prev + 2));
-      setSlideDirection(null);
-      setIsSliding(false);
-    }, 500);
   };
   
   const canGoPrevious = currentIndex > 0;
@@ -365,11 +450,11 @@ export default function CardCarousel({ albums, collection, collections, onCollec
       trackNumber: number;
       displaySelection: string;
     }) => {
-      const response = await queueApi.add(collection.slug, albumNumber, trackNumber);
+      const response = await queueApi.add(collection.slug, albumNumber, trackNumber, userSlug);
       return response.data as { already_queued?: boolean; queue_id?: string };
     },
     onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['queue', collection.slug] });
+      queryClient.invalidateQueries({ queryKey: ['queue', collection.slug, userSlug] });
       if (data?.already_queued) {
         setFeedback('Already in Queue');
         setTimeout(() => setFeedback(''), 2000);
@@ -410,11 +495,12 @@ export default function CardCarousel({ albums, collection, collections, onCollec
         sectionName,
         sectionStartSlot,
         sectionEndSlot,
+        userSlug,
       );
       return response.data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['queue', collection.slug] });
+      queryClient.invalidateQueries({ queryKey: ['queue', collection.slug, userSlug] });
       setFeedback(data?.message ?? `Added ${data?.added ?? 0} favorites`);
       setTimeout(() => setFeedback(''), 3000);
     },
@@ -623,12 +709,11 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     return 0;
   };
 
-  // Section color for a 1-based slot (for album-row-info background); only when showColorCoding and sections bar active
-  const getSectionBackgroundForSlot = (slot: number): string | undefined => {
+  // Section color (hex) for a 1-based slot – used for Paper texture class on album-row-info and jump-to buttons
+  const getSectionColorForSlot = (slot: number): string | undefined => {
     if (!applySectionColors || !showSectionsBar || !sectionsHaveRanges) return undefined;
     const i = getSectionIndexForSlot(slot);
-    const c = sortedSections[i]?.color;
-    return c ? blendWithCream(c, 0.5) : undefined;
+    return sortedSections[i]?.color ?? undefined;
   };
 
   // Jump To: 8 buttons, ranges adapt to album count (e.g. 80 albums → 1-10, 11-20, …)
@@ -808,6 +893,9 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     const rawIndex = rangeIndex * jumpRangeSize;
     const newIndex = Math.max(0, Math.min(alignJumpIndex(rawIndex), paddedAlbums.length - 4));
     if (newIndex === currentIndex) return;
+    setSlideDirection(null);
+    setJustRevealedSide(null);
+    slideDirectionRef.current = null;
     setJumpTargetIndex(newIndex);
     setIsSliding(true);
   };
@@ -818,6 +906,9 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     const startIndex0 = section.start_slot - 1;
     const newIndex = Math.max(0, Math.min(alignJumpIndex(startIndex0), paddedAlbums.length - 4));
     if (newIndex === currentIndex) return;
+    setSlideDirection(null);
+    setJustRevealedSide(null);
+    slideDirectionRef.current = null;
     setJumpTargetIndex(newIndex);
     setIsSliding(true);
   };
@@ -842,6 +933,9 @@ export default function CardCarousel({ albums, collection, collections, onCollec
       Math.min(alignJumpIndex(rawIndex), paddedAlbums.length - 4)
     );
     if (newIndex === currentIndex) return;
+    setSlideDirection(null);
+    setJustRevealedSide(null);
+    slideDirectionRef.current = null;
     setJumpTargetIndex(newIndex);
     setIsSliding(true);
   };
@@ -850,11 +944,13 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     if (jumpTargetIndex != null) {
       setCurrentIndex(jumpTargetIndex);
       setJumpTargetIndex(null);
+      setSlideDirection(null);
+      setJustRevealedSide(null);
+      slideDirectionRef.current = null;
       setIsSliding(false);
     }
   };
 
-  // Full-page strip only for Jump To: current vs target, slide direction by whether target is ahead or behind.
   const targetLeftCard = jumpTargetIndex != null ? paddedAlbums.slice(jumpTargetIndex, jumpTargetIndex + 2) : [];
   const targetRightCard = jumpTargetIndex != null ? paddedAlbums.slice(jumpTargetIndex + 2, jumpTargetIndex + 4) : [];
   const jumpSlideLeft = jumpTargetIndex != null && jumpTargetIndex > currentIndex;
@@ -864,119 +960,186 @@ export default function CardCarousel({ albums, collection, collections, onCollec
       album && navSettings.sortOrder === 'alphabetical'
         ? slotIndex + 1
         : (album?.display_number ?? 0);
+    const showTape = album && cardDisplayNumber > 0 && cardDisplayNumber % 3 === 0;
+    const tapeBase = showTape ? Math.floor((cardDisplayNumber - 1) / 3) % TAPE_IMAGES.length : 0;
+    const tapeImages = showTape
+      ? [TAPE_IMAGES[tapeBase], TAPE_IMAGES[(tapeBase + 1) % TAPE_IMAGES.length]]
+      : null;
+    const useStaplesPaper = cardDisplayNumber > 0 && cardDisplayNumber % 5 === 0;
     return album ? (
       <AlbumRow
         key={album.id}
         album={album}
         collection={collection}
-        editMode={editMode}
+        editMode={editMode && canEdit}
         onEditClick={setEditingAlbumId}
         currentTrackId={currentTrackId}
         queueTrackIds={queueTrackIds}
-        sectionBackgroundColor={getSectionBackgroundForSlot(slotIndex + 1)}
+        sectionBackgroundColor={getSectionColorForSlot(slotIndex + 1)}
+        useCardBackgroundOverlay={navSettings.showCardBackground}
         cardDisplayNumber={cardDisplayNumber}
+        tapeImages={tapeImages}
+        useStaplesPaper={useStaplesPaper}
       />
     ) : (
-      <div key={`${keyPrefix}-${idx}`} className={clsx(styles['album-row'], styles['album-row-empty'])}></div>
+      <div key={`${keyPrefix}-${idx}`} className={clsx(styles['album-row'], styles['album-row-empty'])}>
+        <div className={styles['album-row-holder-cover']} aria-hidden="true" />
+        <div className={styles['album-row-holder-info']} aria-hidden="true" />
+      </div>
     );
   };
 
   return (
     <div className={styles['card-carousel']}>
-      <div className={styles['carousel-container']}>
+      <div className={clsx(styles['carousel-container'], lightAndGlassEffect && styles['light-and-glass-effect'])}>
+        {isEmpty && (
+          <div className={styles['carousel-empty']}>
+            <span>No albums in this collection yet.</span>
+          </div>
+        )}
         {jumpTargetIndex != null ? (
           <>
             <div className={styles['carousel-full-slide-wrap']}>
-              <div
-                className={clsx(styles['carousel-full-slide-strip'], jumpSlideLeft ? styles['animate-full-slide-left'] : styles['animate-full-slide-right'])}
-                onAnimationEnd={handleFullSlideEnd}
-              >
-                {jumpSlideLeft ? (
-                  <>
-                    <div className={styles['carousel-full-slide-page']}>
-                      <div className={clsx(styles['card-slot'], styles['card-slot-left'])}>
-                        <div className={styles['slider-card']}>
-                          {leftCard.map((album, idx) => renderAlbumRow(album, 'jump-left', idx, currentIndex + idx))}
+              <div className={styles['carousel-full-slide-clip']}>
+                <div
+                  className={clsx(styles['carousel-full-slide-strip'], jumpSlideLeft ? styles['animate-full-slide-left'] : styles['animate-full-slide-right'])}
+                  onAnimationEnd={handleFullSlideEnd}
+                >
+                  {jumpSlideLeft ? (
+                    <>
+                      <div className={styles['carousel-full-slide-page']}>
+                        <div className={clsx(styles['card-slot'], styles['card-slot-left'])}>
+                          <div className={styles['slider-card']}>
+                            {leftCard.map((album, idx) => renderAlbumRow(album, 'jump-left', idx, currentIndex + idx))}
+                          </div>
+                        </div>
+                        <div className={clsx(styles['card-slot'], styles['card-slot-right'])}>
+                          <div className={styles['slider-card']}>
+                            {rightCard.map((album, idx) => renderAlbumRow(album, 'jump-right', idx, currentIndex + 2 + idx))}
+                          </div>
                         </div>
                       </div>
-                      <div className={clsx(styles['card-slot'], styles['card-slot-right'])}>
-                        <div className={styles['slider-card']}>
-                          {rightCard.map((album, idx) => renderAlbumRow(album, 'jump-right', idx, currentIndex + 2 + idx))}
+                      <div className={styles['carousel-full-slide-page']}>
+                        <div className={clsx(styles['card-slot'], styles['card-slot-left'])}>
+                          <div className={styles['slider-card']}>
+                            {targetLeftCard.map((album, idx) => renderAlbumRow(album, 'target-left', idx, jumpTargetIndex! + idx))}
+                          </div>
+                        </div>
+                        <div className={clsx(styles['card-slot'], styles['card-slot-right'])}>
+                          <div className={styles['slider-card']}>
+                            {targetRightCard.map((album, idx) => renderAlbumRow(album, 'target-right', idx, jumpTargetIndex! + 2 + idx))}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <div className={styles['carousel-full-slide-page']}>
-                      <div className={clsx(styles['card-slot'], styles['card-slot-left'])}>
-                        <div className={styles['slider-card']}>
-                          {targetLeftCard.map((album, idx) => renderAlbumRow(album, 'target-left', idx, jumpTargetIndex! + idx))}
+                    </>
+                  ) : (
+                    <>
+                      <div className={styles['carousel-full-slide-page']}>
+                        <div className={clsx(styles['card-slot'], styles['card-slot-left'])}>
+                          <div className={styles['slider-card']}>
+                            {targetLeftCard.map((album, idx) => renderAlbumRow(album, 'target-left', idx, jumpTargetIndex! + idx))}
+                          </div>
+                        </div>
+                        <div className={clsx(styles['card-slot'], styles['card-slot-right'])}>
+                          <div className={styles['slider-card']}>
+                            {targetRightCard.map((album, idx) => renderAlbumRow(album, 'target-right', idx, jumpTargetIndex! + 2 + idx))}
+                          </div>
                         </div>
                       </div>
-                      <div className={clsx(styles['card-slot'], styles['card-slot-right'])}>
-                        <div className={styles['slider-card']}>
-                          {targetRightCard.map((album, idx) => renderAlbumRow(album, 'target-right', idx, jumpTargetIndex! + 2 + idx))}
+                      <div className={styles['carousel-full-slide-page']}>
+                        <div className={clsx(styles['card-slot'], styles['card-slot-left'])}>
+                          <div className={styles['slider-card']}>
+                            {leftCard.map((album, idx) => renderAlbumRow(album, 'jump-left', idx, currentIndex + idx))}
+                          </div>
+                        </div>
+                        <div className={clsx(styles['card-slot'], styles['card-slot-right'])}>
+                          <div className={styles['slider-card']}>
+                            {rightCard.map((album, idx) => renderAlbumRow(album, 'jump-right', idx, currentIndex + 2 + idx))}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className={styles['carousel-full-slide-page']}>
-                      <div className={clsx(styles['card-slot'], styles['card-slot-left'])}>
-                        <div className={styles['slider-card']}>
-                          {targetLeftCard.map((album, idx) => renderAlbumRow(album, 'target-left', idx, jumpTargetIndex! + idx))}
-                        </div>
-                      </div>
-                      <div className={clsx(styles['card-slot'], styles['card-slot-right'])}>
-                        <div className={styles['slider-card']}>
-                          {targetRightCard.map((album, idx) => renderAlbumRow(album, 'target-right', idx, jumpTargetIndex! + 2 + idx))}
-                        </div>
-                      </div>
-                    </div>
-                    <div className={styles['carousel-full-slide-page']}>
-                      <div className={clsx(styles['card-slot'], styles['card-slot-left'])}>
-                        <div className={styles['slider-card']}>
-                          {leftCard.map((album, idx) => renderAlbumRow(album, 'jump-left', idx, currentIndex + idx))}
-                        </div>
-                      </div>
-                      <div className={clsx(styles['card-slot'], styles['card-slot-right'])}>
-                        <div className={styles['slider-card']}>
-                          {rightCard.map((album, idx) => renderAlbumRow(album, 'jump-right', idx, currentIndex + 2 + idx))}
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                )}
+                    </>
+                  )}
+                </div>
               </div>
             </div>
             <div className={styles['glass-overlay']}></div>
+            <div className={styles['carousel-frame-overlay']} aria-hidden="true" />
+            <div className={styles['carousel-frame-reflection']} aria-hidden="true" />
+            <div className={styles['carousel-center-line']} aria-hidden="true" />
           </>
         ) : (
           <>
             <div className={clsx(styles['card-slot'], styles['card-slot-left'])}>
-              <div className={styles['slider-card']}>
-                {slideDirection === 'right' && prevLeftCard.length === 2
-                  ? prevLeftCard.map((album, idx) => renderAlbumRow(album, 'prev-left', idx, currentIndex - 2 + idx))
-                  : leftCard.map((album, idx) => renderAlbumRow(album, 'left', idx, currentIndex + idx))}
+              <div
+                className={clsx(
+                  styles['slider-card'],
+                  slideDirection === 'left' && styles['slider-card-getting-covered']
+                )}
+              >
+                {(slideDirection === 'right' && prevLeftCard.length === 2) || justRevealedSide === 'left' ? (
+                  <div
+                    className={clsx(
+                      styles['slider-card-revealed-wrap'],
+                      slideDirection === 'right' && styles['slider-card-revealed-growing'],
+                    )}
+                  >
+                    {slideDirection === 'right' && prevLeftCard.length === 2
+                      ? prevLeftCard.map((album, idx) => renderAlbumRow(album, 'prev-left', idx, currentIndex - 2 + idx))
+                      : leftCard.map((album, idx) => renderAlbumRow(album, 'left', idx, currentIndex + idx))}
+                  </div>
+                ) : (
+                  <>
+                    {leftCard.map((album, idx) => renderAlbumRow(album, 'left', idx, currentIndex + idx))}
+                  </>
+                )}
               </div>
             </div>
             <div className={clsx(styles['card-slot'], styles['card-slot-right'])}>
-              <div className={styles['slider-card']}>
-                {slideDirection === 'left' && nextRightCard.length === 2
-                  ? nextRightCard.map((album, idx) => renderAlbumRow(album, 'next-right', idx, currentIndex + 4 + idx))
-                  : rightCard.map((album, idx) => renderAlbumRow(album, 'right', idx, currentIndex + 2 + idx))}
+              <div
+                className={clsx(
+                  styles['slider-card'],
+                  slideDirection === 'right' && styles['slider-card-getting-covered']
+                )}
+              >
+                {(slideDirection === 'left' && nextRightCard.length === 2) || justRevealedSide === 'right' ? (
+                  <div
+                    className={clsx(
+                      styles['slider-card-revealed-wrap'],
+                      slideDirection === 'left' && styles['slider-card-revealed-growing'],
+                    )}
+                  >
+                    {slideDirection === 'left' && nextRightCard.length === 2
+                      ? nextRightCard.map((album, idx) => renderAlbumRow(album, 'next-right', idx, currentIndex + 4 + idx))
+                      : rightCard.map((album, idx) => renderAlbumRow(album, 'right', idx, currentIndex + 2 + idx))}
+                  </div>
+                ) : (
+                  <>
+                    {rightCard.map((album, idx) => renderAlbumRow(album, 'right', idx, currentIndex + 2 + idx))}
+                  </>
+                )}
               </div>
             </div>
             {slideDirection === 'left' && (
-              <div className={clsx(styles['slider-card-animated'], styles['animate-slide-right-to-left'])}>
+              <div
+                className={clsx(styles['slider-card-animated'], styles['animate-slide-right-to-left'])}
+                onAnimationEnd={handleSlideAnimationEnd}
+              >
                 {rightCard.map((album, idx) => renderAlbumRow(album, 'slide', idx, currentIndex + 2 + idx))}
               </div>
             )}
             {slideDirection === 'right' && (
-              <div className={clsx(styles['slider-card-animated'], styles['animate-slide-left-to-right'])}>
+              <div
+                className={clsx(styles['slider-card-animated'], styles['animate-slide-left-to-right'])}
+                onAnimationEnd={handleSlideAnimationEnd}
+              >
                 {leftCard.map((album, idx) => renderAlbumRow(album, 'slide-left', idx, currentIndex + idx))}
               </div>
             )}
             <div className={styles['glass-overlay']}></div>
+            <div className={styles['carousel-frame-overlay']} aria-hidden="true" />
+            <div className={styles['carousel-frame-reflection']} aria-hidden="true" />
+            <div className={styles['carousel-center-line']} aria-hidden="true" />
           </>
         )}
       </div>
@@ -992,24 +1155,42 @@ export default function CardCarousel({ albums, collection, collections, onCollec
               const nameLen = (section.name ?? '').length;
               const textSizeClass =
                 nameLen > 24 ? 'section-button-text-long' : nameLen > 14 ? 'section-button-text-medium' : 'section-button-text-short';
-              const bgColor = applySectionColors
+              const sectionHex = section.color ? section.color.replace(/^#/, '').toUpperCase() : '';
+              const paperClass = applySectionColors && sectionHex ? styles[`section-button-paper-${sectionHex}`] : null;
+              const defaultPaperClass = !applySectionColors ? styles['section-button-default-paper'] : null;
+              const bgColor = applySectionColors && !paperClass
                 ? blendWithCream(section.color ?? SECTION_BUTTON_CREAM, 0.65)
                 : SECTION_BUTTON_CREAM;
+              const paperBgValue = paperClass ? `#${sectionHex}` : null;
+              const defaultPaperBgValue = defaultPaperClass ? '#fff url(/images/VPaper01.jpg) right center/cover' : null;
+              const tapeAngle = SECTION_TAPE_ANGLES[i % SECTION_TAPE_ANGLES.length];
+              const tapeImage = SECTION_TAPE_IMAGES[i % SECTION_TAPE_IMAGES.length];
+              const baseStyle = paperClass
+                ? { ['--section-bg' as string]: paperBgValue ?? undefined }
+                : defaultPaperClass
+                  ? { ['--section-bg' as string]: defaultPaperBgValue ?? undefined }
+                  : {
+                      ['--section-bg' as string]: bgColor,
+                      background: bgColor,
+                      backgroundColor: bgColor,
+                    };
               return (
                 <button
                   key={i}
                   type="button"
                   data-jump-btn
-                  className={clsx(styles['section-button'], styles['jump-to-button'], styles[textSizeClass])}
+                  className={clsx(styles['section-button'], styles['jump-to-button'], styles[textSizeClass], paperClass, defaultPaperClass)}
                   style={{
-                    ['--section-bg' as string]: bgColor,
-                    background: bgColor,
-                    backgroundColor: bgColor,
+                    ...baseStyle,
+                    ['--tape-angle' as string]: `${tapeAngle}deg`,
+                    ['--tape-image' as string]: `url(${tapeImage})`,
                   }}
                   onClick={() => handleJumpToSection(i)}
                   aria-label={`Jump to ${section.name}`}
                 >
-                  <span className={styles['section-button-label']}>{section.name}</span>
+                  <span className={styles['section-button-label-wrap']}>
+                    <span className={styles['section-button-label']}>{section.name}</span>
+                  </span>
                 </button>
               );
             })
@@ -1087,11 +1268,15 @@ export default function CardCarousel({ albums, collection, collections, onCollec
               collection={collection}
               onQueueCleared={() => setIsQueueOpen(false)}
               getSelectionDisplay={getSelectionDisplayForTrack}
+              userSlug={userSlug}
+              enableLocalLibrary={enableLocalLibrary}
+              onStopped={onStopped}
             />
           </div>
         </div>
         
         <div className={styles['carousel-controls']}>
+        <div className={styles['controls-left-group']}>
         <div className={styles['controls-left']}>
           <button
             className={styles['settings-button']}
@@ -1142,8 +1327,17 @@ export default function CardCarousel({ albums, collection, collections, onCollec
             {feedback && <span className={styles['input-feedback']}>{feedback}</span>}
           </div>
         </div>
-        
+
+          <div className={styles['collection-name-label']}>
+            <span className={styles['collection-name-header']}>Collection:</span>
+            <span>{collection.name}</span>
+          </div>
+        </div>{/* end controls-left-group */}
+
         <div className={styles['queue-controls-center']} ref={queueToggleRef}>
+          {!spotifyToken ? (
+            <SpotifyConnectPrompt />
+          ) : (
           <div
             className={styles['now-playing-mini']}
             role="button"
@@ -1156,10 +1350,10 @@ export default function CardCarousel({ albums, collection, collections, onCollec
             {playbackState?.current_track ? (
               <>
                 <div className={styles['now-playing-mini-row']}>
-                  {playbackState.current_track.cover_art_path && (
+                  {(getMediaUrl(playbackState.current_track.cover_art_path, playbackState.current_track.is_playlist) ?? playbackState.current_track.spotify_image_url) && (
                     <div className={styles['now-playing-cover-wrap']}>
                       <img 
-                        src={`/api/media/${playbackState.current_track.cover_art_path}`}
+                        src={getMediaUrl(playbackState.current_track.cover_art_path, playbackState.current_track.is_playlist) ?? playbackState.current_track.spotify_image_url ?? ''}
                         alt={playbackState.current_track.album_title}
                         className={styles['now-playing-cover']}
                       />
@@ -1172,11 +1366,6 @@ export default function CardCarousel({ albums, collection, collections, onCollec
                       {playbackState.current_track.album_title}
                       {playbackState.current_track.album_year != null && ` (${playbackState.current_track.album_year})`}
                     </div>
-                    {(getSelectionDisplayForTrack(playbackState.current_track.album_id, playbackState.current_track.track_number) ?? playbackState.current_track.selection_display) && (
-                      <div className={styles['now-playing-selection']}>
-                        {getSelectionDisplayForTrack(playbackState.current_track.album_id, playbackState.current_track.track_number) ?? playbackState.current_track.selection_display}
-                      </div>
-                    )}
                   </div>
                   <div className={styles['now-playing-time']}>
                     {formatTimeRemaining(playbackState.current_track.duration_ms, nowPlayingPositionMs)}
@@ -1202,6 +1391,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
               </>
             ) : null}
           </div>
+          )}
         </div>
         
         <div className={styles['nav-buttons']}>
@@ -1232,6 +1422,8 @@ export default function CardCarousel({ albums, collection, collections, onCollec
         collections={collections}
         currentCollection={collection}
         onCollectionChange={onCollectionChange}
+        userSlug={userSlug}
+        enableLocalLibrary={enableLocalLibrary}
       />
 
       {editingAlbumId && (
@@ -1252,9 +1444,23 @@ interface AlbumRowProps {
   currentTrackId: string | null;
   queueTrackIds: string[];
   sectionBackgroundColor?: string;
+  /** When true (and section color set), use full overlay; when false, use 5px top line only */
+  useCardBackgroundOverlay?: boolean;
   /** Number shown in card-number-box: position (1-based) when alphabetical, display_number when curated */
   cardDisplayNumber: number;
+  /** Two tape image paths for overlay, or null to hide tape (used on every 3rd album) */
+  tapeImages: string[] | null;
+  /** Use VPaperStaples.jpg for info background (every 5th card); otherwise VPaper01.jpg */
+  useStaplesPaper?: boolean;
 }
+
+const TAPE_IMAGES = [
+  '/images/ScotchTape-01.png',
+  '/images/ScotchTape-02.png',
+  '/images/ScotchTape-03.png',
+  '/images/ScotchTape-06.png',
+  '/images/ScotchTape-07.png',
+];
 
 // ── TrackTitle ──────────────────────────────────────────────────────────────
 // Renders a track title with optional favorite/recommended icons.
@@ -1399,8 +1605,9 @@ function TrackTitle({
   );
 }
 
-function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, queueTrackIds, sectionBackgroundColor, cardDisplayNumber }: AlbumRowProps) {
+function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, queueTrackIds, sectionBackgroundColor, useCardBackgroundOverlay = true, cardDisplayNumber, tapeImages, useStaplesPaper }: AlbumRowProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const [coverImageFailed, setCoverImageFailed] = useState(false);
   const tracksContainerRef = useRef<HTMLDivElement>(null);
   const albumRowRef = useRef<HTMLDivElement>(null);
   const coverRef = useRef<HTMLDivElement>(null);
@@ -1518,46 +1725,94 @@ function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, qu
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        <div className={styles['album-row-cover-image-wrap']}>
-          {album.cover_art_path ? (
-            <img
-              src={`/api/media/${album.cover_art_path}`}
-              alt={`${album.title} cover`}
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-                e.currentTarget.nextElementSibling?.classList.remove('hidden');
-              }}
-            />
-          ) : null}
-          <div className={clsx(styles['album-row-cover-placeholder'], album.cover_art_path && styles['hidden'])}>
-            🎵
-          </div>
-        </div>
-        {editMode && isHovered && (
-          <button
-            className={styles['album-edit-overlay-button']}
-            onClick={(e) => {
-              e.stopPropagation();
-              onEditClick(album.id);
-            }}
-            title="Edit Album"
-            aria-label="Edit Album"
-          >
-            <MdEdit size={24} />
-          </button>
+        {(album.cover_art_path || album.spotify_image_url) && (getMediaUrl(album.cover_art_path, album.is_playlist) ?? album.spotify_image_url) && !coverImageFailed ? (
+          <>
+            <div className={styles['album-row-cover-image-wrap']}>
+              <div className={styles['album-row-cover-img-wrap']}>
+                <img
+                  src={(getMediaUrl(album.cover_art_path, album.is_playlist) ?? album.spotify_image_url)!}
+                  alt={`${album.title} cover`}
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    setCoverImageFailed(true);
+                  }}
+                />
+              </div>
+            </div>
+            {editMode && isHovered && (
+              <button
+                className={styles['album-edit-overlay-button']}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEditClick(album.id);
+                }}
+                title="Edit Album"
+                aria-label="Edit Album"
+              >
+                <MdEdit size={24} />
+              </button>
+            )}
+          </>
+        ) : (
+          <>
+            <div className={styles['album-row-cover-crumpled']} aria-hidden="true">
+              <span className={styles['album-row-cover-crumpled-title']}>{album.title}</span>
+            </div>
+            {editMode && isHovered && (
+              <button
+                className={styles['album-edit-overlay-button']}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEditClick(album.id);
+                }}
+                title="Edit Album"
+                aria-label="Edit Album"
+              >
+                <MdEdit size={24} />
+              </button>
+            )}
+          </>
         )}
       </div>
-      
+
+      {tapeImages && (
+        <div className={styles['album-row-tape-overlays']} aria-hidden="true">
+          <div className={styles['album-row-tape-overlay']}>
+            <img src={tapeImages[0]} alt="" />
+          </div>
+          <div className={styles['album-row-tape-overlay']}>
+            <img src={tapeImages[1]} alt="" />
+          </div>
+        </div>
+      )}
+
       <div
-        className={styles['album-row-info']}
-        style={sectionBackgroundColor ? { backgroundColor: sectionBackgroundColor } : undefined}
+        className={clsx(
+          styles['album-row-info'],
+          useStaplesPaper && styles['album-row-info-paper-staples'],
+          sectionBackgroundColor && useCardBackgroundOverlay && styles[`section-paper-${sectionBackgroundColor.replace(/^#/, '').toUpperCase()}`],
+          sectionBackgroundColor && !useCardBackgroundOverlay && styles[`section-line-${sectionBackgroundColor.replace(/^#/, '').toUpperCase()}`]
+        )}
       >
         <div className={styles['album-info-text']}>
-          <div className={styles['album-row-artist']}>{album.artist.toUpperCase()}</div>
-          <div className={styles['album-row-title']}>
-            {album.title}
-            {album.year != null && ` (${album.year})`}
-          </div>
+          {album.various_artists ? (
+            <>
+              <div className={clsx(styles['album-row-title'], styles['album-row-title-va'])}>
+                {album.title.toUpperCase()}
+              </div>
+              {albumDetails?.description && (
+                <div className={styles['album-row-description']}>{albumDetails.description}</div>
+              )}
+            </>
+          ) : (
+            <>
+              <div className={styles['album-row-artist']}>{album.artist.toUpperCase()}</div>
+              <div className={styles['album-row-title']}>
+                {album.title}
+                {album.year != null && ` (${album.year})`}
+              </div>
+            </>
+          )}
         </div>
         
         {albumDetails && albumDetails.tracks && (
@@ -1577,7 +1832,11 @@ function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, qu
                     )}
                   </span>
                   <TrackTitle
-                    title={track.title}
+                    title={
+                      album.various_artists
+                        ? `${(track.artist || '').toUpperCase()} - ${track.title}`
+                        : track.title
+                    }
                     isFavorite={!!track.is_favorite}
                     isRecommended={!!track.is_recommended}
                   />

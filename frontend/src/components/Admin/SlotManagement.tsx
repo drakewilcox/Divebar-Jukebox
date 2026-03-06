@@ -16,7 +16,8 @@ import {
 import { arrayMove } from '@dnd-kit/sortable';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { MdDragIndicator, MdEdit, MdDelete } from 'react-icons/md';
-import { collectionsApi, adminApi } from '../../services/api';
+import { collectionsApi, adminApi, getMediaUrl } from '../../services/api';
+import { useAuthStore } from '../../stores/authStore';
 import type { Album } from '../../types';
 import AlbumEditModal from './AlbumEditModal';
 import ConfirmModal from '../ConfirmModal';
@@ -51,8 +52,8 @@ function SlotCard({ album, slotNumber, isDragging }: { album: Album; slotNumber:
             <MdDragIndicator size={18} />
           </div>
           <div className={styles['slot-card-cover']}>
-            {album.cover_art_path ? (
-              <img src={`/api/media/${album.cover_art_path}`} alt="" />
+            {(getMediaUrl(album.cover_art_path, album.is_playlist) ?? album.spotify_image_url) ? (
+              <img src={getMediaUrl(album.cover_art_path, album.is_playlist) ?? album.spotify_image_url ?? ''} alt="" />
             ) : (
               <div className={styles['slot-card-cover-placeholder']}>No art</div>
             )}
@@ -96,8 +97,8 @@ function DraggableSlotCard({
             <MdDragIndicator size={18} />
           </div>
           <div className={styles['slot-card-cover']}>
-            {album.cover_art_path ? (
-              <img src={`/api/media/${album.cover_art_path}`} alt="" />
+            {(getMediaUrl(album.cover_art_path, album.is_playlist) ?? album.spotify_image_url) ? (
+              <img src={getMediaUrl(album.cover_art_path, album.is_playlist) ?? album.spotify_image_url ?? ''} alt="" />
             ) : (
               <div className={styles['slot-card-cover-placeholder']}>No art</div>
             )}
@@ -166,10 +167,14 @@ function DroppableSlot({
 type SlotManagementProps = {
   /** When provided, use this collection and hide the collection selector (e.g. when embedded in Collection Manager). */
   collectionSlug?: string;
+  /** When in admin, pass current user slug so collection/albums are scoped. */
+  userSlug?: string;
 };
 
-export default function SlotManagement({ collectionSlug }: SlotManagementProps) {
+export default function SlotManagement({ collectionSlug, userSlug: userSlugProp }: SlotManagementProps) {
   const queryClient = useQueryClient();
+  const user = useAuthStore((s) => s.user);
+  const userSlug = userSlugProp ?? user?.slug;
   const [selectedSlug, setSelectedSlug] = useState<string>('');
   const [orderedAlbums, setOrderedAlbums] = useState<Album[]>([]);
   const [hasLocalChanges, setHasLocalChanges] = useState(false);
@@ -180,17 +185,17 @@ export default function SlotManagement({ collectionSlug }: SlotManagementProps) 
   const effectiveSlug = collectionSlug ?? selectedSlug;
 
   const { data: collections } = useQuery({
-    queryKey: ['collections'],
+    queryKey: ['admin-collections'],
     queryFn: async () => {
-      const response = await collectionsApi.getAll();
+      const response = await adminApi.listCollections();
       return response.data.filter((c: { slug: string }) => c.slug !== 'all');
     },
   });
 
   const { data: serverAlbums, isSuccess: albumsLoaded } = useQuery({
-    queryKey: ['collection-albums', effectiveSlug],
+    queryKey: ['collection-albums', effectiveSlug, userSlug],
     queryFn: async () => {
-      const response = await collectionsApi.getAlbums(effectiveSlug);
+      const response = await collectionsApi.getAlbums(effectiveSlug, userSlug);
       return response.data;
     },
     enabled: !!effectiveSlug,

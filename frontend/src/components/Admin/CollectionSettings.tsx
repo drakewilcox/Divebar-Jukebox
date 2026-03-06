@@ -3,19 +3,20 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi } from '../../services/api';
 import type { Collection, HitButtonMode } from '../../types';
 import styles from './CollectionSettings.module.css';
-import clsx from 'clsx';
 import JukeboxSettingsPanel from '../JukeboxSettingsPanel';
 
 type Props = {
   collection: Collection | null;
+  enableLocalLibrary?: boolean;
 };
 
-export default function CollectionSettings({ collection }: Props) {
+export default function CollectionSettings({ collection, enableLocalLibrary = true }: Props) {
   const queryClient = useQueryClient();
   const [sortOrder, setSortOrder] = useState<'alphabetical' | 'curated'>('curated');
   const [showJumpToBar, setShowJumpToBar] = useState(true);
   const [jumpButtonType, setJumpButtonType] = useState<'letter-ranges' | 'number-ranges' | 'sections'>('number-ranges');
   const [showColorCoding, setShowColorCoding] = useState(true);
+  const [showCardBackground, setShowCardBackground] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [crossfadeSeconds, setCrossfadeSeconds] = useState(0);
   const [hitButtonMode, setHitButtonMode] = useState<HitButtonMode>('favorites');
@@ -41,6 +42,7 @@ export default function CollectionSettings({ collection }: Props) {
         : 'number-ranges'
     );
     setShowColorCoding(collection.default_show_color_coding ?? true);
+    setShowCardBackground(collection.default_show_card_background ?? true);
     setEditMode(collection.default_edit_mode ?? false);
     const cf = collection.default_crossfade_seconds;
     setCrossfadeSeconds(
@@ -52,7 +54,7 @@ export default function CollectionSettings({ collection }: Props) {
         ? hbm
         : 'favorites'
     );
-  }, [collection?.id, collection?.default_sort_order, collection?.default_show_jump_to_bar, collection?.default_jump_button_type, collection?.default_show_color_coding, collection?.default_edit_mode, collection?.default_crossfade_seconds, collection?.default_hit_button_mode]);
+  }, [collection?.id, collection?.default_sort_order, collection?.default_show_jump_to_bar, collection?.default_jump_button_type, collection?.default_show_color_coding, collection?.default_show_card_background, collection?.default_edit_mode, collection?.default_crossfade_seconds, collection?.default_hit_button_mode]);
 
   useEffect(() => {
     if (sortOrder === 'alphabetical' && jumpButtonType === 'sections') {
@@ -83,6 +85,7 @@ export default function CollectionSettings({ collection }: Props) {
         default_show_jump_to_bar: showJumpToBar,
         default_jump_button_type: jumpButtonType,
         default_show_color_coding: showColorCoding,
+        default_show_card_background: showCardBackground,
         default_edit_mode: editMode,
         default_crossfade_seconds: crossfadeSeconds,
         default_hit_button_mode: hitButtonMode,
@@ -102,6 +105,7 @@ export default function CollectionSettings({ collection }: Props) {
       showJumpToBar !== (collection.default_show_jump_to_bar ?? true) ||
       jumpButtonType !== (collection.default_jump_button_type ?? 'number-ranges') ||
       showColorCoding !== (collection.default_show_color_coding ?? true) ||
+      showCardBackground !== (collection.default_show_card_background ?? true) ||
       editMode !== (collection.default_edit_mode ?? false) ||
       crossfadeSeconds !== (collection.default_crossfade_seconds ?? 0) ||
       hitButtonMode !== (collection.default_hit_button_mode ?? 'favorites'));
@@ -127,6 +131,7 @@ export default function CollectionSettings({ collection }: Props) {
     showJumpToBar,
     jumpButtonType,
     showColorCoding,
+    showCardBackground,
     editMode,
     crossfadeSeconds,
     hitButtonMode,
@@ -149,32 +154,38 @@ export default function CollectionSettings({ collection }: Props) {
         onJumpButtonTypeChange={setJumpButtonType}
         showColorCoding={showColorCoding}
         onShowColorCodingChange={setShowColorCoding}
+        showCardBackground={showCardBackground}
+        onShowCardBackgroundChange={setShowCardBackground}
         crossfadeSeconds={crossfadeSeconds}
         onCrossfadeSecondsChange={setCrossfadeSeconds}
         hitButtonMode={hitButtonMode}
         onHitButtonModeChange={setHitButtonMode}
         sectionsEnabledForCollection={sectionsEnabledForCollection}
+        enableLocalLibrary={enableLocalLibrary}
         namePrefix="collection-"
       />
 
       <div className={styles['collection-settings-section']}>
-        <div className={clsx(styles['collection-settings-row'], styles['collection-settings-row-toggle'])}>
-          <h3>Edit Mode</h3>
-          <label className={styles['toggle-label']}>
-            <div className={styles['toggle-label-content']}>
-              <input
-                type="checkbox"
-                checked={editMode}
-                onChange={(e) => setEditMode(e.target.checked)}
-                className={styles['toggle-checkbox']}
-              />
-              <span className={styles['toggle-text']}>{editMode ? 'ON' : 'OFF'}</span>
-            </div>
-          </label>
+        <div className={styles['settings-row']}>
+          <div className={styles['settings-row-left']}>
+            <h3 className={styles['settings-row-title']}>Edit Mode</h3>
+            <p className={styles['settings-row-help']}>
+              When enabled, hover over album covers to quickly edit albums from the jukebox view.
+            </p>
+          </div>
+          <div className={styles['settings-row-right']}>
+            <label className={styles['toggle-label']}>
+              <div className={styles['toggle-label-content']}>
+                <input
+                  type="checkbox"
+                  checked={editMode}
+                  onChange={(e) => setEditMode(e.target.checked)}
+                  className={styles['toggle-checkbox']}
+                />
+              </div>
+            </label>
+          </div>
         </div>
-        <p className={styles['help-text']}>
-          When enabled, hover over album covers to quickly edit albums from the jukebox view.
-        </p>
       </div>
 
       {updateMutation.isError && (

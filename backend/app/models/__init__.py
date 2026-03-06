@@ -6,6 +6,8 @@ from app.models.collection_album import CollectionAlbum
 from app.models.queue import Queue
 from app.models.playback_state import PlaybackState
 from app.models.setting import Setting
+from app.models.user import User
+from app.models.user_spotify_connection import UserSpotifyConnection
 
 __all__ = [
     "Album",
@@ -15,4 +17,6 @@ __all__ = [
     "Queue",
     "PlaybackState",
     "Setting",
+    "User",
+    "UserSpotifyConnection",
 ]

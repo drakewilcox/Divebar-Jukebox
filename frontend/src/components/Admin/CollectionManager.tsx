@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { MdEdit } from 'react-icons/md';
-import { collectionsApi, adminApi } from '../../services/api';
+import { MdEdit, MdAdd, MdDelete, MdOpenInNew } from 'react-icons/md';
+import { collectionsApi, adminApi, configApi, getMediaUrl } from '../../services/api';
+import { useAuthStore } from '../../stores/authStore';
 import { filterAndSortAlbums, type AlbumSortOption } from '../../utils/albumListFilter';
 import type { Collection } from '../../types';
 import CollectionSections from './CollectionSections';
@@ -16,26 +17,40 @@ type CollectionManagerSubTab = 'selections' | 'slots' | 'sections' | 'settings';
 
 export default function CollectionManager() {
   const queryClient = useQueryClient();
+  const user = useAuthStore((s) => s.user);
   const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null);
   const [subTab, setSubTab] = useState<CollectionManagerSubTab>('selections');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<AlbumSortOption>('artist_asc');
   const [showOnlyInCollection, setShowOnlyInCollection] = useState(false);
   const [editingCollection, setEditingCollection] = useState<CollectionToEdit | null>(null);
+  const [collectionToDelete, setCollectionToDelete] = useState<Collection | null>(null);
   const [editingAlbumId, setEditingAlbumId] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  const { data: collections } = useQuery({
-    queryKey: ['collections'],
+  const { data: config } = useQuery({
+    queryKey: ['config'],
     queryFn: async () => {
-      const response = await collectionsApi.getAll();
-      return response.data;
+      const res = await configApi.getConfig();
+      return res.data;
+    },
+    retry: false,
+  });
+  const enableLocalLibrary =
+    config?.enable_local_library ?? (import.meta.env.VITE_ENABLE_LOCAL_FILES === 'false' ? false : true);
+  const activeSource: 'local' | 'spotify' = enableLocalLibrary ? 'local' : 'spotify';
+
+  const { data: collections } = useQuery({
+    queryKey: ['admin-collections'],
+    queryFn: async () => {
+      const response = await adminApi.listCollections();
+      return response.data as Collection[];
     },
   });
 
   const editableCollections = useMemo(
-    () => (collections ?? []).filter((c: Collection) => c.slug !== 'all'),
-    [collections]
+    () => (collections ?? []).filter((c: Collection) => (c.source ?? 'local') === activeSource),
+    [collections, activeSource]
   );
 
   const { data: allAlbums } = useQuery({
@@ -47,10 +62,10 @@ export default function CollectionManager() {
   });
 
   const { data: collectionAlbums } = useQuery({
-    queryKey: ['collection-albums', selectedCollection?.slug],
+    queryKey: ['collection-albums', selectedCollection?.slug, user?.slug],
     queryFn: async () => {
       if (!selectedCollection) return [];
-      const response = await collectionsApi.getAlbums(selectedCollection.slug);
+      const response = await collectionsApi.getAlbums(selectedCollection.slug, user?.slug);
       return response.data;
     },
     enabled: !!selectedCollection,
@@ -70,9 +85,24 @@ export default function CollectionManager() {
     },
   });
 
+  const deleteCollectionMutation = useMutation({
+    mutationFn: (id: string) => adminApi.deleteCollection(id),
+    onSuccess: (_, deletedId) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-collections'] });
+      setCollectionToDelete(null);
+      if (selectedCollection?.id === deletedId) {
+        setSelectedCollection(null);
+      }
+    },
+  });
+
   const activeAlbums = useMemo(
-    () => (allAlbums ?? []).filter((a: { archived?: boolean }) => !a.archived),
-    [allAlbums]
+    () => (allAlbums ?? []).filter((a: { archived?: boolean; file_path?: string }) => {
+      if (a.archived) return false;
+      const isSpotify = String(a.file_path ?? '').startsWith('spotify/');
+      return enableLocalLibrary ? !isSpotify : isSpotify;
+    }),
+    [allAlbums, enableLocalLibrary]
   );
 
   const filteredForDisplay = useMemo(() => {
@@ -95,19 +125,40 @@ export default function CollectionManager() {
     }
   }, [editableCollections, selectedCollection]);
 
+  // Keep selectedCollection in sync with refetched list (e.g. after saving sections)
+  useEffect(() => {
+    if (!selectedCollection) return;
+    const updated = editableCollections.find((c: Collection) => c.id === selectedCollection.id);
+    if (updated && updated !== selectedCollection) {
+      setSelectedCollection(updated);
+    }
+  }, [editableCollections, selectedCollection?.id]);
+
   if (!collections) return <p>Loading collections…</p>;
 
   return (
     <div className={styles['collection-manager']}>
       <div className={styles['manager-section']}>
-        <h2>Collections</h2>
+        <div className={styles['collections-section-header']}>
+          <h2>Collections</h2>
+          <button
+            type="button"
+            className={styles['collection-add-button']}
+            onClick={() => setEditingCollection({ id: '', name: '', slug: '', description: '', published: false, source: activeSource })}
+            aria-label="Add collection"
+          >
+            <MdAdd size={24} />
+          </button>
+        </div>
         <p>Select a collection to manage its albums, sections, and display settings.</p>
 
+        {editableCollections.length === 0 ? (
+          <p className={styles['no-collections']}>
+            No {activeSource === 'spotify' ? 'Spotify' : 'Local'} collections yet. Click "+" icon to add one.
+          </p>
+        ) : null}
         <div className={styles['collections-list']}>
-          {editableCollections.length === 0 ? (
-            <p className={styles['no-collections']}>No editable collections. The &quot;All Albums&quot; collection cannot be edited.</p>
-          ) : (
-            editableCollections.map((c: Collection) => (
+          {editableCollections.map((c: Collection) => (
               <div
                 key={c.id}
                 className={clsx(styles['collection-card'], selectedCollection?.id === c.id && styles['selected'])}
@@ -124,24 +175,51 @@ export default function CollectionManager() {
                 <div className={styles['collection-header']}>
                   <h3>{c.name}</h3>
                   <div className={styles['collection-actions']}>
+                    <a
+                      href={user?.slug ? `/${user.slug}/${c.slug}` : '#'}
+                      className={styles['collection-link-icon']}
+                      onClick={(e) => e.stopPropagation()}
+                      aria-label="Open in jukebox"
+                      title={`Open in jukebox: /${user?.slug ?? '…'}/${c.slug}`}
+                    >
+                      <MdOpenInNew size={20} />
+                    </a>
                     <button
                       type="button"
                       className={styles['collection-edit-icon']}
                       onClick={(e) => {
                         e.stopPropagation();
-                        setEditingCollection({ id: c.id, name: c.name, slug: c.slug, description: c.description });
+                        setEditingCollection({ id: c.id, name: c.name, slug: c.slug, description: c.description, published: c.published ?? false, source: (c.source as 'local' | 'spotify') ?? 'local' });
                       }}
                       aria-label="Edit collection"
                     >
                       <MdEdit size={20} />
                     </button>
+                    <button
+                      type="button"
+                      className={styles['collection-delete-icon']}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCollectionToDelete(c);
+                      }}
+                      aria-label="Delete collection"
+                    >
+                      <MdDelete size={20} />
+                    </button>
                   </div>
                 </div>
-                <div className={styles['collection-slug']}>{c.slug}</div>
+                <div className={styles['collection-meta']}>
+                  <span className={clsx(styles['collection-badge'], c.published ? styles['collection-badge-published'] : styles['collection-badge-private'])}>
+                    {c.published ? 'Published' : 'Private'}
+                  </span>
+                  <span className={clsx(styles['collection-badge'], c.source === 'spotify' ? styles['collection-badge-spotify'] : styles['collection-badge-local'])}>
+                    {c.source === 'spotify' ? 'Spotify' : 'Local'}
+                  </span>
+                  <span className={styles['collection-slug']}>{c.slug}</span>
+                </div>
                 {c.description && <div className={styles['collection-description']}>{c.description}</div>}
               </div>
-            ))
-          )}
+            ))}
         </div>
       </div>
 
@@ -221,7 +299,7 @@ export default function CollectionManager() {
                   {filteredForDisplay.length === 0 ? (
                     <p className={styles['albums-list-empty']}>No albums match.</p>
                   ) : (
-                    filteredForDisplay.map((album: { id: string; title: string; artist: string; cover_art_path?: string | null; file_path?: string; total_tracks?: number; year?: number }) => (
+                    filteredForDisplay.map((album: { id: string; title: string; artist: string; cover_art_path?: string | null; spotify_image_url?: string | null; is_playlist?: boolean; file_path?: string; total_tracks?: number; year?: number }) => (
                       <div
                         key={album.id}
                         className={clsx(styles['album-item'], !collectionAlbumIds.has(album.id) && styles['not-in-collection'])}
@@ -235,15 +313,20 @@ export default function CollectionManager() {
                             disabled={addRemoveMutation.isPending}
                           />
                         </label>
-                        {album.cover_art_path && (
-                          <div className={styles['album-item-cover']}>
-                            <img src={`/api/media/${album.cover_art_path}`} alt="" />
-                          </div>
-                        )}
+                        {(() => {
+                          const src = getMediaUrl(album.cover_art_path, album.is_playlist) ?? album.spotify_image_url ?? null;
+                          return src ? (
+                            <div className={styles['album-item-cover']}>
+                              <img src={src} alt="" />
+                            </div>
+                          ) : null;
+                        })()}
                         <div className={styles['album-item-info']}>
                           <div className={styles['album-item-title']}>{album.title}</div>
                           <div className={styles['album-item-artist']}>{album.artist}</div>
-                          {album.file_path && <div className={styles['album-item-path']}>{album.file_path}</div>}
+                          {album.file_path && !String(album.file_path).startsWith('spotify/') && (
+                            <div className={styles['album-item-path']}>{album.file_path}</div>
+                          )}
                         </div>
                         <div className={styles['album-item-stats']}>
                           {album.total_tracks != null && <span>{album.total_tracks} tracks</span>}
@@ -268,7 +351,7 @@ export default function CollectionManager() {
 
             {subTab === 'slots' && (
               <div className={styles['collection-manager-tab-pane']}>
-                <SlotManagement collectionSlug={selectedCollection.slug} />
+                <SlotManagement collectionSlug={selectedCollection.slug} userSlug={user?.slug} />
               </div>
             )}
 
@@ -285,6 +368,7 @@ export default function CollectionManager() {
                     collections?.find((c: Collection) => c.id === selectedCollection?.id) ??
                     selectedCollection
                   }
+                  enableLocalLibrary={enableLocalLibrary}
                 />
               </div>
             )}
@@ -296,14 +380,56 @@ export default function CollectionManager() {
         <CollectionEditModal
           collection={editingCollection}
           onClose={() => {
+            const wasEdit = !!editingCollection.id;
             setEditingCollection(null);
-            queryClient.invalidateQueries({ queryKey: ['collections'] });
-            const updated = editableCollections.find((c: Collection) => c.id === editingCollection.id);
-            if (updated && selectedCollection?.id === editingCollection.id) {
-              setSelectedCollection(updated);
+            queryClient.invalidateQueries({ queryKey: ['admin-collections'] });
+            if (wasEdit) {
+              const updated = editableCollections.find((c: Collection) => c.id === editingCollection.id);
+              if (updated && selectedCollection?.id === editingCollection.id) {
+                setSelectedCollection(updated);
+              }
             }
           }}
         />
+      )}
+
+      {collectionToDelete && (
+        <div
+          className={styles['delete-confirm-overlay']}
+          onClick={() => setCollectionToDelete(null)}
+          role="presentation"
+        >
+          <div
+            className={styles['delete-confirm-modal']}
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-labelledby="delete-confirm-title"
+          >
+            <h2 id="delete-confirm-title" className={styles['delete-confirm-title']}>
+              Are you sure you want to delete the collection {collectionToDelete.name}?
+            </h2>
+            <p className={styles['delete-confirm-warning']}>
+              Deleting a collection will remove all of its settings, sections, and slot configurations
+            </p>
+            <div className={styles['delete-confirm-actions']}>
+              <button
+                type="button"
+                className={styles['delete-confirm-cancel']}
+                onClick={() => setCollectionToDelete(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={styles['delete-confirm-submit']}
+                onClick={() => deleteCollectionMutation.mutate(collectionToDelete.id)}
+                disabled={deleteCollectionMutation.isPending}
+              >
+                {deleteCollectionMutation.isPending ? 'Deleting…' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {editingAlbumId && (

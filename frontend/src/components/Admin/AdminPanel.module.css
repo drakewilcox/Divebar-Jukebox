@@ -1,18 +1,24 @@
 .admin-panel {
   display: flex;
   flex-direction: column;
+  align-items: center;
   height: 100%;
-  gap: 2rem;
-  padding: 1.5rem 4rem 1.5rem 4rem;
+  width: 100%;
+  /* max-width: 1450px; */
+  gap: 1rem;
+  /* padding: 1.5rem 4rem 1.5rem 4rem; */
+  padding: 1.5rem 0rem;
 }
 
 .admin-header {
   display: flex;
-  align-items: center;
+  width: 100%;
+  align-items: space-between;
   justify-content: space-between;
   gap: 1rem;
-  padding: 1rem 1rem 0rem 1rem;
+  padding: 0rem 2rem 0rem 2rem;
   flex-wrap: wrap;
+  max-width: 1450px
 }
 
 .admin-header h1 {
@@ -22,8 +28,8 @@
 }
 
 .admin-back-to-jukebox {
-  padding: 0.5rem 1rem;
-  font-size: 0.95rem;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: var(--vintage-cream);
   background-color: var(--background-dark);
@@ -38,14 +44,83 @@
   background-color: color-mix(in srgb, var(--vintage-cream) 12%, transparent);
 }
 
+.admin-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.admin-user-menu {
+  position: relative;
+}
+
+.admin-user-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--vintage-cream) 25%, transparent);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.admin-user-trigger:hover {
+  color: var(--vintage-cream);
+  border-color: var(--vintage-cream);
+}
+
+.admin-user-caret {
+  font-size: 0.55rem;
+  opacity: 0.7;
+}
+
+.admin-user-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 130px;
+  background: var(--background-card);
+  border: 1px solid color-mix(in srgb, var(--vintage-cream) 25%, transparent);
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  z-index: 100;
+}
+
+.admin-user-dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 0.65rem 1rem;
+  text-align: left;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.admin-user-dropdown-item:hover {
+  background: color-mix(in srgb, var(--vintage-cream) 10%, transparent);
+  color: var(--vintage-cream);
+}
+
 .admin-tabs {
+  width: 100%;
   display: flex;
   gap: 0.5rem;
   border-bottom: 2px solid var(--border-color);
+  max-width: 1450px;
+  padding: 0rem 2rem;
 }
 
 .admin-tab {
-  padding: 1rem 2rem;
+  padding: 1rem 1rem;
   font-size: 1rem;
   font-weight: 600;
   color: var(--text-secondary);
@@ -67,6 +142,7 @@
 
 .admin-content {
   flex: 1;
+  width: 100%;
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -74,6 +150,7 @@
   overflow-y: auto;
   overflow-anchor: none; /* Prevent scroll jump when Collection Manager tab content changes */
   scrollbar-width: none;
+  max-width: 1450px;
 }
 
 .admin-content::-webkit-scrollbar {
