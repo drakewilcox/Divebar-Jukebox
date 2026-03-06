@@ -232,8 +232,8 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 
 
 ### Routing
-- [ ] Add specific "Collection" routing so user can share a specific Collection (route would contain user slug and collection slug)
-- [ ] Put Admin content behind protected routes. 
+- [x] Add specific "Collection" routing so user can share a specific Collection (route would contain user slug and collection slug)
+- [x] Put Admin content behind protected routes. 
 
 ### Integration & Infrastructure
 - [x] Add ability to add playlist folders as albums
@@ -277,10 +277,11 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [ ] Kiosk mode setup
 
 ### Phase 4: Hosted Demo
-- [ ] Multi-user support
+- [x] Multi-user support
 - [ ] Cloud deployment
 - [x] Spotify integration
 - [x] Admin user signup for creating a custom Jukebox
+- [ ] Email Verification and Password retreival 
 
 ## Disclaimer
 
