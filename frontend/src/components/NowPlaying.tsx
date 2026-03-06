@@ -8,20 +8,21 @@ import clsx from 'clsx';
 
 interface Props {
   collection: Collection;
+  userSlug?: string;
 }
 
-export default function NowPlaying({ collection }: Props) {
+export default function NowPlaying({ collection, userSlug }: Props) {
   const queryClient = useQueryClient();
   const [currentPositionMs, setCurrentPositionMs] = useState(0);
   const progressBarRef = useRef<HTMLDivElement>(null);
   
   const { data: playbackState } = useQuery({
-    queryKey: ['playback-state', collection.slug],
+    queryKey: ['playback-state', collection.slug, userSlug],
     queryFn: async () => {
-      const response = await playbackApi.getState(collection.slug);
+      const response = await playbackApi.getState(collection.slug, userSlug);
       return response.data;
     },
-    refetchInterval: 1000, // Poll every second
+    refetchInterval: 1000,
   });
   
   // Update progress from audio service (playing + when paused so seek is reflected)
@@ -35,24 +36,24 @@ export default function NowPlaying({ collection }: Props) {
   }, []);
   
   const playMutation = useMutation({
-    mutationFn: () => playbackApi.play(collection.slug),
+    mutationFn: () => playbackApi.play(collection.slug, userSlug),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['playback-state', collection.slug] });
+      queryClient.invalidateQueries({ queryKey: ['playback-state', collection.slug, userSlug] });
     },
   });
   
   const pauseMutation = useMutation({
-    mutationFn: () => playbackApi.pause(collection.slug),
+    mutationFn: () => playbackApi.pause(collection.slug, userSlug),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['playback-state', collection.slug] });
+      queryClient.invalidateQueries({ queryKey: ['playback-state', collection.slug, userSlug] });
     },
   });
   
   const skipMutation = useMutation({
-    mutationFn: () => playbackApi.skip(collection.slug),
+    mutationFn: () => playbackApi.skip(collection.slug, userSlug),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['playback-state', collection.slug] });
-      queryClient.invalidateQueries({ queryKey: ['queue', collection.slug] });
+      queryClient.invalidateQueries({ queryKey: ['playback-state', collection.slug, userSlug] });
+      queryClient.invalidateQueries({ queryKey: ['queue', collection.slug, userSlug] });
     },
   });
   
@@ -70,12 +71,12 @@ export default function NowPlaying({ collection }: Props) {
     const replaygain =
       playbackState.current_track?.replaygain_track_gain ?? undefined;
     const durationMs = playbackState.current_track?.duration_ms ?? undefined;
-    audioService.loadTrack(playbackState.current_track_id, replaygain, collection.slug, durationMs);
+    audioService.loadTrack(playbackState.current_track_id, replaygain, collection.slug, durationMs, userSlug);
     setCurrentPositionMs(0);
     if (playbackState.is_playing) {
       audioService.play();
     }
-  }, [playbackState?.current_track_id, playbackState?.is_playing, collection.slug]);
+  }, [playbackState?.current_track_id, playbackState?.is_playing, collection.slug, userSlug]);
   
   // Sync play/pause state
   useEffect(() => {
@@ -92,16 +93,16 @@ export default function NowPlaying({ collection }: Props) {
   useEffect(() => {
     const handleTrackEnded = async () => {
       try {
-        await playbackApi.skip(collection.slug);
-        queryClient.invalidateQueries({ queryKey: ['playback-state', collection.slug] });
-        queryClient.invalidateQueries({ queryKey: ['queue', collection.slug] });
+        await playbackApi.skip(collection.slug, userSlug);
+        queryClient.invalidateQueries({ queryKey: ['playback-state', collection.slug, userSlug] });
+        queryClient.invalidateQueries({ queryKey: ['queue', collection.slug, userSlug] });
       } catch (error) {
         console.error('Failed to skip to next track:', error);
       }
     };
     const handleCrossfadeComplete = () => {
-      queryClient.invalidateQueries({ queryKey: ['playback-state', collection.slug] });
-      queryClient.invalidateQueries({ queryKey: ['queue', collection.slug] });
+      queryClient.invalidateQueries({ queryKey: ['playback-state', collection.slug, userSlug] });
+      queryClient.invalidateQueries({ queryKey: ['queue', collection.slug, userSlug] });
     };
     window.addEventListener('track-ended', handleTrackEnded);
     window.addEventListener('crossfade-complete', handleCrossfadeComplete);
@@ -109,7 +110,7 @@ export default function NowPlaying({ collection }: Props) {
       window.removeEventListener('track-ended', handleTrackEnded);
       window.removeEventListener('crossfade-complete', handleCrossfadeComplete);
     };
-  }, [collection.slug, queryClient]);
+  }, [collection.slug, userSlug, queryClient]);
   
   const handlePlayPause = () => {
     if (playbackState?.is_playing) {

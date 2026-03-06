@@ -4,6 +4,8 @@ import { MdPlayArrow, MdPause, MdSkipNext, MdStop } from 'react-icons/md';
 import { Collection } from '../types';
 import { queueApi, playbackApi, getMediaUrl } from '../services/api';
 import audioService from '../services/audio';
+import { useSpotifyStore } from '../stores/spotifyStore';
+import { spotifyPause, getSpotifyPlayer } from '../services/spotifyPlayer';
 import styles from './QueueDisplay.module.css'
 import clsx from 'clsx';
 
@@ -14,49 +16,72 @@ interface Props {
   onQueueCleared?: () => void;
   /** When provided, selection number is shown in current sort order (e.g. alphabetical) instead of curated. */
   getSelectionDisplay?: GetSelectionDisplay;
+  userSlug?: string;
+  /** When false, playback uses Spotify only; local stream is not used */
+  enableLocalLibrary?: boolean;
+  /** Called when user clicks Stop (so parent can suppress auto-start / sync for a short window) */
+  onStopped?: () => void;
 }
 
-export default function QueueDisplay({ collection, onQueueCleared, getSelectionDisplay }: Props) {
+export default function QueueDisplay({ collection, onQueueCleared, getSelectionDisplay, userSlug, enableLocalLibrary = true, onStopped }: Props) {
   const queryClient = useQueryClient();
+  const spotifyToken = useSpotifyStore((s) => s.getAccessToken());
   const [currentPositionMs, setCurrentPositionMs] = useState(0);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dropIndicatorIndex, setDropIndicatorIndex] = useState<number | null>(null);
   const queueListRef = useRef<HTMLDivElement>(null);
   const lastDragYRef = useRef<number>(0);
+  const lastSkipAtRef = useRef<number>(0);
 
   const { data: queue } = useQuery({
-    queryKey: ['queue', collection.slug],
+    queryKey: ['queue', collection.slug, userSlug],
     queryFn: async () => {
-      const response = await queueApi.get(collection.slug);
+      const response = await queueApi.get(collection.slug, userSlug);
       return response.data;
     },
     refetchInterval: 2000,
   });
   
   const { data: playbackState } = useQuery({
-    queryKey: ['playback-state', collection.slug],
+    queryKey: ['playback-state', collection.slug, userSlug],
     queryFn: async () => {
-      const response = await playbackApi.getState(collection.slug);
+      const response = await playbackApi.getState(collection.slug, userSlug);
       return response.data;
     },
     refetchInterval: 1000,
   });
+
+  const useSpotifyForTrack =
+    !!spotifyToken && !!(playbackState?.current_track as { spotify_id?: string } | undefined)?.spotify_id;
   
-  // Update progress from audio service
+  // Update progress from audio service or Spotify player (SDK position is in ms; update when paused too)
   useEffect(() => {
-    const interval = setInterval(() => {
-      if (audioService.isPlaying()) {
-        const positionMs = audioService.getCurrentTime() * 1000;
-        setCurrentPositionMs(positionMs);
+    const interval = setInterval(async () => {
+      if (useSpotifyForTrack) {
+        const player = getSpotifyPlayer();
+        const state = player ? await player.getCurrentState() : null;
+        if (state != null) {
+          setCurrentPositionMs(state.position);
+        }
+      } else if (enableLocalLibrary) {
+        setCurrentPositionMs(audioService.getCurrentTime() * 1000);
       }
     }, 100);
-    
     return () => clearInterval(interval);
-  }, []);
-  
-  // Sync playback state to audio (skip loadTrack when already on this track, e.g. after gapless/crossfade)
+  }, [useSpotifyForTrack, enableLocalLibrary]);
+
+  // Sync playback state to local audio only (Spotify is driven by SpotifyPlaybackSync)
   useEffect(() => {
-    if (!playbackState?.current_track_id) return;
+    if (!playbackState?.current_track_id) {
+      setCurrentPositionMs(0);
+      return;
+    }
+    const spotifyId = (playbackState.current_track as { spotify_id?: string } | undefined)?.spotify_id;
+    if (spotifyId && spotifyToken) {
+      setCurrentPositionMs(0);
+      return;
+    }
+    if (!enableLocalLibrary) return;
     if (audioService.getCurrentTrackId() === playbackState.current_track_id) {
       if (playbackState.is_playing && !audioService.isPlaying()) {
         audioService.play();
@@ -69,22 +94,23 @@ export default function QueueDisplay({ collection, onQueueCleared, getSelectionD
     const replaygain =
       playbackState.current_track?.replaygain_track_gain ?? undefined;
     const durationMs = playbackState.current_track?.duration_ms ?? undefined;
-    audioService.loadTrack(playbackState.current_track_id, replaygain, collection.slug, durationMs);
+    audioService.loadTrack(playbackState.current_track_id, replaygain, collection.slug, durationMs, userSlug);
     if (playbackState.is_playing) {
       audioService.play();
     }
-  }, [playbackState?.current_track_id, playbackState?.is_playing, collection.slug]);
+  }, [playbackState?.current_track_id, playbackState?.is_playing, collection.slug, userSlug, spotifyToken, enableLocalLibrary]);
   
-  // Sync play/pause state
+  // Sync play/pause state for local audio only
   useEffect(() => {
-    if (playbackState) {
+    if (!playbackState || useSpotifyForTrack) return;
+    if (enableLocalLibrary) {
       if (playbackState.is_playing && !audioService.isPlaying()) {
         audioService.play();
       } else if (!playbackState.is_playing && audioService.isPlaying()) {
         audioService.pause();
       }
     }
-  }, [playbackState?.is_playing]);
+  }, [playbackState?.is_playing, useSpotifyForTrack, enableLocalLibrary]);
   
   // Auto-scroll queue list when dragging near top or bottom
   useEffect(() => {
@@ -108,17 +134,19 @@ export default function QueueDisplay({ collection, onQueueCleared, getSelectionD
   // Listen for track ended (no crossfade) and crossfade-complete
   useEffect(() => {
     const handleTrackEnded = async () => {
+      if (Date.now() - lastSkipAtRef.current < 2500) return;
+      lastSkipAtRef.current = Date.now();
       try {
-        await playbackApi.skip(collection.slug);
-        queryClient.invalidateQueries({ queryKey: ['playback-state', collection.slug] });
-        queryClient.invalidateQueries({ queryKey: ['queue', collection.slug] });
+        await playbackApi.skip(collection.slug, userSlug);
+        queryClient.invalidateQueries({ queryKey: ['playback-state', collection.slug, userSlug] });
+        queryClient.invalidateQueries({ queryKey: ['queue', collection.slug, userSlug] });
       } catch (error) {
         console.error('Failed to skip to next track:', error);
       }
     };
     const handleCrossfadeComplete = () => {
-      queryClient.invalidateQueries({ queryKey: ['playback-state', collection.slug] });
-      queryClient.invalidateQueries({ queryKey: ['queue', collection.slug] });
+      queryClient.invalidateQueries({ queryKey: ['playback-state', collection.slug, userSlug] });
+      queryClient.invalidateQueries({ queryKey: ['queue', collection.slug, userSlug] });
     };
     window.addEventListener('track-ended', handleTrackEnded);
     window.addEventListener('crossfade-complete', handleCrossfadeComplete);
@@ -127,56 +155,56 @@ export default function QueueDisplay({ collection, onQueueCleared, getSelectionD
       window.removeEventListener('crossfade-complete', handleCrossfadeComplete);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [collection.slug]);
+  }, [collection.slug, userSlug]);
   
   const removeFromQueueMutation = useMutation({
     mutationFn: (queueId: string) => queueApi.remove(queueId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['queue', collection.slug] });
+      queryClient.invalidateQueries({ queryKey: ['queue', collection.slug, userSlug] });
     },
   });
   
   const reorderQueueMutation = useMutation({
-    mutationFn: (queueIds: string[]) => queueApi.reorder(collection.slug, queueIds),
+    mutationFn: (queueIds: string[]) => queueApi.reorder(collection.slug, queueIds, userSlug),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['queue', collection.slug] });
+      queryClient.invalidateQueries({ queryKey: ['queue', collection.slug, userSlug] });
     },
   });
 
   const stopMutation = useMutation({
     mutationFn: async () => {
-      // Stop local audio first so playback stops immediately
+      onStopped?.();
       audioService.stop();
-      // Then stop on backend and clear queue
-      await playbackApi.stop(collection.slug);
-      await queueApi.clear(collection.slug);
+      spotifyPause();
+      await playbackApi.stop(collection.slug, userSlug);
+      await queueApi.clear(collection.slug, userSlug);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['playback-state', collection.slug] });
-      queryClient.invalidateQueries({ queryKey: ['queue', collection.slug] });
+      queryClient.invalidateQueries({ queryKey: ['playback-state', collection.slug, userSlug] });
+      queryClient.invalidateQueries({ queryKey: ['queue', collection.slug, userSlug] });
       onQueueCleared?.();
     },
   });
   
   const playMutation = useMutation({
-    mutationFn: () => playbackApi.play(collection.slug),
+    mutationFn: () => playbackApi.play(collection.slug, userSlug),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['playback-state', collection.slug] });
+      queryClient.invalidateQueries({ queryKey: ['playback-state', collection.slug, userSlug] });
     },
   });
   
   const pauseMutation = useMutation({
-    mutationFn: () => playbackApi.pause(collection.slug),
+    mutationFn: () => playbackApi.pause(collection.slug, userSlug),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['playback-state', collection.slug] });
+      queryClient.invalidateQueries({ queryKey: ['playback-state', collection.slug, userSlug] });
     },
   });
   
   const skipMutation = useMutation({
-    mutationFn: () => playbackApi.skip(collection.slug),
+    mutationFn: () => playbackApi.skip(collection.slug, userSlug),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['playback-state', collection.slug] });
-      queryClient.invalidateQueries({ queryKey: ['queue', collection.slug] });
+      queryClient.invalidateQueries({ queryKey: ['playback-state', collection.slug, userSlug] });
+      queryClient.invalidateQueries({ queryKey: ['queue', collection.slug, userSlug] });
     },
   });
   
@@ -325,10 +353,10 @@ export default function QueueDisplay({ collection, onQueueCleared, getSelectionD
               <>
                 <div className={styles['now-playing-label']}>Now Playing</div>
                 <div className={clsx(styles['queue-item'], styles['now-playing-item'])}>
-                  {nowPlaying.track.cover_art_path && getMediaUrl(nowPlaying.track.cover_art_path, nowPlaying.track.is_playlist) && (
+                  {(getMediaUrl(nowPlaying.track.cover_art_path, nowPlaying.track.is_playlist) ?? nowPlaying.track.spotify_image_url) && (
                     <div className={styles['queue-item-cover']}>
                       <img
-                        src={getMediaUrl(nowPlaying.track.cover_art_path, nowPlaying.track.is_playlist)!}
+                        src={getMediaUrl(nowPlaying.track.cover_art_path, nowPlaying.track.is_playlist) ?? nowPlaying.track.spotify_image_url ?? ''}
                         alt={`${nowPlaying.track.album_title} cover`}
                       />
                     </div>
@@ -368,10 +396,10 @@ export default function QueueDisplay({ collection, onQueueCleared, getSelectionD
                       onDrop={(e) => handleDrop(e, index + 1)}
                       onDragEnd={handleDragEnd}
                     >
-                    {item.track.cover_art_path && getMediaUrl(item.track.cover_art_path, item.track.is_playlist) && (
+                    {(getMediaUrl(item.track.cover_art_path, item.track.is_playlist) ?? item.track.spotify_image_url) && (
                       <div className={styles['queue-item-cover']}>
                         <img
-                          src={getMediaUrl(item.track.cover_art_path, item.track.is_playlist)!}
+                          src={getMediaUrl(item.track.cover_art_path, item.track.is_playlist) ?? item.track.spotify_image_url ?? ''}
                           alt={`${item.track.album_title} cover`}
                         />
                       </div>

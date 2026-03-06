@@ -5,11 +5,15 @@ import { Album, Collection } from '../types';
 import type { HitButtonMode } from '../types';
 import { albumsApi, queueApi, playbackApi, getMediaUrl } from '../services/api';
 import audioService from '../services/audio';
+import { useSpotifyStore } from '../stores/spotifyStore';
+import { useAuthStore } from '../stores/authStore';
+import { getSpotifyPlayer, spotifySeek } from '../services/spotifyPlayer';
 import SettingsModal from './SettingsModal';
 import AlbumEditModal from './Admin/AlbumEditModal';
 import LCDDisplay from './LCDDisplay';
 import LCDKeypad from './LCDKeypad';
 import QueueDisplay from './QueueDisplay';
+import SpotifyConnectPrompt from './SpotifyConnectPrompt';
 import styles from './CardCarousel.module.css'
 import clsx from 'clsx';
 
@@ -60,9 +64,16 @@ interface Props {
   collection: Collection;
   collections: Collection[];
   onCollectionChange: (collection: Collection) => void;
+  userSlug?: string;
+  /** When false (deployed/cloud mode), playback uses Spotify only; local stream is not used */
+  enableLocalLibrary?: boolean;
+  /** Called when user clicks Stop so parent can suppress auto-start / Spotify sync for a short window */
+  onStopped?: () => void;
+  /** Show "no albums" message centered in the carousel frame */
+  isEmpty?: boolean;
 }
 
-export default function CardCarousel({ albums, collection, collections, onCollectionChange }: Props) {
+export default function CardCarousel({ albums, collection, collections, onCollectionChange, userSlug, enableLocalLibrary = true, onStopped, isEmpty = false }: Props) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isSliding, setIsSliding] = useState(false);
   const [numberInput, setNumberInput] = useState('');
@@ -137,38 +148,67 @@ export default function CardCarousel({ albums, collection, collections, onCollec
 
   // Fetch queue and playback state
   const { data: queue } = useQuery({
-    queryKey: ['queue', collection.slug],
+    queryKey: ['queue', collection.slug, userSlug],
     queryFn: async () => {
-      const response = await queueApi.get(collection.slug);
+      const response = await queueApi.get(collection.slug, userSlug);
       return response.data;
     },
     refetchInterval: 2000,
   });
   
   const { data: playbackState } = useQuery({
-    queryKey: ['playback-state', collection.slug],
+    queryKey: ['playback-state', collection.slug, userSlug],
     queryFn: async () => {
-      const response = await playbackApi.getState(collection.slug);
+      const response = await playbackApi.getState(collection.slug, userSlug);
       return response.data;
     },
     refetchInterval: 1000,
   });
-  
-  // Live position for now-playing (updates from audio service so progress bar and seek stay in sync)
+
+  const spotifyToken = useSpotifyStore((s) => s.getAccessToken());
+  const useSpotifyForTrack =
+    !!spotifyToken && !!(playbackState?.current_track as { spotify_id?: string } | undefined)?.spotify_id;
+
+  const authUser = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated());
+  // Edit button is only visible to the signed-in owner of this collection
+  const canEdit = isAuthenticated && !!authUser && authUser.slug === userSlug;
+
+  // Timestamp of last track change — used to suppress stale Spotify SDK position reports
+  const trackChangedAtRef = useRef<number>(0);
+
+  // Live position for now-playing (Spotify: getCurrentState position is in ms; local: audio service)
   useEffect(() => {
-    const interval = setInterval(() => {
-      setNowPlayingPositionMs(audioService.getCurrentTime() * 1000);
+    const interval = setInterval(async () => {
+      if (useSpotifyForTrack) {
+        // Skip SDK poll briefly after a track change to avoid showing the previous track's position
+        if (Date.now() - trackChangedAtRef.current < 1200) return;
+        const player = getSpotifyPlayer();
+        const state = player ? await player.getCurrentState() : null;
+        if (state != null) {
+          setNowPlayingPositionMs(state.position);
+        }
+      } else {
+        setNowPlayingPositionMs(audioService.getCurrentTime() * 1000);
+      }
     }, 100);
     return () => clearInterval(interval);
-  }, []);
+  }, [useSpotifyForTrack]);
 
   useEffect(() => {
     if (playbackState?.current_track_id) {
-      setNowPlayingPositionMs(playbackState.current_position_ms ?? 0);
+      if (!useSpotifyForTrack) {
+        setNowPlayingPositionMs(playbackState.current_position_ms ?? 0);
+      } else {
+        // Reset to 0 on track change; polling will resume after the grace period
+        setNowPlayingPositionMs(0);
+        trackChangedAtRef.current = Date.now();
+      }
     } else {
       setNowPlayingPositionMs(0);
+      trackChangedAtRef.current = Date.now();
     }
-  }, [playbackState?.current_track_id, playbackState?.current_position_ms]);
+  }, [playbackState?.current_track_id, playbackState?.current_position_ms, useSpotifyForTrack]);
 
   const formatTimeRemaining = (durationMs: number, currentMs: number) => {
     const remainingMs = Math.max(0, durationMs - currentMs);
@@ -184,9 +224,14 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     if (!bar || durationMs == null || durationMs <= 0) return;
     const rect = bar.getBoundingClientRect();
     const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    const seekMs = ratio * durationMs;
-    audioService.seek(seekMs / 1000);
-    setNowPlayingPositionMs(seekMs);
+    const seekMs = Math.floor(ratio * durationMs);
+    if (useSpotifyForTrack) {
+      spotifySeek(seekMs);
+      setNowPlayingPositionMs(seekMs);
+    } else {
+      audioService.seek(seekMs / 1000);
+      setNowPlayingPositionMs(seekMs);
+    }
   };
 
   // Edit mode: use collection.default_edit_mode when available, otherwise localStorage fallback
@@ -350,10 +395,10 @@ export default function CardCarousel({ albums, collection, collections, onCollec
         },
         staleTime: 5 * 60 * 1000,
       });
-      if (album.cover_art_path) {
+      const coverSrc = getMediaUrl(album.cover_art_path, album.is_playlist) ?? album.spotify_image_url ?? null;
+      if (coverSrc) {
         const img = new Image();
-        const src = getMediaUrl(album.cover_art_path, album.is_playlist);
-        if (src) img.src = src;
+        img.src = coverSrc;
       }
     });
   }, [currentIndex, paddedAlbums, collection.slug, queryClient]);
@@ -405,11 +450,11 @@ export default function CardCarousel({ albums, collection, collections, onCollec
       trackNumber: number;
       displaySelection: string;
     }) => {
-      const response = await queueApi.add(collection.slug, albumNumber, trackNumber);
+      const response = await queueApi.add(collection.slug, albumNumber, trackNumber, userSlug);
       return response.data as { already_queued?: boolean; queue_id?: string };
     },
     onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['queue', collection.slug] });
+      queryClient.invalidateQueries({ queryKey: ['queue', collection.slug, userSlug] });
       if (data?.already_queued) {
         setFeedback('Already in Queue');
         setTimeout(() => setFeedback(''), 2000);
@@ -450,11 +495,12 @@ export default function CardCarousel({ albums, collection, collections, onCollec
         sectionName,
         sectionStartSlot,
         sectionEndSlot,
+        userSlug,
       );
       return response.data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['queue', collection.slug] });
+      queryClient.invalidateQueries({ queryKey: ['queue', collection.slug, userSlug] });
       setFeedback(data?.message ?? `Added ${data?.added ?? 0} favorites`);
       setTimeout(() => setFeedback(''), 3000);
     },
@@ -925,7 +971,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
         key={album.id}
         album={album}
         collection={collection}
-        editMode={editMode}
+        editMode={editMode && canEdit}
         onEditClick={setEditingAlbumId}
         currentTrackId={currentTrackId}
         queueTrackIds={queueTrackIds}
@@ -946,6 +992,11 @@ export default function CardCarousel({ albums, collection, collections, onCollec
   return (
     <div className={styles['card-carousel']}>
       <div className={clsx(styles['carousel-container'], lightAndGlassEffect && styles['light-and-glass-effect'])}>
+        {isEmpty && (
+          <div className={styles['carousel-empty']}>
+            <span>No albums in this collection yet.</span>
+          </div>
+        )}
         {jumpTargetIndex != null ? (
           <>
             <div className={styles['carousel-full-slide-wrap']}>
@@ -1217,11 +1268,15 @@ export default function CardCarousel({ albums, collection, collections, onCollec
               collection={collection}
               onQueueCleared={() => setIsQueueOpen(false)}
               getSelectionDisplay={getSelectionDisplayForTrack}
+              userSlug={userSlug}
+              enableLocalLibrary={enableLocalLibrary}
+              onStopped={onStopped}
             />
           </div>
         </div>
         
         <div className={styles['carousel-controls']}>
+        <div className={styles['controls-left-group']}>
         <div className={styles['controls-left']}>
           <button
             className={styles['settings-button']}
@@ -1272,8 +1327,17 @@ export default function CardCarousel({ albums, collection, collections, onCollec
             {feedback && <span className={styles['input-feedback']}>{feedback}</span>}
           </div>
         </div>
-        
+
+          <div className={styles['collection-name-label']}>
+            <span className={styles['collection-name-header']}>Collection:</span>
+            <span>{collection.name}</span>
+          </div>
+        </div>{/* end controls-left-group */}
+
         <div className={styles['queue-controls-center']} ref={queueToggleRef}>
+          {!spotifyToken ? (
+            <SpotifyConnectPrompt />
+          ) : (
           <div
             className={styles['now-playing-mini']}
             role="button"
@@ -1286,10 +1350,10 @@ export default function CardCarousel({ albums, collection, collections, onCollec
             {playbackState?.current_track ? (
               <>
                 <div className={styles['now-playing-mini-row']}>
-                  {playbackState.current_track.cover_art_path && getMediaUrl(playbackState.current_track.cover_art_path, playbackState.current_track.is_playlist) && (
+                  {(getMediaUrl(playbackState.current_track.cover_art_path, playbackState.current_track.is_playlist) ?? playbackState.current_track.spotify_image_url) && (
                     <div className={styles['now-playing-cover-wrap']}>
                       <img 
-                        src={getMediaUrl(playbackState.current_track.cover_art_path, playbackState.current_track.is_playlist)!}
+                        src={getMediaUrl(playbackState.current_track.cover_art_path, playbackState.current_track.is_playlist) ?? playbackState.current_track.spotify_image_url ?? ''}
                         alt={playbackState.current_track.album_title}
                         className={styles['now-playing-cover']}
                       />
@@ -1327,6 +1391,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
               </>
             ) : null}
           </div>
+          )}
         </div>
         
         <div className={styles['nav-buttons']}>
@@ -1357,6 +1422,8 @@ export default function CardCarousel({ albums, collection, collections, onCollec
         collections={collections}
         currentCollection={collection}
         onCollectionChange={onCollectionChange}
+        userSlug={userSlug}
+        enableLocalLibrary={enableLocalLibrary}
       />
 
       {editingAlbumId && (
@@ -1658,12 +1725,12 @@ function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, qu
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        {album.cover_art_path && getMediaUrl(album.cover_art_path, album.is_playlist) && !coverImageFailed ? (
+        {(album.cover_art_path || album.spotify_image_url) && (getMediaUrl(album.cover_art_path, album.is_playlist) ?? album.spotify_image_url) && !coverImageFailed ? (
           <>
             <div className={styles['album-row-cover-image-wrap']}>
               <div className={styles['album-row-cover-img-wrap']}>
                 <img
-                  src={getMediaUrl(album.cover_art_path, album.is_playlist)!}
+                  src={(getMediaUrl(album.cover_art_path, album.is_playlist) ?? album.spotify_image_url)!}
                   alt={`${album.title} cover`}
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';

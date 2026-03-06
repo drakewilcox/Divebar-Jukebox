@@ -76,7 +76,9 @@
   background-color: transparent;
 }
 
-/* Wrap: transparent so wrapper metal shows through; centers carousel on small screens */
+/* Wrap: transparent so wrapper metal shows through; centers carousel on small screens.
+   overflow-y: hidden prevents a horizontal scrollbar (from overflow-x on inner) from adding
+   a bottom strip; overflow is on inner so the strip stays inside the flex flow. */
 .jukebox-carousel-wrap {
   flex: 1 1 0;
   min-width: 0;
@@ -85,22 +87,31 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   background-color: transparent;
-  overflow-x: auto;
+  overflow: hidden;
   position: relative;
   z-index: 1;
+  line-height: 0;
 }
 
-/* Carousel inner: direct child of wrap; centered on all viewports */
+.jukebox-carousel-wrap > * {
+  line-height: normal;
+}
+
+/* Carousel inner: direct child of wrap; takes full height and scrolls horizontally when needed */
 .jukebox-carousel-inner {
-  flex: 1 0 0;
+  flex: 1 1 0;
   min-width: 1300px;
   min-height: 0;
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: stretch;
+  position: relative;
+  overflow-x: auto;
+  overflow-y: hidden;
+  align-self: stretch;
 }
 
 .queue-toggle {
@@ -150,8 +161,7 @@
   right: 0;
 }
 
-.jukebox-loading,
-.jukebox-empty {
+.jukebox-loading {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -162,9 +172,6 @@
   font-size: 1.2rem;
 }
 
-.jukebox-empty p {
-  margin: 0.5rem 0;
-}
 
 /* Laptops/tablets: 25px space all around carousel; carousel fits (no fixed AR); keep max dimensions */
 @media (max-width: 2000px) {
@@ -209,4 +216,88 @@
     width: 90%;
     right: -90%;
   }
+}
+
+/* Vertical / portrait (and width ≤ 1400px): allow overflow so jukebox keeps min size (horizontal iPad landscape unchanged) */
+@media (orientation: portrait) and (max-width: 1400px) {
+  .jukebox-display-wrapper {
+    overflow: auto;
+    width: auto;
+    height: auto;
+    min-width: 1285px;
+    min-height: 965px;
+    align-self: flex-start;
+    justify-content: flex-start;
+  }
+
+  .jukebox-main {
+    min-width: 1285px;
+    min-height: 965px;
+    flex: 0 0 auto;
+  }
+}
+
+/* When viewport is tall (portrait, width ≤ 1400px, height ≥ 1200px), lock jukebox-display to ~1600×1000 aspect ratio */
+@media (orientation: portrait) and (max-width: 1400px) and (min-height: 1200px) {
+  .jukebox-display {
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: 1600px;
+    height: auto;
+    max-height: none;
+    aspect-ratio: 1600 / 1000;
+  }
+}
+
+/* One-time screen warning modal (narrow or portrait viewport) */
+.screen-warning-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.screen-warning-modal {
+  background-color: var(--background-card);
+  border-radius: 12px;
+  max-width: 440px;
+  width: 90%;
+  padding: 1.5rem 1.75rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+}
+
+.screen-warning-message {
+  margin: 0 0 1.5rem 0;
+  color: var(--text-primary);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.screen-warning-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.screen-warning-continue {
+  padding: 0.6rem 1.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #000;
+  background-color: var(--vintage-cream);
+  border: 1px solid var(--vintage-cream);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.screen-warning-continue:hover {
+  background-color: color-mix(in srgb, var(--vintage-cream) 90%, white);
+  border-color: color-mix(in srgb, var(--vintage-cream) 90%, white);
 }

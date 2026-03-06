@@ -18,6 +18,8 @@ export interface JukeboxSettingsPanelProps {
   hitButtonMode: HitButtonMode;
   onHitButtonModeChange: (v: HitButtonMode) => void;
   sectionsEnabledForCollection: boolean;
+  /** When false (Spotify-only mode), hide audio-only settings like Crossfade */
+  enableLocalLibrary?: boolean;
   /** Unique prefix for radio name attributes — prevents conflicts if rendered in multiple places */
   namePrefix?: string;
 }
@@ -38,6 +40,7 @@ export default function JukeboxSettingsPanel({
   hitButtonMode,
   onHitButtonModeChange,
   sectionsEnabledForCollection,
+  enableLocalLibrary = true,
   namePrefix = '',
 }: JukeboxSettingsPanelProps) {
   const colorCodingEnabled =
@@ -183,7 +186,7 @@ export default function JukeboxSettingsPanel({
           <div className={styles['settings-row-left']}>
             <h3 className={styles['settings-row-title']}>Card Background</h3>
             <p className={styles['settings-row-help']}>
-              When on, section color is a full overlay on the card. When off, a 10px accent line at the top
+              When on, section color is the background on the info card. When off, a colored tab is shown at the top of the info card instead
             </p>
           </div>
           <div className={styles['settings-row-right']}>
@@ -202,34 +205,36 @@ export default function JukeboxSettingsPanel({
         </div>
       </div>
 
-      {/* Crossfade */}
-      <div className={styles['settings-section']}>
-        <div className={styles['settings-row-crossfade']}>
-          <div className={styles['settings-row-crossfade-top']}>
-            <h3 className={styles['settings-row-title']}>Crossfade</h3>
-            <input
-              id={`${namePrefix}crossfade`}
-              type="range"
-              min={0}
-              max={12}
-              value={crossfadeSeconds}
-              onChange={(e) => onCrossfadeSecondsChange(Number(e.target.value))}
-              className={styles['settings-crossfade-slider']}
-              style={{ ['--crossfade-pct' as string]: `${(crossfadeSeconds / 12) * 100}%` }}
-              aria-valuemin={0}
-              aria-valuemax={12}
-              aria-valuenow={crossfadeSeconds}
-              aria-valuetext={`${crossfadeSeconds} seconds`}
-            />
-            <span className={styles['settings-row-crossfade-label']}>
-              {crossfadeSeconds} sec
-            </span>
+      {/* Crossfade — local-library only (not applicable to Spotify playback) */}
+      {enableLocalLibrary && (
+        <div className={styles['settings-section']}>
+          <div className={styles['settings-row-crossfade']}>
+            <div className={styles['settings-row-crossfade-top']}>
+              <h3 className={styles['settings-row-title']}>Crossfade</h3>
+              <input
+                id={`${namePrefix}crossfade`}
+                type="range"
+                min={0}
+                max={12}
+                value={crossfadeSeconds}
+                onChange={(e) => onCrossfadeSecondsChange(Number(e.target.value))}
+                className={styles['settings-crossfade-slider']}
+                style={{ ['--crossfade-pct' as string]: `${(crossfadeSeconds / 12) * 100}%` }}
+                aria-valuemin={0}
+                aria-valuemax={12}
+                aria-valuenow={crossfadeSeconds}
+                aria-valuetext={`${crossfadeSeconds} seconds`}
+              />
+              <span className={styles['settings-row-crossfade-label']}>
+                {crossfadeSeconds} sec
+              </span>
+            </div>
+            <p className={styles['settings-row-help']}>
+              * No fade is used when the next track is the next track on the same album
+            </p>
           </div>
-          <p className={styles['settings-row-help']}>
-            * No fade is used when the next track is the next track on the same album
-          </p>
         </div>
-      </div>
+      )}
 
       {/* Hit Button */}
       <div className={styles['settings-section']}>
@@ -237,7 +242,7 @@ export default function JukeboxSettingsPanel({
           <div className={styles['settings-row-left']}>
             <h3 className={styles['settings-row-title']}>Hit Button</h3>
             <p className={styles['settings-row-help']}>
-              Specifies which tracks are added to the queue when the &quot;H&quot; (Hit) button is selected from the keypad
+              Specifies the category of the 10 tracks that are added to the queue when the &quot;H&quot; (Hit) button is selected from the keypad
             </p>
           </div>
           <div className={styles['settings-row-right']}>
@@ -254,11 +259,11 @@ export default function JukeboxSettingsPanel({
                 >
                   Prioritize Current Section
                 </option>
-                <option value="favorites">Add tracks from Favorites</option>
+                <option value="favorites">Favorites</option>
                 <option value="favorites-and-recommended">
                   Favorites &amp; Recommended
                 </option>
-                <option value="any">Add any tracks from collection</option>
+                <option value="any">All</option>
               </select>
             </div>
           </div>

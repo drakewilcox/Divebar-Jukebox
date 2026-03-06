@@ -1,4 +1,24 @@
 /* Transparent so wrapper metal shows through behind carousel */
+/* Empty collection overlay – centered inside the metal frame */
+.carousel-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5015;
+  pointer-events: none;
+}
+
+.carousel-empty span {
+  font-family: 'Courier New', Consolas, Courier, monospace;
+  font-size: 1.05rem;
+  letter-spacing: 0.04em;
+  color: color-mix(in srgb, var(--vintage-cream) 50%, transparent);
+  text-align: center;
+  pointer-events: none;
+}
+
 .card-carousel {
   display: flex;
   flex-direction: column;
@@ -529,9 +549,10 @@
 }
 
 /* Transparent so wrapper metal shows through behind controls */
+/* 3 columns: [left-group (controls + tape label)] [now-playing LCD – true center] [nav buttons] */
 .carousel-controls {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 1rem;
   padding: .5rem 0rem .5rem 0rem;
@@ -540,20 +561,97 @@
   z-index: 100;
 }
 
+/* Left column: settings + lcd-display on the left, tape label centered in the remaining space */
+.controls-left-group {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+}
+
 .controls-left {
   display: flex;
   flex-direction: row;
   align-items: center;
   gap: 1rem;
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+/* Grows to fill leftover space in the left column, centers tape labels within it */
+.collection-name-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3em;
   flex: 1;
   min-width: 0;
+  overflow: hidden;
+}
+
+/* Shared tape styles for both inner labels */
+.collection-name-label span {
+  display: inline-block;
+  background: url(/images/ElectricalTape-01.png) center/cover no-repeat;
+  border-radius: 2px;
+  font-family: 'Courier New', Consolas, Courier, monospace;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #e8e0c8;
+  text-shadow:
+    0 -1px 0 rgba(255, 255, 255, 0.35),
+    0 1px 0 rgba(0, 0, 0, 0.4),
+    1px 0 0 rgba(0, 0, 0, 0.2),
+    -1px 0 0 rgba(0, 0, 0, 0.2),
+    0 1px 1px rgba(0, 0, 0, 0.25);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  pointer-events: none;
+}
+
+/* "Current Collection:" header label — smaller, slight counter-rotation */
+.collection-name-header {
+  font-size: 0.65rem !important;
+  padding: 0.2em 0.8em !important;
+  transform: rotate(0.5deg);
+  opacity: 0.85;
+}
+
+/* Collection name label — larger, slight slant; allow up to two lines */
+.collection-name-label span:not(.collection-name-header) {
+  font-size: 0.85rem;
+  padding: 0.3em 1.1em;
+  transform: rotate(-0.6deg);
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  text-align: center;
+  word-break: break-word;
+}
+
+/* iPad and smaller: slightly smaller tape label text */
+@media (max-width: 1024px) {
+  .collection-name-header {
+    font-size: 0.55rem !important;
+    padding: 0.18em 0.65em !important;
+  }
+  .collection-name-label span:not(.collection-name-header) {
+    font-size: 0.72rem;
+    padding: 0.25em 0.9em;
+  }
 }
 
 .queue-controls-center {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  flex: 1;
   justify-content: center;
   min-width: 0;
 }
@@ -561,7 +659,6 @@
 .nav-buttons {
   display: flex;
   gap: 0.5rem;
-  flex: 1;
   justify-content: flex-end;
 }
 
