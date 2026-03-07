@@ -37,7 +37,7 @@ export default function JukeboxPage() {
       : (collectionError && typeof collectionError === 'object' && 'response' in collectionError
         ? (collectionError as { response?: { data?: { detail?: string } } }).response?.data?.detail
         : null);
-    const errStr = typeof errMsg === 'string' ? errMsg : Array.isArray(errMsg) ? errMsg.join(' ') : String(collectionError ?? '');
+    const errStr = typeof errMsg === 'string' ? errMsg : Array.isArray(errMsg) ? (errMsg as string[]).join(' ') : String(collectionError ?? '');
     return (
       <div className={styles['page-message']} role="alert">
         <p><strong>Collection not found</strong> for <code>/{userSlug}/{collectionSlug}</code>.</p>
