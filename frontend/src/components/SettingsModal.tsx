@@ -37,7 +37,7 @@ export default function SettingsModal({
 }: Props) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { isAuthenticated, setAuth } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
   const [activeTab, setActiveTab] = useState<Tab>(initialTab ?? 'settings');
 
   // Reset tab when modal opens with an initialTab

@@ -236,7 +236,7 @@ export function waitForSpotifyPlayer(timeoutMs: number = PLAYER_WAIT_MS): Promis
 }
 
 function isDeviceNotFoundError(res: Response, body: { error?: { status?: number; message?: string } }): boolean {
-  return res.status === 404 && body?.error?.message?.toLowerCase().includes('device not found');
+  return res.status === 404 && (body?.error?.message?.toLowerCase().includes('device not found') ?? false);
 }
 
 /** Delay after reconnect so Spotify's API can register the new device. */

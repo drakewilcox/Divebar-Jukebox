@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect, useRef } from 'react';
 import { MdPlayArrow, MdStop, MdVisibility, MdVisibilityOff, MdArchive, MdUnarchive, MdStar, MdStarBorder, MdCircle, MdEdit } from 'react-icons/md';
-import { adminApi, getMediaUrl, playbackApi } from '../../services/api';
+import { adminApi, configApi, getMediaUrl, playbackApi } from '../../services/api';
 import { audioService } from '../../services/audio';
 import { spotifyPlayTrack, spotifyPause, spotifySeek, getSpotifyPlayer } from '../../services/spotifyPlayer';
 import styles from './AlbumEditModal.module.css'
@@ -37,7 +37,7 @@ export default function AlbumEditModal({ albumId, onClose }: Props) {
   const { data: config } = useQuery({
     queryKey: ['config'],
     queryFn: async () => {
-      const res = await playbackApi.getConfig();
+      const res = await configApi.getConfig();
       return res.data;
     },
   });
