@@ -35,8 +35,8 @@ class Settings(BaseSettings):
     # Collections
     collections_config_dir: str = "./collections"
     
-    # API Configuration (include 127.0.0.1 so CORS works when using 127.0.0.1 for Spotify redirect)
-    cors_origins: str = "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:3000"
+    # API Configuration. Include all origins you use for local dev (e.g. LAN IP when opening from another device).
+    cors_origins: str = "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:3000,http://10.0.0.80:5173"
     
     # Server Configuration
     api_host: str = "0.0.0.0"
