@@ -84,8 +84,10 @@ export const collectionsApi = {
 
 // Albums API
 export const albumsApi = {
-  getById: (id: string, collection?: string) => {
-    const params = collection ? { collection } : {};
+  getById: (id: string, collection?: string, userSlug?: string) => {
+    const params: Record<string, string> = {};
+    if (collection) params.collection = collection;
+    if (userSlug) params.user_slug = userSlug;
     return api.get<AlbumDetail>(`/albums/${id}`, { params });
   },
   getTracks: (id: string) => api.get(`/albums/${id}/tracks`),

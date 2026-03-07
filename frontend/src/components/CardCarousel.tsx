@@ -383,18 +383,26 @@ export default function CardCarousel({ albums, collection, collections, onCollec
   const nextRightCard = nextAlbums.slice(2, 4);
   const prevLeftCard = prevAlbums.slice(0, 2);
 
-  // Prefetch only the *next* card (2 albums) so "next" feels instant without extra requests competing.
-  // No prefetch for prev to avoid 4 concurrent requests; prev may load on demand.
+  // Prefetch next card (2 albums) and, on first load, first 8 albums so initial carousel is fast.
   useEffect(() => {
-    if (currentIndex + 4 >= paddedAlbums.length) return;
+    if (paddedAlbums.length === 0) return;
+    const toPrefetch: (Album | null)[] = [];
     const nextA = paddedAlbums[currentIndex + 4];
     const nextB = paddedAlbums[currentIndex + 5];
-    [nextA, nextB].forEach((album) => {
+    if (nextA) toPrefetch.push(nextA);
+    if (nextB) toPrefetch.push(nextB);
+    if (currentIndex === 0) {
+      for (let i = 0; i < Math.min(8, paddedAlbums.length); i++) {
+        const a = paddedAlbums[i];
+        if (a && !toPrefetch.includes(a)) toPrefetch.push(a);
+      }
+    }
+    toPrefetch.forEach((album) => {
       if (!album) return;
       queryClient.prefetchQuery({
-        queryKey: ['album-details', album.id, collection.slug],
+        queryKey: ['album-details', album.id, collection.slug, userSlug],
         queryFn: async () => {
-          const response = await albumsApi.getById(album.id, collection.slug);
+          const response = await albumsApi.getById(album.id, collection.slug, userSlug);
           return response.data;
         },
         staleTime: 5 * 60 * 1000,
@@ -405,7 +413,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
         img.src = coverSrc;
       }
     });
-  }, [currentIndex, paddedAlbums, collection.slug, queryClient]);
+  }, [currentIndex, paddedAlbums, collection.slug, userSlug, queryClient]);
   
   const handleSlideAnimationEnd = (e: React.AnimationEvent<HTMLDivElement>) => {
     const name = e.animationName ?? '';
@@ -467,9 +475,14 @@ export default function CardCarousel({ albums, collection, collections, onCollec
       }
       inputRef.current?.blur();
     },
-    onError: () => {
-      setFeedback('✗ Invalid');
-      setTimeout(() => setFeedback(''), 2000);
+    onError: (err: unknown) => {
+      const msg =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { detail?: string } } }).response?.data?.detail
+          : null;
+      const str = Array.isArray(msg) ? msg.join(' ') : typeof msg === 'string' ? msg : 'Could not add to queue';
+      setFeedback(str.length > 40 ? `✗ ${str.slice(0, 37)}…` : `✗ ${str}`);
+      setTimeout(() => setFeedback(''), 4000);
     },
   });
 
@@ -976,6 +989,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
         key={album.id}
         album={album}
         collection={collection}
+        userSlug={userSlug}
         editMode={editMode && canEdit}
         onEditClick={setEditingAlbumId}
         currentTrackId={currentTrackId}
@@ -1444,6 +1458,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
 interface AlbumRowProps {
   album: Album;
   collection: Collection;
+  userSlug?: string;
   editMode: boolean;
   onEditClick: (albumId: string) => void;
   currentTrackId: string | null;
@@ -1610,7 +1625,7 @@ function TrackTitle({
   );
 }
 
-function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, queueTrackIds, sectionBackgroundColor, useCardBackgroundOverlay = true, cardDisplayNumber, tapeImages, useStaplesPaper }: AlbumRowProps) {
+function AlbumRow({ album, collection, userSlug, editMode, onEditClick, currentTrackId, queueTrackIds, sectionBackgroundColor, useCardBackgroundOverlay = true, cardDisplayNumber, tapeImages, useStaplesPaper }: AlbumRowProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [coverImageFailed, setCoverImageFailed] = useState(false);
   const tracksContainerRef = useRef<HTMLDivElement>(null);
@@ -1633,9 +1648,9 @@ function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, qu
 
   // Fetch album details with tracks. staleTime so prefetched/cached data is used immediately without refetch.
   const { data: albumDetails } = useQuery({
-    queryKey: ['album-details', album.id, collection.slug],
+    queryKey: ['album-details', album.id, collection.slug, userSlug],
     queryFn: async () => {
-      const response = await albumsApi.getById(album.id, collection.slug);
+      const response = await albumsApi.getById(album.id, collection.slug, userSlug);
       return response.data;
     },
     staleTime: 5 * 60 * 1000, // 5 min – use cache when navigating back or when prefetch already loaded

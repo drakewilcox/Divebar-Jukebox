@@ -52,24 +52,26 @@ class AlbumDetailResponse(AlbumResponse):
 def get_album(
     album_id: str,
     collection: Optional[str] = Query(None, description="Filter tracks by collection"),
+    user_slug: Optional[str] = Query(None, description="Owner user slug (for /:user_slug/:collection_slug)"),
     db: Session = Depends(get_db)
 ):
     """Get album details with tracks"""
     album_service = AlbumService(db)
     track_service = TrackService(db)
-    
+
     album = album_service.get_album_by_id(album_id)
     if not album:
         raise HTTPException(status_code=404, detail=f"Album '{album_id}' not found")
-    
-    # Get tracks
+
     tracks = track_service.get_tracks_by_album(album_id)
-    
-    # If collection is specified, filter by enabled tracks (except for "all" collection)
+
     if collection and collection != 'all':
         collection_service = CollectionService(db)
-        collection_obj = collection_service.get_collection_by_slug(collection)
-        
+        if user_slug:
+            collection_obj = collection_service.get_collection_by_user_slug_and_collection_slug(user_slug, collection)
+        else:
+            collection_obj = collection_service.get_collection_by_slug(collection)
+
         if collection_obj:
             # Get collection albums to find enabled tracks
             albums_data = collection_service.get_collection_albums(collection_obj.id, include_tracks=True)
