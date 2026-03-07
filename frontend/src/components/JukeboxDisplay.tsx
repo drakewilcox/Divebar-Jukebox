@@ -55,15 +55,16 @@ export default function JukeboxDisplay({ collection, collections, onCollectionCh
     setShowScreenWarning(false);
   };
 
-  // Restore access token from refresh token (e.g. after page reload) so we keep "authorized" state
+  // In Spotify mode only: restore access token and init Spotify Web Playback SDK
   useEffect(() => {
+    if (enableLocalLibrary) return;
     if (!useSpotifyStore.getState().getAccessToken()) {
       useSpotifyStore.getState().refreshAccessToken();
     }
-  }, []);
+  }, [enableLocalLibrary]);
 
   useEffect(() => {
-    if (!spotifyToken || spotifyInitialized.current) return;
+    if (enableLocalLibrary || !spotifyToken || spotifyInitialized.current) return;
     const getToken = async () => {
       const s = useSpotifyStore.getState();
       let t = s.getAccessToken();
@@ -73,7 +74,7 @@ export default function JukeboxDisplay({ collection, collections, onCollectionCh
     initSpotifyPlayer(getToken).then((ok) => {
       if (ok) spotifyInitialized.current = true;
     });
-  }, [spotifyToken]);
+  }, [enableLocalLibrary, spotifyToken]);
 
   // Fetch current collection by slug so we always have latest default_* from server (e.g. default_jump_button_type)
   const { data: collectionFromApi } = useQuery({
@@ -175,16 +176,18 @@ export default function JukeboxDisplay({ collection, collections, onCollectionCh
         </div>
       )}
     <div className={styles['jukebox-display-wrapper']} style={wrapperStyle}>
-      <SpotifyPlaybackSync
-        playbackState={playbackState ?? undefined}
-        spotifyToken={spotifyToken}
-        lastStoppedAt={lastStoppedAt}
-        onTrackEnd={async () => {
-          await playbackApi.skip(collection.slug, userSlug);
-          queryClient.invalidateQueries({ queryKey: ['playback-state', collection.slug, userSlug] });
-          queryClient.invalidateQueries({ queryKey: ['queue', collection.slug, userSlug] });
-        }}
-      />
+      {!enableLocalLibrary && (
+        <SpotifyPlaybackSync
+          playbackState={playbackState ?? undefined}
+          spotifyToken={spotifyToken}
+          lastStoppedAt={lastStoppedAt}
+          onTrackEnd={async () => {
+            await playbackApi.skip(collection.slug, userSlug);
+            queryClient.invalidateQueries({ queryKey: ['playback-state', collection.slug, userSlug] });
+            queryClient.invalidateQueries({ queryKey: ['queue', collection.slug, userSlug] });
+          }}
+        />
+      )}
       <div className={styles['jukebox-display']}>
         {isLoading && albumsToShow.length === 0 && (
         <div className={styles['jukebox-loading']}>Loading albums...</div>

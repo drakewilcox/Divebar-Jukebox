@@ -151,6 +151,16 @@ export default function LibraryScanner() {
               <MdOutlineQueueMusic size={22} />
             </button>
           </span>
+          <span className={styles['admin-tooltip-wrap']} data-tooltip="Clean album and track titles">
+            <button
+              className={styles['sanitize-button']}
+              onClick={() => setSanitizeConfirmOpen(true)}
+              disabled={sanitizeMutation.isPending}
+              aria-label="Clean titles"
+            >
+              <MdOutlineCleaningServices size={22} />
+            </button>
+          </span>
         </div>
         
         {scanResults && (
@@ -202,18 +212,20 @@ export default function LibraryScanner() {
             <h2>Albums in Database</h2>
             <p className={styles['albums-section-total']}>Total albums: {albums?.length || 0} {albums && albums.filter((a: any) => !a.archived).length !== albums.length && `(${albums.filter((a: any) => !a.archived).length} active)`}</p>
           </div>
-          <span className={styles['albums-section-sanitize-wrap']}>
-            <span className={styles['admin-tooltip-wrap']} data-tooltip="Clean album and track titles">
-              <button
-                className={styles['sanitize-button']}
-                onClick={() => setSanitizeConfirmOpen(true)}
-                disabled={sanitizeMutation.isPending}
-                aria-label="Clean titles"
-              >
-                <MdOutlineCleaningServices size={22} />
-              </button>
+          {!enableLocalLibrary && (
+            <span className={styles['albums-section-sanitize-wrap']}>
+              <span className={styles['admin-tooltip-wrap']} data-tooltip="Clean album and track titles">
+                <button
+                  className={styles['sanitize-button']}
+                  onClick={() => setSanitizeConfirmOpen(true)}
+                  disabled={sanitizeMutation.isPending}
+                  aria-label="Clean titles"
+                >
+                  <MdOutlineCleaningServices size={22} />
+                </button>
+              </span>
             </span>
-          </span>
+          )}
         </div>
 
         {albums && albums.length > 0 && (

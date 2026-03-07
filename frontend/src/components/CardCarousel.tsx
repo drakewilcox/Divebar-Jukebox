@@ -1335,7 +1335,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
         </div>{/* end controls-left-group */}
 
         <div className={styles['queue-controls-center']} ref={queueToggleRef}>
-          {!spotifyToken ? (
+          {!enableLocalLibrary && !spotifyToken ? (
             <SpotifyConnectPrompt />
           ) : (
           <div
