@@ -48,6 +48,7 @@ class Settings(BaseSettings):
     secret_key: str = "change-me-in-production"
     admin_seed_email: str | None = None
     admin_seed_password: str | None = None
+    admin_seed_slug: str | None = None  # Optional: URL slug for seed user (e.g. dfranklin). If unset, derived from email.
     # Optional Google OAuth (for "Sign in with Google")
     google_client_id: str | None = None
     google_client_secret: str | None = None

@@ -38,11 +38,21 @@ async def lifespan(app: FastAPI):
         db = SessionLocal()
         try:
             existing_by_email = db.query(User).filter(User.email == settings.admin_seed_email).first()
+            slug = (settings.admin_seed_slug or slug_from_email(settings.admin_seed_email)).strip().lower()
+            slug = "".join(c for c in slug if c.isalnum() or c in "_-") or "user"
+            slug = slug[:64]
             if existing_by_email:
-                logger.info("Seed admin user already exists: %s", settings.admin_seed_email)
+                if existing_by_email.slug != slug:
+                    if db.query(User).filter(User.slug == slug, User.id != existing_by_email.id).first():
+                        logger.warning("Seed slug %s already taken; keeping existing user slug %s", slug, existing_by_email.slug)
+                    else:
+                        existing_by_email.slug = slug
+                        db.commit()
+                        logger.info("Updated seed user slug to: %s", slug)
+                else:
+                    logger.info("Seed admin user already exists: %s", settings.admin_seed_email)
             else:
                 placeholder = db.query(User).filter(User.id == SEED_USER_ID).first()
-                slug = slug_from_email(settings.admin_seed_email)
                 if db.query(User).filter(User.slug == slug).first():
                     slug = slug + "-1"
                 if placeholder:
@@ -50,7 +60,7 @@ async def lifespan(app: FastAPI):
                     placeholder.slug = slug
                     placeholder.password_hash = hash_password(settings.admin_seed_password)
                     db.commit()
-                    logger.info("Updated placeholder seed user to: %s (owns existing collections/albums)", settings.admin_seed_email)
+                    logger.info("Updated placeholder seed user to: %s (slug=%s)", settings.admin_seed_email, slug)
                 else:
                     seed_user = User(
                         email=settings.admin_seed_email,
@@ -59,7 +69,7 @@ async def lifespan(app: FastAPI):
                     )
                     db.add(seed_user)
                     db.commit()
-                    logger.info("Created seed admin user: %s", settings.admin_seed_email)
+                    logger.info("Created seed admin user: %s (slug=%s)", settings.admin_seed_email, slug)
         except Exception as e:
             logger.error("Failed to create seed admin user: %s", e)
             db.rollback()
