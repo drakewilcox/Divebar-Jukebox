@@ -5,6 +5,7 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 from app.database import get_db
+from app.models.collection_album import CollectionAlbum
 from app.services.album_service import AlbumService
 from app.services.track_service import TrackService
 from app.services.collection_service import CollectionService
@@ -73,13 +74,14 @@ def get_album(
             collection_obj = collection_service.get_collection_by_slug(collection)
 
         if collection_obj:
-            # Get collection albums to find enabled tracks
-            albums_data = collection_service.get_collection_albums(collection_obj.id, include_tracks=True)
-            album_data = next((a for a in albums_data if a['id'] == album_id), None)
-            
-            if album_data and 'tracks' in album_data:
-                enabled_track_ids = {t['id'] for t in album_data['tracks']}
-                tracks = [t for t in tracks if t.id in enabled_track_ids]
+            # Single query: get enabled_track_ids for this album only (avoids loading entire collection)
+            ca = db.query(CollectionAlbum).filter(
+                CollectionAlbum.collection_id == collection_obj.id,
+                CollectionAlbum.album_id == album_id,
+            ).first()
+            if ca and ca.enabled_track_ids:
+                enabled_ids = set(ca.enabled_track_ids)
+                tracks = [t for t in tracks if t.id in enabled_ids]
     
     return {
         "id": album.id,
