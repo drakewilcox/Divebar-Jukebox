@@ -51,6 +51,7 @@ frontend/build/
 .env
 .env.local
 .env.*.local
+backend/.env.deployed
 
 # Logs
 *.log

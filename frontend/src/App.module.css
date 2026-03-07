@@ -54,9 +54,47 @@
 
 .loading {
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   font-size: 1.5rem;
   color: var(--text-secondary);
   padding: 4rem;
+  text-align: center;
+}
+
+/* Error/loading state that stays visible on any background (e.g. collection not found) */
+.page-message {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem 4rem;
+  text-align: center;
+  background-color: var(--background-card);
+  color: var(--text-secondary);
+  border: 1px solid var(--primary-color, #4a7c4a);
+  border-radius: 8px;
+  margin: 2rem;
+  max-width: 42rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+.page-message p {
+  margin: 0.5rem 0;
+  font-size: 1rem;
+}
+.page-message p + p {
+  margin-top: 1rem;
+  font-size: 0.95rem;
+  opacity: 0.9;
+}
+.page-message code {
+  background-color: var(--background-dark);
+  padding: 0.2em 0.4em;
+  border-radius: 4px;
+}
+.page-message-error {
+  font-size: 0.9rem;
+  opacity: 0.85;
+  word-break: break-word;
 }

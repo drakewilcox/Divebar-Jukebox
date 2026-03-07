@@ -151,7 +151,8 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     queryKey: ['queue', collection.slug, userSlug],
     queryFn: async () => {
       const response = await queueApi.get(collection.slug, userSlug);
-      return response.data;
+      const data = response.data;
+      return Array.isArray(data) ? data : [];
     },
     refetchInterval: 2000,
   });
@@ -339,17 +340,20 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     };
   }, []);
 
+  // Ensure albums is always an array (API may return object or malformed data in some environments)
+  const albumsList = Array.isArray(albums) ? albums : [];
+
   // Apply sort order: curated = collection order, alphabetical = by artist name then album title
   const displayAlbums = React.useMemo(() => {
     if (navSettings.sortOrder === 'alphabetical') {
-      return [...albums].sort((a, b) => {
+      return [...albumsList].sort((a, b) => {
         const artistCmp = (a.artist || '').localeCompare(b.artist || '', undefined, { sensitivity: 'base' });
         if (artistCmp !== 0) return artistCmp;
         return (a.title || '').localeCompare(b.title || '', undefined, { sensitivity: 'base' });
       });
     }
-    return albums;
-  }, [albums, navSettings.sortOrder]);
+    return albumsList;
+  }, [albumsList, navSettings.sortOrder]);
 
   // Pad albums array to ensure even number (each card needs 2 albums)
   const paddedAlbums = React.useMemo(() => {
@@ -670,7 +674,8 @@ export default function CardCarousel({ albums, collection, collections, onCollec
   }, [displayFlash]);
 
   const currentTrackId = playbackState?.current_track_id ?? null;
-  const queueTrackIds = queue?.map((q) => q.track.id) ?? [];
+  const queueList = Array.isArray(queue) ? queue : [];
+  const queueTrackIds = queueList.map((q) => q.track?.id).filter(Boolean) as string[];
 
   // Sections bar: when show jump-to bar, jump type is sections, sort is curated, and collection has sections with ranges
   const sortedSections = React.useMemo(() => {
@@ -1815,7 +1820,7 @@ function AlbumRow({ album, collection, editMode, onEditClick, currentTrackId, qu
           )}
         </div>
         
-        {albumDetails && albumDetails.tracks && (
+        {albumDetails && Array.isArray(albumDetails.tracks) && albumDetails.tracks.length > 0 && (
           <div className={styles['album-row-tracks']} ref={tracksContainerRef}>
             {albumDetails.tracks.map((track, index) => {
               const isNowPlaying = currentTrackId === track.id;

@@ -8,9 +8,10 @@ interface Props {
 
 export default function CollectionSelector({ collections }: Props) {
   const { currentCollection, setCurrentCollection } = useJukeboxStore();
-  
+  const collectionsList = Array.isArray(collections) ? collections : [];
+
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const collection = collections.find(c => c.slug === e.target.value);
+    const collection = collectionsList.find(c => c.slug === e.target.value);
     if (collection) {
       setCurrentCollection(collection);
     }
@@ -24,7 +25,7 @@ export default function CollectionSelector({ collections }: Props) {
         value={currentCollection?.slug || ''}
         onChange={handleChange}
       >
-        {collections.map((collection) => (
+        {collectionsList.map((collection) => (
           <option key={collection.id} value={collection.slug}>
             {collection.name}
           </option>

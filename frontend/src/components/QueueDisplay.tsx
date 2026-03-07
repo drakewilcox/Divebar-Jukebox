@@ -33,7 +33,7 @@ export default function QueueDisplay({ collection, onQueueCleared, getSelectionD
   const lastDragYRef = useRef<number>(0);
   const lastSkipAtRef = useRef<number>(0);
 
-  const { data: queue } = useQuery({
+  const { data: queueRaw } = useQuery({
     queryKey: ['queue', collection.slug, userSlug],
     queryFn: async () => {
       const response = await queueApi.get(collection.slug, userSlug);
@@ -41,7 +41,8 @@ export default function QueueDisplay({ collection, onQueueCleared, getSelectionD
     },
     refetchInterval: 2000,
   });
-  
+  const queue = Array.isArray(queueRaw) ? queueRaw : [];
+
   const { data: playbackState } = useQuery({
     queryKey: ['playback-state', collection.slug, userSlug],
     queryFn: async () => {

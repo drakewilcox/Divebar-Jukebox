@@ -22,7 +22,8 @@ export default function JukeboxPage() {
     queryKey: ['user-collections', userSlug],
     queryFn: async () => {
       const res = await usersApi.getCollections(userSlug!);
-      return res.data;
+      const data = res.data;
+      return Array.isArray(data) ? data : [];
     },
     enabled: !!userSlug,
   });
@@ -31,21 +32,34 @@ export default function JukeboxPage() {
     return <Navigate to="/" replace />;
   }
   if (collectionError || (collection === undefined && !loadingCollection)) {
+    const errMsg = collectionError instanceof Error
+      ? collectionError.message
+      : (collectionError && typeof collectionError === 'object' && 'response' in collectionError
+        ? (collectionError as { response?: { data?: { detail?: string } } }).response?.data?.detail
+        : null);
+    const errStr = typeof errMsg === 'string' ? errMsg : Array.isArray(errMsg) ? errMsg.join(' ') : String(collectionError ?? '');
     return (
-      <div className={styles.loading}>
-        <p>Collection not found for <code>/{userSlug}/{collectionSlug}</code>.</p>
+      <div className={styles['page-message']} role="alert">
+        <p><strong>Collection not found</strong> for <code>/{userSlug}/{collectionSlug}</code>.</p>
         <p>Check that the user slug matches your profile (e.g. the slug shown in Admin when logged in). Unpublished collections only load when you are logged in as the owner.</p>
+        {errStr && <p className={styles['page-message-error']}>Error: {errStr}</p>}
       </div>
     );
   }
   if (!collection) {
-    return <div className={styles.loading}>Loading...</div>;
+    return (
+      <div className={styles['page-message']}>
+        <p>Loading collection…</p>
+      </div>
+    );
   }
+
+  const collectionsList = Array.isArray(collections) ? collections : [];
 
   return (
     <JukeboxDisplay
       collection={collection}
-      collections={collections ?? []}
+      collections={collectionsList}
       onCollectionChange={setCurrentCollection}
       userSlug={userSlug}
     />

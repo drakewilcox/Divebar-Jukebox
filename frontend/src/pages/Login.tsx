@@ -23,10 +23,19 @@ export default function Login() {
       setAuth(data.access_token, data.user);
       navigate(from, { replace: true });
     } catch (err: unknown) {
-      const msg = err && typeof err === 'object' && 'response' in err
-        ? (err as { response?: { data?: { detail?: string } } }).response?.data?.detail
-        : 'Login failed';
-      setError(Array.isArray(msg) ? msg.join(' ') : String(msg));
+      const res = err && typeof err === 'object' && 'response' in err
+        ? (err as { response?: { status?: number; data?: { detail?: string } } }).response
+        : undefined;
+      const status = res?.status;
+      const msg = res?.data?.detail;
+      if (status === 404) {
+        setError('Cannot reach the server (404). On the deployed site, set VITE_API_BASE_URL to your backend URL and redeploy the frontend.');
+      } else if (status !== undefined) {
+        setError(Array.isArray(msg) ? msg.join(' ') : (msg ? String(msg) : `Request failed (${status})`));
+      } else {
+        const message = err instanceof Error ? err.message : String(err ?? 'Login failed');
+        setError(message);
+      }
     } finally {
       setLoading(false);
     }
@@ -64,6 +73,9 @@ export default function Login() {
         </form>
         <p className={styles.footer}>
           Don't have an account? <Link to="/register">Register</Link>
+        </p>
+        <p className={styles.hint}>
+          If nothing happens when you click Sign in, open DevTools (F12) → Console and try again. On the deployed site, set <code>VITE_API_BASE_URL</code> to your backend URL and redeploy the frontend.
         </p>
       </div>
     </div>

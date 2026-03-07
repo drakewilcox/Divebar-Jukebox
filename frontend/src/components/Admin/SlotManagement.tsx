@@ -202,8 +202,8 @@ export default function SlotManagement({ collectionSlug, userSlug: userSlugProp 
   });
 
   useEffect(() => {
-    if (effectiveSlug && albumsLoaded && serverAlbums) {
-      setOrderedAlbums(serverAlbums);
+    if (effectiveSlug && albumsLoaded && serverAlbums !== undefined) {
+      setOrderedAlbums(Array.isArray(serverAlbums) ? serverAlbums : []);
       setHasLocalChanges(false);
     }
   }, [effectiveSlug, albumsLoaded, serverAlbums]);

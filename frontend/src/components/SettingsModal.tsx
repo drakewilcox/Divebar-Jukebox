@@ -36,6 +36,7 @@ export default function SettingsModal({
   initialTab,
 }: Props) {
   const navigate = useNavigate();
+  const collectionsList = Array.isArray(collections) ? collections : [];
   const queryClient = useQueryClient();
   const { isAuthenticated } = useAuthStore();
   const [activeTab, setActiveTab] = useState<Tab>(initialTab ?? 'settings');
@@ -152,7 +153,7 @@ export default function SettingsModal({
   };
 
   const handleCollectionSelect = async (collectionSlug: string) => {
-    const collection = collections.find(c => c.slug === collectionSlug);
+    const collection = collectionsList.find(c => c.slug === collectionSlug);
     if (!collection) return;
     try {
       audioService.stop();
@@ -243,7 +244,7 @@ export default function SettingsModal({
                       </button>
                       {collectionSelectOpen && (
                         <ul className={styles['form-select-dropdown']} role="listbox" onMouseDown={(e) => e.stopPropagation()}>
-                          {collections.filter(c => c.slug !== 'all').map((collection) => (
+                          {collectionsList.filter(c => c.slug !== 'all').map((collection) => (
                             <li
                               key={collection.id}
                               role="option"
@@ -348,10 +349,11 @@ function UserGuideTab() {
 
 function CollectionsTab({ userSlug, onClose }: { userSlug?: string; onClose: () => void }) {
   const navigate = useNavigate();
-  const { data: allCollections = [], isLoading } = useQuery({
+  const { data: allCollectionsRaw, isLoading } = useQuery({
     queryKey: ['all-collections'],
     queryFn: async () => (await collectionsApi.getAll()).data,
   });
+  const allCollections = Array.isArray(allCollectionsRaw) ? allCollectionsRaw : [];
 
   const published = allCollections.filter(c => c.published !== false);
   const fromThisUser = published.filter(c => c.user_slug === userSlug);

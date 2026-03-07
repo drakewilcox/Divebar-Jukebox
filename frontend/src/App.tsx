@@ -30,6 +30,10 @@ function SpotifyHashHandler() {
   return null;
 }
 
+const DEFAULT_USER_SLUG = import.meta.env.VITE_DEFAULT_USER_SLUG ?? 'dfranklin';
+const DEFAULT_COLLECTION_SLUG = import.meta.env.VITE_DEFAULT_COLLECTION_SLUG ?? 'the-motivator';
+const HOME_PATH = `/${DEFAULT_USER_SLUG}/${DEFAULT_COLLECTION_SLUG}`;
+
 function App() {
   return (
     <BrowserRouter>
@@ -37,7 +41,7 @@ function App() {
       <div className={styles['app']}>
         <main className={styles['app-main']}>
           <Routes>
-            <Route path="/" element={<Navigate to="/dfranklin/the-motivator" replace />} />
+            <Route path="/" element={<Navigate to={HOME_PATH} replace />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route

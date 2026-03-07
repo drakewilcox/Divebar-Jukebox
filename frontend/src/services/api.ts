@@ -10,8 +10,10 @@ import type {
   ScanResult,
 } from '../types';
 
+const apiBase =
+  (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '') || '';
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: apiBase ? `${apiBase}/api` : '/api',
   headers: {
     'Content-Type': 'application/json',
   },

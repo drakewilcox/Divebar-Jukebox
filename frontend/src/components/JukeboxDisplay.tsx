@@ -93,18 +93,20 @@ export default function JukeboxDisplay({ collection, collections, onCollectionCh
     queryKey: ['collection-albums', collection.slug, userSlug],
     queryFn: async () => {
       const response = await collectionsApi.getAlbums(collection.slug, userSlug);
-      return response.data;
+      const data = response.data;
+      return Array.isArray(data) ? data : [];
     },
     enabled: !!collection,
     placeholderData: keepPreviousData,
   });
-  
+
   // Fetch queue to monitor for changes
   const { data: queue } = useQuery({
     queryKey: ['queue', collection.slug, userSlug],
     queryFn: async () => {
       const response = await queueApi.get(collection.slug, userSlug);
-      return response.data;
+      const data = response.data;
+      return Array.isArray(data) ? data : [];
     },
     refetchInterval: 2000,
   });
@@ -140,7 +142,7 @@ export default function JukeboxDisplay({ collection, collections, onCollectionCh
   
   // Always render CardCarousel when we have a collection so the settings modal stays
   // mounted when switching collections (otherwise the loading div would unmount it).
-  const albumsToShow = albums ?? [];
+  const albumsToShow = Array.isArray(albums) ? albums : [];
   const base = import.meta.env.BASE_URL;
   const wrapperStyle = {
     ['--metal-texture-url' as string]: `url("${base}images/MetalTexture.png")`,
