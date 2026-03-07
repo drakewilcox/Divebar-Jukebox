@@ -43,8 +43,8 @@ cd backend
 python3 -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-cp ../.env.example .env
-# Edit .env with your music library path
+cp .env.example .env
+# Edit .env with your music library path and other settings
 uvicorn app.main:app --reload --port 8000
 ```
 
@@ -203,7 +203,6 @@ See `tools/tidal-dl-helper-scripts/README.md` for detailed usage.
 - [ ] Add a Queue Log to backend, that can be viewed on Frontend (tied to admin user id)
 - [ ] From the Queue Log view, add ability to select songs from list and save selected as queue collection
 - [ ] Add a song list view to search by song and add songs to Custom Queue
-- [ ] Add Support for mp3 file playback
 
 
 ### Visual Enhancements
