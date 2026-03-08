@@ -22,7 +22,7 @@ export default function NowPlaying({ collection, userSlug }: Props) {
       const response = await playbackApi.getState(collection.slug, userSlug);
       return response.data;
     },
-    refetchInterval: 1000,
+    refetchInterval: (query) => (query.state.data?.is_playing ? 1000 : false),
   });
   
   // Update progress from audio service (playing + when paused so seek is reflected)

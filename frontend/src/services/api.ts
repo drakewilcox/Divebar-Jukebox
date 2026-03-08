@@ -83,12 +83,22 @@ export const collectionsApi = {
 };
 
 // Albums API
+const MAX_BATCH_ALBUMS = 20;
+
 export const albumsApi = {
   getById: (id: string, collection?: string, userSlug?: string) => {
     const params: Record<string, string> = {};
     if (collection) params.collection = collection;
     if (userSlug) params.user_slug = userSlug;
     return api.get<AlbumDetail>(`/albums/${id}`, { params });
+  },
+  /** Fetch multiple album details in one request (for prefetching carousel cards). Max 20 IDs per call. */
+  getByIds: (ids: string[], collection?: string, userSlug?: string) => {
+    if (ids.length === 0) return Promise.resolve({ data: [] as AlbumDetail[] });
+    const params: Record<string, string> = { ids: ids.slice(0, MAX_BATCH_ALBUMS).join(',') };
+    if (collection) params.collection = collection;
+    if (userSlug) params.user_slug = userSlug;
+    return api.get<AlbumDetail[]>('/albums', { params });
   },
   getTracks: (id: string) => api.get(`/albums/${id}/tracks`),
 };

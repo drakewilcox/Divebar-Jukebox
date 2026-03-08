@@ -146,7 +146,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
     return () => window.removeEventListener('light-and-glass-effect-changed', handler);
   }, []);
 
-  // Fetch queue and playback state
+  // Fetch queue and playback state. Poll frequently only when there's something in the queue or playing; otherwise every 15s.
   const { data: queue } = useQuery({
     queryKey: ['queue', collection.slug, userSlug],
     queryFn: async () => {
@@ -154,16 +154,16 @@ export default function CardCarousel({ albums, collection, collections, onCollec
       const data = response.data;
       return Array.isArray(data) ? data : [];
     },
-    refetchInterval: 2000,
+    refetchInterval: (query) => (Array.isArray(query.state.data) && query.state.data.length > 0 ? 2000 : false),
   });
-  
+
   const { data: playbackState } = useQuery({
     queryKey: ['playback-state', collection.slug, userSlug],
     queryFn: async () => {
       const response = await playbackApi.getState(collection.slug, userSlug);
       return response.data;
     },
-    refetchInterval: 1000,
+    refetchInterval: (query) => (query.state.data?.is_playing ? 1000 : false),
   });
 
   const spotifyToken = useSpotifyStore((s) => s.getAccessToken());
@@ -383,7 +383,7 @@ export default function CardCarousel({ albums, collection, collections, onCollec
   const nextRightCard = nextAlbums.slice(2, 4);
   const prevLeftCard = prevAlbums.slice(0, 2);
 
-  // Prefetch next card (2 albums) and, on first load, first 8 albums so initial carousel is fast.
+  // Prefetch album details in one batch (next 2 + first 8 on initial load) so cards load fast.
   useEffect(() => {
     if (paddedAlbums.length === 0) return;
     const toPrefetch: (Album | null)[] = [];
@@ -397,16 +397,18 @@ export default function CardCarousel({ albums, collection, collections, onCollec
         if (a && !toPrefetch.includes(a)) toPrefetch.push(a);
       }
     }
+    const ids = [...new Set(toPrefetch.filter((a): a is Album => a != null).map((a) => a.id))];
+    if (ids.length === 0) return;
+
+    albumsApi.getByIds(ids, collection.slug, userSlug).then((res) => {
+      const list = Array.isArray(res.data) ? res.data : [];
+      list.forEach((album) => {
+        queryClient.setQueryData(['album-details', album.id, collection.slug, userSlug], album);
+      });
+    }).catch(() => { /* ignore prefetch errors */ });
+
     toPrefetch.forEach((album) => {
       if (!album) return;
-      queryClient.prefetchQuery({
-        queryKey: ['album-details', album.id, collection.slug, userSlug],
-        queryFn: async () => {
-          const response = await albumsApi.getById(album.id, collection.slug, userSlug);
-          return response.data;
-        },
-        staleTime: 5 * 60 * 1000,
-      });
       const coverSrc = getMediaUrl(album.cover_art_path, album.is_playlist) ?? album.spotify_image_url ?? null;
       if (coverSrc) {
         const img = new Image();
@@ -465,8 +467,8 @@ export default function CardCarousel({ albums, collection, collections, onCollec
       const response = await queueApi.add(collection.slug, albumNumber, trackNumber, userSlug);
       return response.data as { already_queued?: boolean; queue_id?: string };
     },
-    onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['queue', collection.slug, userSlug] });
+    onSuccess: async (data, variables) => {
+      await queryClient.refetchQueries({ queryKey: ['queue', collection.slug, userSlug] });
       if (data?.already_queued) {
         setFeedback('Already in Queue');
         setTimeout(() => setFeedback(''), 2000);
@@ -516,8 +518,8 @@ export default function CardCarousel({ albums, collection, collections, onCollec
       );
       return response.data;
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['queue', collection.slug, userSlug] });
+    onSuccess: async (data) => {
+      await queryClient.refetchQueries({ queryKey: ['queue', collection.slug, userSlug] });
       setFeedback(data?.message ?? `Added ${data?.added ?? 0} favorites`);
       setTimeout(() => setFeedback(''), 3000);
     },

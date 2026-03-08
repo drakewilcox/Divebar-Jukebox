@@ -100,7 +100,7 @@ export default function JukeboxDisplay({ collection, collections, onCollectionCh
     placeholderData: keepPreviousData,
   });
 
-  // Fetch queue to monitor for changes
+  // Fetch queue and playback state. Poll frequently only when queue has items or something is playing; otherwise every 15s.
   const { data: queue } = useQuery({
     queryKey: ['queue', collection.slug, userSlug],
     queryFn: async () => {
@@ -108,35 +108,47 @@ export default function JukeboxDisplay({ collection, collections, onCollectionCh
       const data = response.data;
       return Array.isArray(data) ? data : [];
     },
-    refetchInterval: 2000,
+    refetchInterval: (query) => (Array.isArray(query.state.data) && query.state.data.length > 0 ? 2000 : false),
   });
-  
-  // Fetch playback state to check if playing
+
   const { data: playbackState } = useQuery({
     queryKey: ['playback-state', collection.slug, userSlug],
     queryFn: async () => {
       const response = await playbackApi.getState(collection.slug, userSlug);
       return response.data;
     },
-    refetchInterval: 1000,
+    refetchInterval: (query) => (query.state.data?.is_playing ? 1000 : false),
   });
   
-  // Auto-start playback when tracks are added to an empty queue (skip if user just clicked Stop)
+  // Auto-start playback when tracks are added to an empty queue (skip if user just clicked Stop).
+  // Short delay so queue refetch is settled; retry once on failure (e.g. Spotify device not ready).
+  const AUTO_START_DELAY_MS = 400;
+  const AUTO_START_RETRY_MS = 1800;
+
   useEffect(() => {
     const inJustStoppedWindow = lastStoppedAt != null && Date.now() - lastStoppedAt < JUST_STOPPED_MS;
-    const autoStartPlayback = async () => {
-      if (inJustStoppedWindow) return;
-      if (queue && queue.length > 0 && playbackState && !playbackState.is_playing && !playbackState.current_track_id) {
-        console.log('Auto-starting playback...');
-        try {
-          await playbackApi.play(collection.slug, userSlug);
+    if (inJustStoppedWindow) return;
+    if (!queue || queue.length === 0 || !playbackState || playbackState.is_playing || playbackState.current_track_id) return;
+
+    const runPlay = (isRetry: boolean) => {
+      playbackApi.play(collection.slug, userSlug)
+        .then(() => {
           queryClient.invalidateQueries({ queryKey: ['playback-state', collection.slug, userSlug] });
-        } catch (error) {
-          console.error('Failed to auto-start playback:', error);
-        }
-      }
+        })
+        .catch((error) => {
+          console.error(isRetry ? 'Auto-start playback retry failed:' : 'Auto-starting playback failed:', error);
+          if (!isRetry) {
+            setTimeout(() => runPlay(true), AUTO_START_RETRY_MS);
+          }
+        });
     };
-    autoStartPlayback();
+
+    const t = setTimeout(() => {
+      console.log('Auto-starting playback...');
+      runPlay(false);
+    }, AUTO_START_DELAY_MS);
+
+    return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queue?.length, playbackState?.is_playing, playbackState?.current_track_id, collection.slug, userSlug, lastStoppedAt]);
   

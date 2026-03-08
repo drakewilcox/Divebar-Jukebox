@@ -39,7 +39,7 @@ export default function QueueDisplay({ collection, onQueueCleared, getSelectionD
       const response = await queueApi.get(collection.slug, userSlug);
       return response.data;
     },
-    refetchInterval: 2000,
+    refetchInterval: (query) => (Array.isArray(query.state.data) && query.state.data.length > 0 ? 2000 : false),
   });
   const queue = Array.isArray(queueRaw) ? queueRaw : [];
 
@@ -49,7 +49,7 @@ export default function QueueDisplay({ collection, onQueueCleared, getSelectionD
       const response = await playbackApi.getState(collection.slug, userSlug);
       return response.data;
     },
-    refetchInterval: 1000,
+    refetchInterval: (query) => (query.state.data?.is_playing ? 1000 : false),
   });
 
   const useSpotifyForTrack =
