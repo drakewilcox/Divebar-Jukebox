@@ -84,7 +84,7 @@ def _has_column(conn, table: str, column: str) -> bool:
 
 
 def _ensure_session_id_columns():
-    """Add session_id to queue and playback_state if missing (works on SQLite and Postgres)."""
+    """Add session_id to queue and playback_state if missing, and fix unique constraints (SQLite + Postgres)."""
     with engine.connect() as conn:
         if not _has_column(conn, "queue", "session_id"):
             conn.execute(text("ALTER TABLE queue ADD COLUMN session_id VARCHAR NOT NULL DEFAULT 'legacy'"))
@@ -95,10 +95,34 @@ def _ensure_session_id_columns():
             conn.commit()
             logger.info("Added playback_state.session_id column")
 
-        # Ensure indexes exist (CREATE INDEX IF NOT EXISTS works on both SQLite and Postgres)
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_queue_session_id ON queue (session_id)"))
         conn.execute(text("CREATE INDEX IF NOT EXISTS ix_playback_state_session_id ON playback_state (session_id)"))
         conn.commit()
+
+        # Drop old unique index on collection_id alone (it blocks multiple sessions per collection).
+        # Then recreate as a non-unique index + add composite unique on (collection_id, session_id).
+        dialect = conn.dialect.name
+        if dialect != "sqlite":
+            # Postgres: check if the old unique index exists and drop it
+            row = conn.execute(text(
+                "SELECT 1 FROM pg_indexes WHERE tablename = 'playback_state' "
+                "AND indexname = 'ix_playback_state_collection_id'"
+            )).first()
+            if row:
+                conn.execute(text("DROP INDEX ix_playback_state_collection_id"))
+                conn.commit()
+                logger.info("Dropped old unique index ix_playback_state_collection_id")
+            # Recreate as non-unique
+            conn.execute(text(
+                "CREATE INDEX IF NOT EXISTS ix_playback_state_collection_id ON playback_state (collection_id)"
+            ))
+            # Add composite unique
+            conn.execute(text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS uq_playback_state_collection_session "
+                "ON playback_state (collection_id, session_id)"
+            ))
+            conn.commit()
+            logger.info("Ensured composite unique index on playback_state(collection_id, session_id)")
 
 
 def init_db():
