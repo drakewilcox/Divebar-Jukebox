@@ -40,8 +40,9 @@ export default function UserSettings() {
 
     setProfileLoading(true);
     try {
-      const res = await authApi.updateProfile(updates);
-      updateUser(res.data);
+      await authApi.updateProfile(updates);
+      const { data } = await authApi.me();
+      updateUser(data);
       setProfileSuccess(true);
       setTimeout(() => setProfileSuccess(false), 3000);
     } catch (err: unknown) {

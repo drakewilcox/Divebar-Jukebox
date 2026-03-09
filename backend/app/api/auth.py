@@ -126,26 +126,30 @@ def update_profile(
     db: Session = Depends(get_db),
 ):
     """Update the current user's slug and/or email."""
+    # current_user is from a different session; load the same user in this session so commit() persists
+    user = db.query(User).filter(User.id == current_user.id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     if request.slug is not None:
         slug = request.slug.strip().lower()
         slug = "".join(c for c in slug if c.isalnum() or c in "_-") or "user"
         slug = slug[:64]
-        if slug != current_user.slug:
-            existing = db.query(User).filter(User.slug == slug, User.id != current_user.id).first()
+        if slug != user.slug:
+            existing = db.query(User).filter(User.slug == slug, User.id != user.id).first()
             if existing:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username already taken")
-            current_user.slug = slug
+            user.slug = slug
 
     if request.email is not None:
-        if request.email != current_user.email:
-            existing = db.query(User).filter(User.email == request.email, User.id != current_user.id).first()
+        if request.email != user.email:
+            existing = db.query(User).filter(User.email == request.email, User.id != user.id).first()
             if existing:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
-            current_user.email = request.email
+            user.email = request.email
 
     db.commit()
-    db.refresh(current_user)
-    return _user_response(current_user)
+    db.refresh(user)
+    return _user_response(user)
 
 
 @router.post("/change-password", response_model=UserResponse)
@@ -155,13 +159,16 @@ def change_password(
     db: Session = Depends(get_db),
 ):
     """Change the current user's password after verifying the current one."""
-    if not current_user.password_hash:
+    user = db.query(User).filter(User.id == current_user.id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if not user.password_hash:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No password set on this account")
-    if not verify_password(request.current_password, current_user.password_hash):
+    if not verify_password(request.current_password, user.password_hash):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Current password is incorrect")
     if len(request.new_password) < 8:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="New password must be at least 8 characters")
-    current_user.password_hash = hash_password(request.new_password)
+    user.password_hash = hash_password(request.new_password)
     db.commit()
-    db.refresh(current_user)
-    return _user_response(current_user)
+    db.refresh(user)
+    return _user_response(user)

@@ -92,6 +92,7 @@ export default function CollectionSettings({ collection, enableLocalLibrary = tr
       });
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-collections'] });
       queryClient.invalidateQueries({ queryKey: ['collections'] });
       if (collection?.slug) {
         queryClient.invalidateQueries({ queryKey: ['collection', collection.slug] });

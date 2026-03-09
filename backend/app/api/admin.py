@@ -448,6 +448,14 @@ def list_my_collections(
             "source": getattr(c, "source", "local"),
             "sections_enabled": getattr(c, "sections_enabled", False),
             "sections": getattr(c, "sections", None),
+            "default_sort_order": getattr(c, "default_sort_order", None),
+            "default_show_jump_to_bar": getattr(c, "default_show_jump_to_bar", None),
+            "default_jump_button_type": getattr(c, "default_jump_button_type", None),
+            "default_show_color_coding": getattr(c, "default_show_color_coding", None),
+            "default_show_card_background": getattr(c, "default_show_card_background", None),
+            "default_edit_mode": getattr(c, "default_edit_mode", None),
+            "default_crossfade_seconds": getattr(c, "default_crossfade_seconds", None),
+            "default_hit_button_mode": getattr(c, "default_hit_button_mode", None),
         }
         for c in collections
     ]
