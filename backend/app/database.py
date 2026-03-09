@@ -70,27 +70,40 @@ def _migrate_collections_sections_sqlite():
                 logger.info(f"Added collections.{col} column")
 
 
-def _run_alembic_upgrade():
-    """Run alembic upgrade head so the deployed DB schema stays in sync."""
-    try:
-        from alembic.config import Config
-        from alembic import command
-        import os
-        ini_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "alembic.ini")
-        if not os.path.exists(ini_path):
-            logger.info("alembic.ini not found at %s — skipping auto-migration", ini_path)
-            return
-        alembic_cfg = Config(ini_path)
-        alembic_cfg.set_main_option("sqlalchemy.url", settings.database_url)
-        command.upgrade(alembic_cfg, "head")
-        logger.info("Alembic migrations applied successfully")
-    except Exception as e:
-        logger.warning("Alembic auto-migration failed (non-fatal): %s", e)
+def _has_column(conn, table: str, column: str) -> bool:
+    """Check whether a column exists (works on both SQLite and Postgres)."""
+    dialect = conn.dialect.name
+    if dialect == "sqlite":
+        rows = conn.execute(text(f"PRAGMA table_info({table})"))
+        return any(row[1] == column for row in rows)
+    rows = conn.execute(text(
+        "SELECT 1 FROM information_schema.columns "
+        "WHERE table_name = :t AND column_name = :c"
+    ), {"t": table, "c": column})
+    return rows.first() is not None
+
+
+def _ensure_session_id_columns():
+    """Add session_id to queue and playback_state if missing (works on SQLite and Postgres)."""
+    with engine.connect() as conn:
+        if not _has_column(conn, "queue", "session_id"):
+            conn.execute(text("ALTER TABLE queue ADD COLUMN session_id VARCHAR NOT NULL DEFAULT 'legacy'"))
+            conn.commit()
+            logger.info("Added queue.session_id column")
+        if not _has_column(conn, "playback_state", "session_id"):
+            conn.execute(text("ALTER TABLE playback_state ADD COLUMN session_id VARCHAR NOT NULL DEFAULT 'legacy'"))
+            conn.commit()
+            logger.info("Added playback_state.session_id column")
+
+        # Ensure indexes exist (CREATE INDEX IF NOT EXISTS works on both SQLite and Postgres)
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_queue_session_id ON queue (session_id)"))
+        conn.execute(text("CREATE INDEX IF NOT EXISTS ix_playback_state_session_id ON playback_state (session_id)"))
+        conn.commit()
 
 
 def init_db():
     """Initialize database tables and run migrations."""
     Base.metadata.create_all(bind=engine)
-    _run_alembic_upgrade()
+    _ensure_session_id_columns()
     if settings.database_url.startswith("sqlite"):
         _migrate_collections_sections_sqlite()
