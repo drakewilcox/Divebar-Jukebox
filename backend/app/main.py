@@ -42,15 +42,8 @@ async def lifespan(app: FastAPI):
             slug = "".join(c for c in slug if c.isalnum() or c in "_-") or "user"
             slug = slug[:64]
             if existing_by_email:
-                if existing_by_email.slug != slug:
-                    if db.query(User).filter(User.slug == slug, User.id != existing_by_email.id).first():
-                        logger.warning("Seed slug %s already taken; keeping existing user slug %s", slug, existing_by_email.slug)
-                    else:
-                        existing_by_email.slug = slug
-                        db.commit()
-                        logger.info("Updated seed user slug to: %s", slug)
-                else:
-                    logger.info("Seed admin user already exists: %s", settings.admin_seed_email)
+                # Do not overwrite slug for existing users — they may have changed it in the UI.
+                logger.info("Seed admin user already exists: %s (slug=%s)", settings.admin_seed_email, existing_by_email.slug)
             else:
                 placeholder = db.query(User).filter(User.id == SEED_USER_ID).first()
                 if db.query(User).filter(User.slug == slug).first():

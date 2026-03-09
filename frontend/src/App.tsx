@@ -30,9 +30,9 @@ function SpotifyHashHandler() {
   return null;
 }
 
-const DEFAULT_USER_SLUG = import.meta.env.VITE_DEFAULT_USER_SLUG ?? 'dfranklin';
+const DEFAULT_URL_SLUG = import.meta.env.VITE_DEFAULT_URL_SLUG ?? 'dfranklin';
 const DEFAULT_COLLECTION_SLUG = import.meta.env.VITE_DEFAULT_COLLECTION_SLUG ?? 'the-motivator';
-const HOME_PATH = `/${DEFAULT_USER_SLUG}/${DEFAULT_COLLECTION_SLUG}`;
+const HOME_PATH = `/${DEFAULT_URL_SLUG}/${DEFAULT_COLLECTION_SLUG}`;
 
 function App() {
   return (

@@ -76,7 +76,7 @@ npm run dev
 
 Access the application at `http://localhost:5173`
 
-If the homepage redirect gives a 404 (e.g. "Collection not found"), your local user slug may differ from the default. Copy `frontend/.env.example` to `frontend/.env` and set `VITE_DEFAULT_USER_SLUG` (and optionally `VITE_DEFAULT_COLLECTION_SLUG`) to match your local user and collection (e.g. `VITE_DEFAULT_USER_SLUG=drakewilcox`). Restart the frontend dev server after changing `.env`.
+If the homepage redirect gives a 404 (e.g. "Collection not found"), your local user slug may differ from the default. Copy `frontend/.env.example` to `frontend/.env` and set `VITE_DEFAULT_URL_SLUG` (and optionally `VITE_DEFAULT_COLLECTION_SLUG`) to match your local user and collection (e.g. `VITE_DEFAULT_URL_SLUG=drakewilcox`). Restart the frontend dev server after changing `.env`.
 
 If you get **CORS errors** when opening the app at `http://10.0.0.80:5173` (or another LAN IP): either leave `VITE_API_BASE_URL` unset in `frontend/.env` so the Vite proxy is used (recommended for local dev), or add your frontend origin to `CORS_ORIGINS` in `backend/.env` (e.g. `CORS_ORIGINS=http://localhost:5173,http://10.0.0.80:5173`). Restart the backend after changing `.env`.
 
