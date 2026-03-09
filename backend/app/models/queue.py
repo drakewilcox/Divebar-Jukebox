@@ -17,12 +17,13 @@ class QueueStatus(str, enum.Enum):
 
 
 class Queue(Base):
-    """Queue model representing tracks in the playback queue"""
+    """Queue model representing tracks in the playback queue (per collection + session)"""
     
     __tablename__ = "queue"
     
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     collection_id = Column(String, ForeignKey("collections.id", ondelete="CASCADE"), nullable=False, index=True)
+    session_id = Column(String, nullable=False, index=True)  # Device/session scope (client-provided)
     track_id = Column(String, ForeignKey("tracks.id", ondelete="CASCADE"), nullable=False, index=True)
     position = Column(Integer, nullable=False)  # Queue order
     status = Column(SQLEnum(QueueStatus), default=QueueStatus.PENDING, nullable=False)

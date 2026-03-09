@@ -22,12 +22,13 @@ class QueueService:
         """
         self.db = db
     
-    def add_to_queue(self, collection_id: str, track_id: str) -> Optional[Queue]:
+    def add_to_queue(self, collection_id: str, session_id: str, track_id: str) -> Optional[Queue]:
         """
-        Add a track to the queue. Does not add if the track is already in the queue (pending or playing).
+        Add a track to the queue for this collection+session. Does not add if already in queue (pending or playing).
 
         Args:
             collection_id: Collection UUID
+            session_id: Session/device scope (client-provided)
             track_id: Track UUID
 
         Returns:
@@ -35,6 +36,7 @@ class QueueService:
         """
         existing = self.db.query(Queue).filter(
             Queue.collection_id == collection_id,
+            Queue.session_id == session_id,
             Queue.track_id == track_id,
             Queue.status.in_([QueueStatus.PENDING, QueueStatus.PLAYING])
         ).first()
@@ -42,10 +44,11 @@ class QueueService:
             logger.debug(f"Track {track_id} already in queue for collection {collection_id}, skipping duplicate")
             return None
 
-        # Get the maximum position value from pending/playing tracks
+        # Get the maximum position value from pending/playing tracks for this session
         from sqlalchemy import func
         max_position_result = self.db.query(func.max(Queue.position)).filter(
             Queue.collection_id == collection_id,
+            Queue.session_id == session_id,
             Queue.status.in_([QueueStatus.PENDING, QueueStatus.PLAYING])
         ).scalar()
 
@@ -54,6 +57,7 @@ class QueueService:
 
         queue_item = Queue(
             collection_id=collection_id,
+            session_id=session_id,
             track_id=track_id,
             position=max_position + 1,
             status=QueueStatus.PENDING
@@ -65,53 +69,35 @@ class QueueService:
         logger.info(f"Added track {track_id} to queue at position {queue_item.position}")
         return queue_item
     
-    def add_album_to_queue(self, collection_id: str, track_ids: List[str]) -> int:
+    def add_album_to_queue(self, collection_id: str, session_id: str, track_ids: List[str]) -> int:
         """
-        Add multiple tracks (album) to queue
-        
-        Args:
-            collection_id: Collection UUID
-            track_ids: List of track UUIDs
-            
-        Returns:
-            Number of tracks added
+        Add multiple tracks (album) to queue for this collection+session.
         """
         count = 0
         for track_id in track_ids:
-            if self.add_to_queue(collection_id, track_id):
+            if self.add_to_queue(collection_id, session_id, track_id):
                 count += 1
         return count
-    
-    def get_queue(self, collection_id: str, include_played: bool = False) -> List[Queue]:
+
+    def get_queue(self, collection_id: str, session_id: str, include_played: bool = False) -> List[Queue]:
         """
-        Get queue for a collection
-        
-        Args:
-            collection_id: Collection UUID
-            include_played: Whether to include played items
-            
-        Returns:
-            List of Queue instances ordered by position
+        Get queue for a collection + session.
         """
-        query = self.db.query(Queue).filter(Queue.collection_id == collection_id)
-        
+        query = self.db.query(Queue).filter(
+            Queue.collection_id == collection_id,
+            Queue.session_id == session_id,
+        )
         if not include_played:
             query = query.filter(Queue.status.in_([QueueStatus.PENDING, QueueStatus.PLAYING]))
-        
         return query.order_by(Queue.position).all()
-    
-    def get_next_track(self, collection_id: str) -> Optional[Queue]:
+
+    def get_next_track(self, collection_id: str, session_id: str) -> Optional[Queue]:
         """
-        Get next pending track in queue
-        
-        Args:
-            collection_id: Collection UUID
-            
-        Returns:
-            Next Queue item or None if queue is empty
+        Get next pending track in queue for this collection+session.
         """
         return self.db.query(Queue).filter(
             Queue.collection_id == collection_id,
+            Queue.session_id == session_id,
             Queue.status == QueueStatus.PENDING
         ).order_by(Queue.position).first()
     
@@ -150,83 +136,50 @@ class QueueService:
             return queue_item
         return None
     
-    def remove_from_queue(self, queue_id: str) -> bool:
-        """
-        Remove a track from queue
-        
-        Args:
-            queue_id: Queue UUID
-            
-        Returns:
-            True if removed, False if not found
-        """
-        queue_item = self.db.query(Queue).filter(Queue.id == queue_id).first()
+    def remove_from_queue(self, queue_id: str, session_id: str) -> bool:
+        """Remove a track from queue. Queue item must belong to this session."""
+        queue_item = self.db.query(Queue).filter(Queue.id == queue_id, Queue.session_id == session_id).first()
         if queue_item:
             collection_id = queue_item.collection_id
             self.db.delete(queue_item)
-            
-            # Reorder remaining items
-            self._reorder_queue(collection_id)
+            self._reorder_queue(collection_id, session_id)
             self.db.commit()
             return True
         return False
-    
-    def clear_queue(self, collection_id: str, clear_played: bool = True) -> int:
-        """
-        Clear queue for a collection
-        
-        Args:
-            collection_id: Collection UUID
-            clear_played: Whether to also clear played items
-            
-        Returns:
-            Number of items removed
-        """
-        query = self.db.query(Queue).filter(Queue.collection_id == collection_id)
-        
+
+    def clear_queue(self, collection_id: str, session_id: str, clear_played: bool = True) -> int:
+        """Clear queue for a collection + session."""
+        query = self.db.query(Queue).filter(
+            Queue.collection_id == collection_id,
+            Queue.session_id == session_id,
+        )
         if not clear_played:
             query = query.filter(Queue.status.in_([QueueStatus.PENDING, QueueStatus.PLAYING]))
-        
         count = query.count()
         query.delete()
         self.db.commit()
-        
-        logger.info(f"Cleared {count} items from queue for collection {collection_id}")
+        logger.info(f"Cleared {count} items from queue for collection {collection_id} session {session_id}")
         return count
-    
-    def _reorder_queue(self, collection_id: str):
-        """
-        Reorder queue positions after removal
 
-        Args:
-            collection_id: Collection UUID
-        """
+    def _reorder_queue(self, collection_id: str, session_id: str) -> None:
+        """Reorder queue positions after removal for this collection+session."""
         queue_items = self.db.query(Queue).filter(
             Queue.collection_id == collection_id,
+            Queue.session_id == session_id,
             Queue.status.in_([QueueStatus.PENDING, QueueStatus.PLAYING])
         ).order_by(Queue.position).all()
-
         for index, item in enumerate(queue_items, start=1):
             item.position = index
 
-    def reorder_queue(self, collection_id: str, ordered_queue_ids: List[str]) -> bool:
-        """
-        Set queue order from a list of queue item IDs (playing + pending only).
-        Each ID must belong to this collection. Positions are assigned 1-based by list index.
-
-        Args:
-            collection_id: Collection UUID
-            ordered_queue_ids: Queue item IDs in desired order (including currently playing)
-
-        Returns:
-            True if reorder succeeded, False if any ID not found or wrong collection
-        """
+    def reorder_queue(self, collection_id: str, session_id: str, ordered_queue_ids: List[str]) -> bool:
+        """Set queue order from a list of queue item IDs. All IDs must belong to this collection+session."""
         if not ordered_queue_ids:
             return True
         items = (
             self.db.query(Queue)
             .filter(
                 Queue.collection_id == collection_id,
+                Queue.session_id == session_id,
                 Queue.id.in_(ordered_queue_ids),
                 Queue.status.in_([QueueStatus.PENDING, QueueStatus.PLAYING]),
             )

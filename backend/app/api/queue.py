@@ -8,6 +8,7 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 from app.database import get_db
+from app.deps import get_session_id
 
 logger = logging.getLogger(__name__)
 
@@ -94,9 +95,10 @@ def _resolve_collection_id(collection_service: CollectionService, collection: st
 def get_queue(
     collection: str = Query(..., description="Collection slug"),
     user_slug: str | None = Query(None, description="Owner user slug (for /:user_slug/:collection_slug)"),
+    session_id: str = Depends(get_session_id),
     db: Session = Depends(get_db),
 ):
-    """Get current queue for a collection"""
+    """Get current queue for a collection + session"""
     try:
         collection_service = CollectionService(db)
         queue_service = QueueService(db)
@@ -104,7 +106,7 @@ def get_queue(
         album_service = AlbumService(db)
 
         collection_id = _resolve_collection_id(collection_service, collection, user_slug)
-        queue_items = queue_service.get_queue(collection_id, include_played=False)
+        queue_items = queue_service.get_queue(collection_id, session_id, include_played=False)
         response = []
         for item in queue_items:
             try:
@@ -172,8 +174,12 @@ def get_queue(
 
 
 @router.post("")
-def add_to_queue(request: AddToQueueRequest, db: Session = Depends(get_db)):
-    """Add track(s) to queue by album and track number"""
+def add_to_queue(
+    request: AddToQueueRequest,
+    session_id: str = Depends(get_session_id),
+    db: Session = Depends(get_db),
+):
+    """Add track(s) to queue by album and track number (per session)"""
     collection_service = CollectionService(db)
     queue_service = QueueService(db)
     album_service = AlbumService(db)
@@ -182,7 +188,6 @@ def add_to_queue(request: AddToQueueRequest, db: Session = Depends(get_db)):
     collection_id = _resolve_collection_id(collection_service, request.collection, request.user_slug)
     all_collection_id = "00000000-0000-0000-0000-000000000000"
 
-    # When "all" collection: albums come from get_all_albums (no per-user filter for now)
     if collection_id == all_collection_id:
         all_albums = album_service.get_all_albums(limit=10000)
         if request.album_number < 1 or request.album_number > len(all_albums):
@@ -191,52 +196,51 @@ def add_to_queue(request: AddToQueueRequest, db: Session = Depends(get_db)):
         if request.track_number == 0:
             tracks_all = track_service.get_tracks_by_album(album.id, enabled_only=False)
             track_ids = [t.id for t in tracks_all if not getattr(t, "archived", False)]
-            count = queue_service.add_album_to_queue(collection_id, track_ids)
+            count = queue_service.add_album_to_queue(collection_id, session_id, track_ids)
             return {"message": f"Added {count} tracks to queue", "count": count}
         tracks = track_service.get_tracks_by_album(album.id)
         if request.track_number < 1 or request.track_number > len(tracks):
             raise HTTPException(status_code=404, detail=f"Track {request.track_number} not found in album {request.album_number}")
         track = tracks[request.track_number - 1]
-        queue_item = queue_service.add_to_queue(collection_id, track.id)
+        queue_item = queue_service.add_to_queue(collection_id, session_id, track.id)
         if not queue_item:
             return {"message": "Already in queue", "already_queued": True}
         return {"message": "Track added to queue", "queue_id": queue_item.id}
 
-    # Get albums in collection (collection_id already resolved above)
     albums = collection_service.get_collection_albums(collection_id, include_tracks=True)
-    
-    # Find album by display number
     album = next((a for a in albums if a['display_number'] == request.album_number), None)
     if not album:
         raise HTTPException(
             status_code=404,
             detail=f"Album number {request.album_number} not found in collection '{request.collection}'"
         )
-    
-    # If track_number is 0, add all tracks from album (including hidden, excluding archived)
+
     if request.track_number == 0:
         tracks_all = track_service.get_tracks_by_album(album['id'], enabled_only=False)
         track_ids = [t.id for t in tracks_all if not getattr(t, 'archived', False)]
-        count = queue_service.add_album_to_queue(collection_id, track_ids)
+        count = queue_service.add_album_to_queue(collection_id, session_id, track_ids)
         return {"message": f"Added {count} tracks to queue", "count": count}
-    
-    # Otherwise, add specific track by display position (1-indexed)
+
     tracks = album.get('tracks', [])
     if request.track_number < 1 or request.track_number > len(tracks):
         raise HTTPException(
             status_code=404,
             detail=f"Track {request.track_number} not found in album {request.album_number} (album has {len(tracks)} visible tracks)"
         )
-    
+
     track = tracks[request.track_number - 1]
-    queue_item = queue_service.add_to_queue(collection_id, track['id'])
+    queue_item = queue_service.add_to_queue(collection_id, session_id, track['id'])
     if not queue_item:
         return {"message": "Already in queue", "already_queued": True}
     return {"message": "Track added to queue", "queue_id": queue_item.id}
 
 
 @router.post("/add-favorites-random")
-def add_favorites_random(request: AddFavoritesRandomRequest, db: Session = Depends(get_db)):
+def add_favorites_random(
+    request: AddFavoritesRandomRequest,
+    session_id: str = Depends(get_session_id),
+    db: Session = Depends(get_db),
+):
     """Add up to count random tracks from the collection to the queue based on mode.
 
     Modes:
@@ -315,7 +319,7 @@ def add_favorites_random(request: AddFavoritesRandomRequest, db: Session = Depen
 
     # ── remove already-queued tracks ──────────────────────────────────────────
 
-    queue_items = queue_service.get_queue(collection_id_for_queue, include_played=False)
+    queue_items = queue_service.get_queue(collection_id_for_queue, session_id, include_played=False)
     queued_track_ids = {item.track_id for item in queue_items}
 
     avail_section = [tid for tid in section_track_ids if tid not in queued_track_ids]
@@ -323,18 +327,15 @@ def add_favorites_random(request: AddFavoritesRandomRequest, db: Session = Depen
     random.shuffle(avail_section)
     random.shuffle(avail_other)
 
-    # Prioritise section tracks, fill remainder from the rest of the collection
     to_add = avail_section[:count]
     section_ids_set = set(section_track_ids)
     if len(to_add) < count:
         to_add += avail_other[:count - len(to_add)]
 
-    # ── add to queue ──────────────────────────────────────────────────────────
-
     added = 0
     added_from_section = 0
     for track_id in to_add:
-        if queue_service.add_to_queue(collection_id_for_queue, track_id):
+        if queue_service.add_to_queue(collection_id_for_queue, session_id, track_id):
             added += 1
             if track_id in section_ids_set:
                 added_from_section += 1
@@ -389,15 +390,16 @@ def add_favorites_random(request: AddFavoritesRandomRequest, db: Session = Depen
 def reorder_queue(
     collection: str = Query(..., description="Collection slug"),
     user_slug: str | None = Query(None),
+    session_id: str = Depends(get_session_id),
     body: ReorderQueueRequest = ...,
     db: Session = Depends(get_db),
 ):
-    """Reorder queue by providing queue item IDs in the desired order (including currently playing)."""
+    """Reorder queue by providing queue item IDs (including currently playing). Queue must belong to this session."""
     collection_service = CollectionService(db)
     queue_service = QueueService(db)
     collection_id = _resolve_collection_id(collection_service, collection, user_slug)
 
-    if not queue_service.reorder_queue(collection_id, body.queue_ids):
+    if not queue_service.reorder_queue(collection_id, session_id, body.queue_ids):
         raise HTTPException(
             status_code=400,
             detail="Reorder failed: one or more queue IDs not found or not in this collection",
@@ -406,13 +408,15 @@ def reorder_queue(
 
 
 @router.delete("/{queue_id}")
-def remove_from_queue(queue_id: str, db: Session = Depends(get_db)):
-    """Remove a track from the queue"""
+def remove_from_queue(
+    queue_id: str,
+    session_id: str = Depends(get_session_id),
+    db: Session = Depends(get_db),
+):
+    """Remove a track from the queue (must belong to this session)."""
     queue_service = QueueService(db)
-    
-    if not queue_service.remove_from_queue(queue_id):
+    if not queue_service.remove_from_queue(queue_id, session_id):
         raise HTTPException(status_code=404, detail=f"Queue item '{queue_id}' not found")
-    
     return {"message": "Track removed from queue"}
 
 
@@ -420,11 +424,12 @@ def remove_from_queue(queue_id: str, db: Session = Depends(get_db)):
 def clear_queue(
     collection: str = Query(..., description="Collection slug"),
     user_slug: str | None = Query(None),
+    session_id: str = Depends(get_session_id),
     db: Session = Depends(get_db),
 ):
-    """Clear the queue for a collection"""
+    """Clear the queue for this collection + session."""
     collection_service = CollectionService(db)
     queue_service = QueueService(db)
     collection_id = _resolve_collection_id(collection_service, collection, user_slug)
-    count = queue_service.clear_queue(collection_id, clear_played=True)
+    count = queue_service.clear_queue(collection_id, session_id, clear_played=True)
     return {"message": f"Cleared {count} items from queue", "count": count}

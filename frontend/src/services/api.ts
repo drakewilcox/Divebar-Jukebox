@@ -19,9 +19,39 @@ const api = axios.create({
   },
 });
 
+const SESSION_STORAGE_KEY = 'jukebox_session_id';
+
+/** Generate a UUID v4–style id. Uses crypto.randomUUID() when available, else crypto.getRandomValues() or a random string. */
+function generateSessionId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    bytes[6] = (bytes[6]! & 0x0f) | 0x40;
+    bytes[8] = (bytes[8]! & 0x3f) | 0x80;
+    const hex = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  }
+  return `s${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 15)}`;
+}
+
+/** Get or create a device/session id (persisted in localStorage). One per browser profile; used for per-session queue and playback. */
+export function getOrCreateSessionId(): string {
+  if (typeof localStorage === 'undefined') return 'legacy';
+  let sid = localStorage.getItem(SESSION_STORAGE_KEY);
+  if (!sid || !sid.trim()) {
+    sid = generateSessionId();
+    localStorage.setItem(SESSION_STORAGE_KEY, sid);
+  }
+  return sid;
+}
+
 api.interceptors.request.use((config) => {
   const token = useAuthStore.getState().token;
   if (token) config.headers.Authorization = `Bearer ${token}`;
+  config.headers['X-Session-Id'] = getOrCreateSessionId();
   return config;
 });
 

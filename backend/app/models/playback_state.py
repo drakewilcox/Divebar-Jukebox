@@ -1,5 +1,5 @@
 """Playback State model"""
-from sqlalchemy import Column, String, Integer, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, String, Integer, Boolean, DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from datetime import datetime
@@ -9,12 +9,14 @@ from app.database import Base
 
 
 class PlaybackState(Base):
-    """PlaybackState model representing current playback state for a collection"""
+    """PlaybackState model representing current playback state per collection + session"""
     
     __tablename__ = "playback_state"
+    __table_args__ = (UniqueConstraint("collection_id", "session_id", name="uq_playback_state_collection_session"),)
     
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    collection_id = Column(String, ForeignKey("collections.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
+    collection_id = Column(String, ForeignKey("collections.id", ondelete="CASCADE"), nullable=False, index=True)
+    session_id = Column(String, nullable=False, index=True)  # Device/session scope (client-provided)
     current_track_id = Column(String, ForeignKey("tracks.id", ondelete="SET NULL"), nullable=True)
     is_playing = Column(Boolean, default=False)
     current_position_ms = Column(Integer, default=0)  # Current position in milliseconds

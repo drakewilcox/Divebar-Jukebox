@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from app.database import get_db
+from app.deps import get_session_id
 
 logger = logging.getLogger(__name__)
 from app.services.playback_service import PlaybackService
@@ -87,16 +88,17 @@ def _safe_selection_display(sel: tuple) -> str | None:
 def get_playback_state(
     collection: str = Query(..., description="Collection slug"),
     user_slug: Optional[str] = Query(None),
+    session_id: str = Depends(get_session_id),
     db: Session = Depends(get_db),
 ):
-    """Get current playback state for a collection"""
+    """Get current playback state for a collection + session"""
     try:
         collection_service = CollectionService(db)
         playback_service = PlaybackService(db)
         track_service = TrackService(db)
         album_service = AlbumService(db)
         collection_id = _resolve_collection_id(collection_service, collection, user_slug)
-        state = playback_service.get_or_create_playback_state(collection_id)
+        state = playback_service.get_or_create_playback_state(collection_id, session_id)
         cid = str(state.collection_id) if state.collection_id is not None else collection_id
 
         # Current track display: use only database-saved values (track/album rows), not file metadata
@@ -174,62 +176,86 @@ def get_playback_state(
 
 
 @router.post("/play")
-def play(request: PlaybackControlRequest, db: Session = Depends(get_db)):
-    """Start or resume playback"""
+def play(
+    request: PlaybackControlRequest,
+    session_id: str = Depends(get_session_id),
+    db: Session = Depends(get_db),
+):
+    """Start or resume playback for this session"""
     collection_service = CollectionService(db)
     playback_service = PlaybackService(db)
     collection_id = _resolve_collection_id(collection_service, request.collection, request.user_slug)
-    state = playback_service.play(collection_id)
+    state = playback_service.play(collection_id, session_id)
     return {"message": "Playback started", "is_playing": state.is_playing if state else False}
 
 
 @router.post("/pause")
-def pause(request: PlaybackControlRequest, db: Session = Depends(get_db)):
-    """Pause playback"""
+def pause(
+    request: PlaybackControlRequest,
+    session_id: str = Depends(get_session_id),
+    db: Session = Depends(get_db),
+):
+    """Pause playback for this session"""
     collection_service = CollectionService(db)
     playback_service = PlaybackService(db)
     collection_id = _resolve_collection_id(collection_service, request.collection, request.user_slug)
-    playback_service.pause(collection_id)
+    playback_service.pause(collection_id, session_id)
     return {"message": "Playback paused"}
 
 
 @router.post("/stop")
-def stop(request: PlaybackControlRequest, db: Session = Depends(get_db)):
-    """Stop playback"""
+def stop(
+    request: PlaybackControlRequest,
+    session_id: str = Depends(get_session_id),
+    db: Session = Depends(get_db),
+):
+    """Stop playback for this session"""
     collection_service = CollectionService(db)
     playback_service = PlaybackService(db)
     collection_id = _resolve_collection_id(collection_service, request.collection, request.user_slug)
-    playback_service.stop(collection_id)
+    playback_service.stop(collection_id, session_id)
     return {"message": "Playback stopped"}
 
 
 @router.post("/skip")
-def skip(request: PlaybackControlRequest, db: Session = Depends(get_db)):
-    """Skip to next track"""
+def skip(
+    request: PlaybackControlRequest,
+    session_id: str = Depends(get_session_id),
+    db: Session = Depends(get_db),
+):
+    """Skip to next track for this session"""
     collection_service = CollectionService(db)
     playback_service = PlaybackService(db)
     collection_id = _resolve_collection_id(collection_service, request.collection, request.user_slug)
-    state = playback_service.skip(collection_id)
+    state = playback_service.skip(collection_id, session_id)
     return {"message": "Skipped to next track", "current_track_id": state.current_track_id if state else None}
 
 
 @router.post("/position")
-def update_position(request: UpdatePositionRequest, db: Session = Depends(get_db)):
-    """Update current playback position"""
+def update_position(
+    request: UpdatePositionRequest,
+    session_id: str = Depends(get_session_id),
+    db: Session = Depends(get_db),
+):
+    """Update current playback position for this session"""
     collection_service = CollectionService(db)
     playback_service = PlaybackService(db)
     collection_id = _resolve_collection_id(collection_service, request.collection, request.user_slug)
-    state = playback_service.update_position(collection_id, request.position_ms)
+    state = playback_service.update_position(collection_id, session_id, request.position_ms)
     return {"message": "Position updated", "position_ms": state.current_position_ms if state else 0}
 
 
 @router.post("/volume")
-def set_volume(request: SetVolumeRequest, db: Session = Depends(get_db)):
-    """Set playback volume"""
+def set_volume(
+    request: SetVolumeRequest,
+    session_id: str = Depends(get_session_id),
+    db: Session = Depends(get_db),
+):
+    """Set playback volume for this session"""
     collection_service = CollectionService(db)
     playback_service = PlaybackService(db)
     collection_id = _resolve_collection_id(collection_service, request.collection, request.user_slug)
-    state = playback_service.set_volume(collection_id, request.volume)
+    state = playback_service.set_volume(collection_id, session_id, request.volume)
     return {"message": "Volume updated", "volume": state.volume if state else 70}
 
 
@@ -243,13 +269,14 @@ class NextTransitionResponse(BaseModel):
 def get_next_transition(
     collection: str = Query(..., description="Collection slug"),
     user_slug: Optional[str] = Query(None),
+    session_id: str = Depends(get_session_id),
     db: Session = Depends(get_db),
 ):
-    """Get next track id, replaygain, and whether to apply crossfade (false when next is consecutive on same album)."""
+    """Get next track id, replaygain, and whether to apply crossfade for this session."""
     playback_service = PlaybackService(db)
     collection_service = CollectionService(db)
     collection_id = _resolve_collection_id(collection_service, collection, user_slug)
-    next_id, replaygain, apply_crossfade = playback_service.get_next_transition(collection_id)
+    next_id, replaygain, apply_crossfade = playback_service.get_next_transition(collection_id, session_id)
     return NextTransitionResponse(
         next_track_id=next_id,
         next_replaygain_db=replaygain,

@@ -50,6 +50,7 @@ export default function JukeboxPage() {
     return (
       <div className={styles['page-message']}>
         <p>Loading collection…</p>
+        <p>Please note, this deployed version of the application is only a demo, and initial load may take 30 - 60 seconds.</p>
       </div>
     );
   }

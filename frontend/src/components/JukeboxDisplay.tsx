@@ -203,9 +203,9 @@ export default function JukeboxDisplay({ collection, collections, onCollectionCh
         />
       )}
       <div className={styles['jukebox-display']}>
-        {isLoading && albumsToShow.length === 0 && (
+        {/* {isLoading && albumsToShow.length === 0 && (
         <div className={styles['jukebox-loading']}>Loading albums...</div>
-      )}
+      )} */}
       <div className={styles['jukebox-main']}>
         <div className={styles['jukebox-carousel-row']}>
           <div className={styles['jukebox-carousel-wrap']}>
